@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<UserSecretsId>c557bb05-8075-4842-a160-073cbb79e238</UserSecretsId>
+	</PropertyGroup>
+
+	<ItemGroup>
+
+		<PackageReference Include="EFCore.NamingConventions" Version="9.0.0"/>
+
+		<PackageReference Include="JetBrains.Annotations" Version="2024.3.0"/>
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.2"/>
+		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions" Version="2.3.0"/>
+		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.2"/>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.2">
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+			<PrivateAssets>all</PrivateAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.2"/>
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.2"/>
+		<PackageReference Include="Scalar.AspNetCore" Version="2.0.26"/>
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.2.0"/>
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen" Version="7.2.0"/>
+		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI" Version="7.2.0"/>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Include="..\.dockerignore">
+			<Link>.dockerignore</Link>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\Grimoire.Application\Grimoire.Application.csproj"/>
+		<ProjectReference Include="..\Grimoire.Infrastructure\Grimoire.Infrastructure.csproj"/>
+	</ItemGroup>
+
+</Project>
