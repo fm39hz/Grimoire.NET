@@ -1,5 +1,7 @@
 namespace Grimoire.Domain.Entity.Book;
 
+using Metadata;
+
 /// <summary>
 ///     Represents a volume within a series
 /// </summary>

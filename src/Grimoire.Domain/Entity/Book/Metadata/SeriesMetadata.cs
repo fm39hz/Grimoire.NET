@@ -1,4 +1,6 @@
-namespace Grimoire.Domain.Entity.Book;
+namespace Grimoire.Domain.Entity.Book.Metadata;
+
+using Segment;
 
 /// <summary>
 ///     Represents the strongly-typed metadata for a book series.
@@ -22,7 +24,7 @@ public sealed record SeriesMetadata : BaseModel {
 	/// <summary>
 	///     Gets or sets the description of the series.
 	/// </summary>
-	public ICollection<TextSegment> Description { get; init; } = [];
+	public ICollection<TextSegmentModel> Description { get; init; } = [];
 
 	/// <summary>
 	///     Gets or sets the URL of the cover image for the series.

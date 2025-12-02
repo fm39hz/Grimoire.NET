@@ -1,4 +1,4 @@
-namespace Grimoire.Domain.Entity.Book;
+namespace Grimoire.Domain.Entity.Book.Segment;
 
 using System.Text.Json.Serialization;
 

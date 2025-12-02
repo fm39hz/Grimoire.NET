@@ -1,5 +1,7 @@
 namespace Grimoire.Domain.Entity.Book;
 
+using Metadata;
+
 /// <summary>
 ///     Represents a book series (e.g., a manga series)
 /// </summary>

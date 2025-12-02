@@ -1,9 +1,9 @@
-namespace Grimoire.Domain.Entity.Book;
+namespace Grimoire.Domain.Entity.Book.Segment;
 
 /// <summary>
 ///     Represents an image segment within a chapter.
 /// </summary>
-public sealed record ImageSegment : Segment {
+public sealed record ImageSegmentModel : SegmentModel {
 	/// <summary>
 	///     Gets or sets the asset key (MinIO path) for the image.
 	/// </summary>

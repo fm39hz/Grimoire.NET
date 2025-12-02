@@ -1,4 +1,4 @@
-namespace Grimoire.Domain.Entity.Book;
+namespace Grimoire.Domain.Entity.Book.Metadata;
 
 /// <summary>
 ///     Represents the strongly-typed metadata for a volume within a series.

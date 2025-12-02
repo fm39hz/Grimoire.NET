@@ -1,7 +1,7 @@
 namespace Grimoire.Domain.Entity.Book;
 
 /// <summary>
-///     Represents an asset (file) stored in MinIO
+///     Represents an asset (file) stored in S3 Compatible
 /// </summary>
 public record AssetModel : BaseModel {
 	/// <summary>
@@ -17,7 +17,7 @@ public record AssetModel : BaseModel {
 	/// <summary>
 	///     MinIO path/key for the asset
 	/// </summary>
-	public required string MinioPath { get; init; }
+	public required string Path { get; init; }
 
 	/// <summary>
 	///     MD5/SHA256 hash of the file for deduplication

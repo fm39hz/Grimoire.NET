@@ -27,5 +27,5 @@ public record ChapterModel : BaseModel {
 	/// <summary>
 	///     Content of the chapter, composed of various segments.
 	/// </summary>
-	public List<Segment> Content { get; init; } = [];
+	public List<SegmentModel> Content { get; init; } = [];
 }

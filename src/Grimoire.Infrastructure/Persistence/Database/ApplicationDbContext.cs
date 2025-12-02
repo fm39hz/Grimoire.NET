@@ -2,6 +2,7 @@ namespace Grimoire.Infrastructure.Persistence.Database;
 
 using System.Text.Json;
 using Domain.Entity.Book;
+using Domain.Entity.Book.Segment;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,11 +19,11 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 
-		var contentComparer = new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<Segment>>(
+		var contentComparer = new Microsoft.EntityFrameworkCore.ChangeTracking.ValueComparer<List<SegmentModel>>(
 			(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions.Default) ==
 						JsonSerializer.Serialize(c2, JsonOptions.Default),
 			c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-			c => JsonSerializer.Deserialize<List<Segment>>(JsonSerializer.Serialize(c, JsonOptions.Default),
+			c => JsonSerializer.Deserialize<List<SegmentModel>>(JsonSerializer.Serialize(c, JsonOptions.Default),
 				JsonOptions.Default)!
 			);
 
@@ -32,7 +33,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasColumnType("jsonb")
 				.HasConversion(
 					v => JsonSerializer.Serialize(v, JsonOptions.Default),
-					v => JsonSerializer.Deserialize<List<Segment>>(v, JsonOptions.Default) ?? new List<Segment>()
+					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonOptions.Default) ?? new List<SegmentModel>()
 					)
 				.Metadata.SetValueComparer(contentComparer);
 		});
@@ -44,8 +45,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				metaBuilder.Property(m => m.Description)
 					.HasConversion(
 						v => JsonSerializer.Serialize(v, JsonOptions.Default),
-						v => JsonSerializer.Deserialize<List<TextSegment>>(v, JsonOptions.Default) ??
-							new List<TextSegment>()
+						v => JsonSerializer.Deserialize<List<TextSegmentModel>>(v, JsonOptions.Default) ??
+							new List<TextSegmentModel>()
 						);
 			});
 		});
