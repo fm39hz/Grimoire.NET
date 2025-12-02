@@ -8,7 +8,7 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	protected DbSet<T> Entities => context.Set<T>();
 	public virtual async Task<T?> FindOne(Guid id) => await Entities.FirstOrDefaultAsync(entity => entity.Id == id);
 
-	public async Task<IEnumerable<T>> FindAll() => await Entities.ToListAsync();
+	public virtual async Task<IEnumerable<T>> FindAll() => await Entities.ToListAsync();
 
 	public async Task<T> Create(T entity) {
 		var result = Entities.Add(entity);
