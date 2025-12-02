@@ -22,7 +22,7 @@ public sealed record SeriesMetadata : BaseModel {
 	/// <summary>
 	///     Gets or sets the description of the series.
 	/// </summary>
-	public string Description { get; init; } = string.Empty;
+	public TextSegment Description { get; init; } = new();
 
 	/// <summary>
 	///     Gets or sets the URL of the cover image for the series.

@@ -13,4 +13,4 @@ public sealed record TextRun(
 	bool IsItalic = false,
 	[property : JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	string? FootnoteId = null
-	);
+	) : BaseModel;
