@@ -24,7 +24,7 @@ public sealed record SeriesMetadata : BaseModel {
 	/// <summary>
 	///     Gets or sets the description of the series.
 	/// </summary>
-	public ICollection<TextSegmentModel> Description { get; init; } = [];
+	public List<TextSegmentModel> Description { get; init; } = [];
 
 	/// <summary>
 	///     Gets or sets the URL of the cover image for the series.
