@@ -11,5 +11,5 @@ public abstract record BaseModel : IModel {
 	}
 
 	[DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-	public Guid Id { get; init; }
+	public Guid Id { get; init; } = Guid.CreateVersion7();
 }
