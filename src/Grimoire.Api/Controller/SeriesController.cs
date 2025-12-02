@@ -19,8 +19,8 @@ public sealed class SeriesController(ISeriesService service)
 	[HttpGet]
 	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination) {
 		var series = await service.FindAll();
-		var dtos = series.Select(s => new SeriesResponseDto(s));
-		return Results.Ok(dtos);
+		var dto = series.Select(s => new SeriesResponseDto(s));
+		return Results.Ok(dto);
 	}
 
 	[HttpPost]
