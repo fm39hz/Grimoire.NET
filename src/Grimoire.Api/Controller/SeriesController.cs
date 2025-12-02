@@ -8,8 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
-public sealed class SeriesController(ISeriesService service)
-	: ControllerBase {
+public sealed class SeriesController(ISeriesService service) : ControllerBase {
 	[HttpGet("{id:guid}")]
 	public async Task<IResult> FindOne(Guid id) {
 		var series = await service.FindOne(id);

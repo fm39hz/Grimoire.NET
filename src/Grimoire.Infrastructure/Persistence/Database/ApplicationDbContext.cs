@@ -40,7 +40,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasColumnType("jsonb")
 				.HasConversion(
 					v => JsonSerializer.Serialize(v, JsonOptions.Default),
-					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonOptions.Default) ?? new List<SegmentModel>()
+					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonOptions.Default) ??
+						new List<SegmentModel>()
 					)
 				.Metadata.SetValueComparer(contentComparer);
 		});
