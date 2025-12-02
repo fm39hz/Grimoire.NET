@@ -1,6 +1,6 @@
 # Grimoire.NET Makefile
 
-.PHONY: build run db-up db-down clean help
+.PHONY: build run debug db-up db-down db-clear clean help
 
 # Default target
 help: ## Show this help message
@@ -9,8 +9,10 @@ help: ## Show this help message
 	@echo "Usage:"
 	@echo "  make build     - Build the application"
 	@echo "  make run       - Run the application"
+	@echo "  make debug     - Debug the application"
 	@echo "  make db-up     - Start PostgreSQL database with Docker"
 	@echo "  make db-down   - Stop PostgreSQL database"
+	@echo "  make db-clear - Clear database and stop PostgreSQL database"
 	@echo "  make clean     - Clean build artifacts"
 	@echo ""
 
@@ -19,6 +21,10 @@ build: ## Build the application
 
 run: ## Run the application
 	dotnet run --project src/Grimoire.Api
+
+debug: db-clear db-up ## Run the application
+	clear
+	dotnet watch --project src/Grimoire.Api
 
 db-up: ## Start PostgreSQL database with Docker
 	docker run --name grimoire-db \
@@ -34,6 +40,12 @@ db-down: ## Stop PostgreSQL database
 	docker stop grimoire-db || true
 	docker rm grimoire-db || true
 	@echo "PostgreSQL database stopped and removed."
+
+db-clear: ## Clear database and stop PostgreSQL database
+	docker exec grimoire-db psql -U admin -d grimoire -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO admin; GRANT ALL ON SCHEMA public TO public;" || true
+	docker stop grimoire-db || true
+	docker rm grimoire-db || true
+	@echo "PostgreSQL database cleared, stopped and removed."
 
 clean: ## Clean build artifacts
 	dotnet clean
