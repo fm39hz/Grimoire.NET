@@ -36,8 +36,10 @@ public static class Program {
 				opt.Title = "Grimoire API";
 			});
 		}
+		else {
+			app.UseHttpsRedirection();
+		}
 
-		app.UseHttpsRedirection();
 		app.UseCors("AllowAll");
 		app.MapControllers();
 		await app.RunAsync();
@@ -59,12 +61,9 @@ public static class Program {
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddControllers();
 		builder.Services.AddMvc();
-
-		// Add Entity Framework DbContext
 		builder.Services.AddDbContext<ApplicationDbContext>(options =>
 			options.UseNpgsql(builder.Configuration.GetConnectionString("Postgre"))
-			       .ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
-
+				.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
 		builder.Services.AddSwaggerGen(static opt => {
 			opt.SwaggerDoc(
 				RouteConstant.VERSION,
@@ -78,8 +77,6 @@ public static class Program {
 					.AllowAnyMethod();
 			});
 		});
-
-		// Add application services
 		builder.Services.AddServices();
 
 		return builder.Build();
