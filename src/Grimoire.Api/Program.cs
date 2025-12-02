@@ -27,13 +27,10 @@ public static class Program {
 
 			app.UseSwagger();
 			app.UseSwaggerUI(static opt => {
-				opt.SwaggerEndpoint("/openapi/v1.json", "v1");
+				opt.SwaggerEndpoint($"/openapi/{RouteConstant.VERSION}.json",
+					$"{RouteConstant.PROJECT_NAME} API {RouteConstant.VERSION}");
 				opt.ConfigObject.PersistAuthorization = true;
 				opt.DisplayRequestDuration();
-			});
-			app.MapScalarApiReference(static opt => {
-				opt.Theme = ScalarTheme.DeepSpace;
-				opt.Title = "Grimoire API";
 			});
 		}
 		else {
@@ -50,7 +47,7 @@ public static class Program {
 
 		builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) => {
 			document.Servers = [
-				new OpenApiServer { Url = serverUrl, Description = "Grimoire API Server" }
+				new OpenApiServer { Url = serverUrl, Description = $"{RouteConstant.PROJECT_NAME} API Server" }
 			];
 			return Task.CompletedTask;
 		}));
@@ -67,7 +64,7 @@ public static class Program {
 		builder.Services.AddSwaggerGen(static opt => {
 			opt.SwaggerDoc(
 				RouteConstant.VERSION,
-				new OpenApiInfo { Title = "Grimoire API", Version = RouteConstant.VERSION }
+				new OpenApiInfo { Title = $"{RouteConstant.PROJECT_NAME} API", Version = RouteConstant.VERSION }
 				);
 		});
 		builder.Services.AddCors(options => {
