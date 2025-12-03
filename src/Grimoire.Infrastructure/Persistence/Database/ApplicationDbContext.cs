@@ -5,6 +5,7 @@ using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
+using EntityFramework.Exceptions.PostgreSQL;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -18,7 +19,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
 		base.OnConfiguring(optionsBuilder.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
-		optionsBuilder.UseNpgsql().UseSnakeCaseNamingConvention();
+		optionsBuilder.UseNpgsql().UseSnakeCaseNamingConvention().UseExceptionProcessor();
 	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {

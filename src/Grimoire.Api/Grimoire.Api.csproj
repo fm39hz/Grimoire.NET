@@ -12,6 +12,8 @@
 
 		<PackageReference Include="EFCore.NamingConventions"/>
 
+		<PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL" />
+
 		<PackageReference Include="JetBrains.Annotations"/>
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer"/>
 		<PackageReference Include="Microsoft.AspNetCore.Http.Abstractions"/>

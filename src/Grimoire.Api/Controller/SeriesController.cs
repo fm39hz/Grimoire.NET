@@ -3,6 +3,7 @@ namespace Grimoire.Api.Controller;
 using Application.Dto.Book;
 using Grimoire.Api.Dto;
 using Application.Service.Contract;
+using EntityFramework.Exceptions.Common;
 using Grimoire.Api.Constant;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,8 +25,13 @@ public sealed class SeriesController(ISeriesService service) : ControllerBase {
 
 	[HttpPost]
 	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto) {
-		var createdSeries = await service.Create(dto);
-		return Results.Created($"/api/v1/series/{createdSeries.Id}", new SeriesResponseDto(createdSeries));
+		try {
+			var createdSeries = await service.Create(dto);
+			return Results.Created($"{createdSeries.Id}", new SeriesResponseDto(createdSeries));
+		}
+		catch (UniqueConstraintException e) {
+			return Results.Conflict($"{e.ConstraintName} existed at {e.SchemaQualifiedTableName}");
+		}
 	}
 
 	[HttpPut("{id:guid}")]
