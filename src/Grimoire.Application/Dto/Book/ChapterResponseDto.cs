@@ -11,4 +11,5 @@ public class ChapterResponseDto(ChapterModel chapter) : IResponseDto {
     public int Order { get; init; } = chapter.Order;
     public string Title { get; init; } = chapter.Title;
     public List<SegmentModel> Content { get; init; } = chapter.Content;
+    public List<FootnoteSegmentModel> Footnotes { get; init; } = chapter.Footnotes;
 }

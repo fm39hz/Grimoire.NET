@@ -3,6 +3,7 @@ namespace Grimoire.Infrastructure.Persistence.Database;
 using System.Text.Json;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
+using Domain.Entity.Book.Segment;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -42,8 +43,17 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 					v => JsonSerializer.Serialize(v, JsonOptions.Default),
 					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonOptions.Default) ??
 						new List<SegmentModel>()
-					)
-				.Metadata.SetValueComparer(contentComparer);
+					).Metadata.SetValueComparer(contentComparer);
+
+			entity.Property(c => c.Footnotes)
+				.HasColumnType("jsonb")
+				.HasConversion(
+					v => JsonSerializer.Serialize(v, JsonOptions.Default),
+					v =>
+						JsonSerializer.Deserialize<List<FootnoteSegmentModel>>(
+							v, JsonOptions.Default) ??
+						new List<FootnoteSegmentModel>()
+					);
 		});
 		modelBuilder.Entity<SeriesModel>(entity => {
 			entity.ToTable("Series");
