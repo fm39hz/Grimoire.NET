@@ -1,7 +1,6 @@
 namespace Grimoire.Api;
 
-using System.Text.Json;
-using Domain.Constant;
+using Constant;
 using Extension;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;

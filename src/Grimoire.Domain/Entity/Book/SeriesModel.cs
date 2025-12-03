@@ -1,12 +1,10 @@
 namespace Grimoire.Domain.Entity.Book;
 
 using Metadata;
-using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 ///     Represents a book series (e.g., a manga series)
 /// </summary>
-[Index(nameof(Slug), IsUnique = true)]
 public record SeriesModel : BaseModel {
 	public SeriesModel(SeriesModel other) : base(other) {
 		Title = other.Title;

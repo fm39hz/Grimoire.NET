@@ -2,7 +2,7 @@ namespace Grimoire.Api.Middleware;
 
 using System.Reflection;
 using System.Text.Json;
-using Application.Dto.Common;
+using Grimoire.Api.Dto;
 using Microsoft.AspNetCore.Mvc;
 
 public class PaginationMiddleware(RequestDelegate next) {

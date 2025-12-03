@@ -1,4 +1,4 @@
-namespace Grimoire.Domain.Constant;
+namespace Grimoire.Api.Constant;
 
 public static class RouteConstant {
 	public const string PROJECT_NAME = "Grimoire";

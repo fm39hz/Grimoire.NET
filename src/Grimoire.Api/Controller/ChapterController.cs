@@ -1,9 +1,9 @@
 namespace Grimoire.Api.Controller;
 
 using Application.Dto.Book;
-using Application.Dto.Common;
+using Grimoire.Api.Dto;
 using Application.Service.Contract;
-using Domain.Constant;
+using Grimoire.Api.Constant;
 using Microsoft.AspNetCore.Mvc;
 using Grimoire.Domain.Entity.Book;
 

@@ -1,6 +1,6 @@
 namespace Grimoire.Api.Extension;
 
-using Domain.Constant;
+using Constant;
 using JetBrains.Annotations;
 using Microsoft.OpenApi.Models;
 

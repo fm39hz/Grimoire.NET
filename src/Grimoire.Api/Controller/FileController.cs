@@ -3,7 +3,7 @@ namespace Grimoire.Api.Controller;
 using System.Net.Mime;
 using System.Security.Cryptography;
 using Domain.Common.Repository;
-using Domain.Constant;
+using Grimoire.Api.Constant;
 using Domain.Entity.Book;
 using Microsoft.AspNetCore.Mvc;
 
