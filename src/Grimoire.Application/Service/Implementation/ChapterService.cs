@@ -61,7 +61,6 @@ public sealed class ChapterService(IChapterRepository repository) : IChapterServ
 				Type = variantDto.Type,
 				Language = variantDto.Language,
 				SourceName = variantDto.SourceName,
-				WordCount = variantDto.WordCount,
 				Content = cleanContent,
 				Footnotes = cleanFootnotes
 			});
@@ -121,11 +120,10 @@ public sealed class ChapterService(IChapterRepository repository) : IChapterServ
 			}
 
 			chapter.Variants.Add(new ChapterVariantModel {
-				ChapterId = chapter.Id, // Set the required ChapterId
+				ChapterId = chapter.Id,
 				Type = variantDto.Type,
 				Language = variantDto.Language,
 				SourceName = variantDto.SourceName,
-				WordCount = variantDto.WordCount,
 				Content = cleanContent,
 				Footnotes = cleanFootnotes
 			});

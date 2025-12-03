@@ -28,4 +28,9 @@ public record ChapterModel : BaseModel {
 	///     Collection of variants for this chapter.
 	/// </summary>
 	public ICollection<ChapterVariantModel> Variants { get; init; } = [];
+
+	/// <summary>
+	///     The total word count of the chapter, aggregated from its variants.
+	/// </summary>
+	public int WordCount => Variants.Sum(v => v.WordCount);
 }

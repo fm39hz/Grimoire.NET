@@ -7,7 +7,7 @@ public record CreateChapterVariantDto(
     VariantType Type,
     string Language,
     string? SourceName,
-    int WordCount,
+    int? WordCount,
     List<SegmentModel> Content,
     List<ImportFootnoteDto> Footnotes
 );

@@ -34,7 +34,10 @@ public record ChapterVariantModel : BaseModel {
     /// <summary>
     /// The total word count of the chapter variant.
     /// </summary>
-    public int WordCount { get; set; }
+    public int WordCount => Content
+        .OfType<TextSegmentModel>()
+        .SelectMany(ts => ts.Runs)
+        .Sum(tr => CountWords(tr.Text));
 
     /// <summary>
     /// Content of the chapter, composed of various segments.
@@ -45,4 +48,11 @@ public record ChapterVariantModel : BaseModel {
     /// A list of footnotes for this chapter variant.
     /// </summary>
     public List<FootnoteSegmentModel> Footnotes { get; set; } = [];
+
+    private static int CountWords(string text) {
+        if (string.IsNullOrWhiteSpace(text)) {
+            return 0;
+        }
+        return text.Split(new[] { ' ', '\t', '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries).Length;
+    }
 }
