@@ -24,7 +24,7 @@ public sealed class ChapterController(IChapterService service) : ControllerBase 
 
     [HttpPost]
     public async Task<IResult> Create([FromBody] ChapterRequestDto entity) {
-        var createdChapter = await service.Create(entity.ToModel());
+		var createdChapter = await service.CreateFromImportAsync(entity);
         return Results.Created($"/api/v1/chapter/{createdChapter.Id}", new ChapterResponseDto(createdChapter));
     }
 
