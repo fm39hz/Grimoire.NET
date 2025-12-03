@@ -12,10 +12,12 @@ public static class ServiceExtension {
 		service.AddScoped<ISeriesRepository, SeriesRepository>();
 		service.AddScoped<IVolumeRepository, VolumeRepository>();
 		service.AddScoped<IChapterRepository, ChapterRepository>();
+		service.AddScoped<IAssetRepository, AssetRepository>();
 
 		service.AddScoped<ISeriesService, SeriesService>();
 		service.AddScoped<IVolumeService, VolumeService>();
 		service.AddScoped<IChapterService, ChapterService>();
+
 
 		return service;
 	}

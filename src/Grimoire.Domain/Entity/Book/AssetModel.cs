@@ -15,7 +15,7 @@ public record AssetModel : BaseModel {
 	public SeriesModel? Series { get; init; }
 
 	/// <summary>
-	///     MinIO path/key for the asset
+	///     S3 path/key for the asset
 	/// </summary>
 	public required string Path { get; init; }
 

@@ -49,6 +49,7 @@ public static class Program {
 		builder.Services.AddNetworkService(builder);
 		builder.Services.AddDatabaseContext(builder);
 		builder.Services.AddServices();
+		builder.Services.AddStorage(builder.Configuration);
 
 		return builder.Build();
 	}

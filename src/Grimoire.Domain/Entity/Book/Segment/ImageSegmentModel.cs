@@ -5,7 +5,7 @@ namespace Grimoire.Domain.Entity.Book.Segment;
 /// </summary>
 public sealed record ImageSegmentModel : SegmentModel {
 	/// <summary>
-	///     Gets or sets the asset key (MinIO path) for the image.
+	///     Gets or sets the asset key (S3 path) for the image.
 	/// </summary>
 	public required string AssetKey { get; init; }
 
