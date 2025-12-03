@@ -6,8 +6,8 @@ using JetBrains.Annotations;
 
 public static class StorageExtension {
 	[UsedImplicitly]
-	public static IServiceCollection AddStorage(this IServiceCollection services, IConfiguration configuration) {
-		var storageType = configuration.GetValue<string>("Storage:Type");
+	public static IServiceCollection AddStorage(this IServiceCollection services, WebApplicationBuilder builder) {
+		var storageType = builder.Configuration.GetValue<string>("Storage:Type");
 
 		switch (storageType) {
 			case "S3":

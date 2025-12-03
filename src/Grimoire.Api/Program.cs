@@ -4,10 +4,16 @@ using Domain.Constant;
 using Extension;
 using Infrastructure.Persistence.Database;
 using Middleware;
+using Serilog;
+using Serilog.Events;
 
 public static class Program {
 	public static async Task Main(string[] args) {
 		var builder = WebApplication.CreateBuilder(args);
+		builder.Host.UseSerilog((_, lc) => lc
+			.WriteTo.Console()
+			.ReadFrom.Configuration(builder.Configuration));
+
 		var app = Build(builder);
 
 		if (app.Environment.IsDevelopment()) {
@@ -36,22 +42,38 @@ public static class Program {
 
 		app.UseCors("AllowAll");
 		app.MapControllers();
+		app.UseSerilogRequestLogging(options => {
+			options.GetLevel = (httpContext, _, ex) => {
+				var path = httpContext.Request.Path.Value;
+
+				if (string.IsNullOrEmpty(path)) {
+					return LogEventLevel.Information;
+				}
+
+				if (path.StartsWith("/openapi")) {
+					return ex != null || httpContext.Response.StatusCode >= 500
+						? LogEventLevel.Error
+						: LogEventLevel.Verbose;
+				}
+
+				return ex != null || httpContext.Response.StatusCode >= 500
+					? LogEventLevel.Error
+					: LogEventLevel.Information;
+			};
+		});
 		app.UseMiddleware<PaginationMiddleware>();
 		await app.RunAsync();
 	}
 
 	private static WebApplication Build(WebApplicationBuilder builder) {
-		builder.Services.AddLogging(static logging => logging.AddFilter(
-				"Microsoft.EntityFrameworkCore.Database.Command",
-				LogLevel.Warning)
-			);
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddControllers();
 		builder.Services.AddMvc();
+		builder.Services.AddServices();
+		builder.Services.AddLog(builder);
+		builder.Services.AddStorage(builder);
 		builder.Services.AddNetworkService(builder);
 		builder.Services.AddDatabaseContext(builder);
-		builder.Services.AddServices();
-		builder.Services.AddStorage(builder.Configuration);
 
 		return builder.Build();
 	}

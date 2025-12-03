@@ -3,11 +3,12 @@ namespace Grimoire.Api.Controller;
 using System.Net.Mime;
 using System.Security.Cryptography;
 using Domain.Common.Repository;
+using Domain.Constant;
 using Domain.Entity.Book;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route("api/file")]
+[Route(RouteConstant.CONTROLLER)]
 public class FileController(IStorageRepository storageRepository, IAssetRepository assetRepository) : ControllerBase {
 	[HttpPost("upload")]
 	public async Task<IActionResult> Upload(IFormFile file, [FromQuery] Guid seriesId) {
