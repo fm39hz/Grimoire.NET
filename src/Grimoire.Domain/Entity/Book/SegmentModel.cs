@@ -7,7 +7,8 @@ using Segment;
 ///     Base class for all content segments within a chapter.
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "$type")]
-[JsonDerivedType(typeof(TextSegmentModel), nameof(TextSegmentModel))]
-[JsonDerivedType(typeof(ImageSegmentModel), nameof(ImageSegmentModel))]
-[JsonDerivedType(typeof(DividerSegmentModel), nameof(DividerSegmentModel))]
+[JsonDerivedType(typeof(TextSegmentModel), "Text")]
+[JsonDerivedType(typeof(ImageSegmentModel), "Image")]
+[JsonDerivedType(typeof(DividerSegmentModel), "Divider")]
+[JsonDerivedType(typeof(FootnoteSegmentModel), "Footnote")]
 public abstract record SegmentModel : BaseModel;

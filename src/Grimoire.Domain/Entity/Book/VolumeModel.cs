@@ -29,7 +29,7 @@ public record VolumeModel : BaseModel {
 	/// <summary>
 	///     Strongly-typed metadata for the volume
 	/// </summary>
-	public VolumeMetadata Metadata { get; init; } = new();
+	public VolumeMetadata? Metadata { get; init; } = new();
 
 	/// <summary>
 	///     Collection of chapters in this volume

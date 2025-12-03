@@ -11,9 +11,13 @@ public static class ServiceExtension {
 	public static IServiceCollection AddServices(this IServiceCollection service) {
 		// Register repositories
 		service.AddScoped<ISeriesRepository, SeriesRepository>();
+		service.AddScoped<IVolumeRepository, VolumeRepository>();
+		service.AddScoped<IChapterRepository, ChapterRepository>();
 
 		// Register services
 		service.AddScoped<ISeriesService, SeriesService>();
+		service.AddScoped<IVolumeService, VolumeService>();
+		service.AddScoped<IChapterService, ChapterService>();
 
 		return service;
 	}
