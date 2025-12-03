@@ -8,7 +8,6 @@ using Metadata;
 public record SeriesModel : BaseModel {
 	public SeriesModel(SeriesModel other) : base(other) {
 		Title = other.Title;
-		Slug = other.Slug;
 		Metadata = other.Metadata;
 		Volumes = other.Volumes;
 		Assets = other.Assets;
@@ -18,11 +17,6 @@ public record SeriesModel : BaseModel {
 	///     Title of the series
 	/// </summary>
 	public required string Title { get; set; }
-
-	/// <summary>
-	///     URL-friendly identifier for the series.
-	/// </summary>
-	public required string Slug { get; set; }
 
 	/// <summary>
 	///     Strongly-typed metadata for the series

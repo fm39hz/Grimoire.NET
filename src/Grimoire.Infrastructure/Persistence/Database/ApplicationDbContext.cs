@@ -35,7 +35,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.Metadata.SetValueComparer(JsonConfiguration.MetadataComparer);
 			entity.HasIndex(s => s.Metadata)
 				.HasMethod("gin");
-			entity.HasIndex(s => s.Slug).IsUnique();
+			entity.HasIndex(s => s.Title).IsUnique();
 		});
 
 		modelBuilder.Entity<VolumeModel>(entity => {

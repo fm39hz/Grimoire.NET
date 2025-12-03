@@ -6,5 +6,8 @@ using System;
 
 public record CreateSeriesRequestDto(string Title, SeriesMetadata Metadata)
 	: IRequestDto<SeriesModel> {
-	public SeriesModel ToModel() => throw new NotImplementedException("Use Service.Create to handle slug generation");
+	public SeriesModel ToModel() => new() {
+		Title = Title,
+		Metadata = Metadata
+	};
 }
