@@ -7,13 +7,13 @@ using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-public static class JsonConfiguration {
+public sealed record JsonConfiguration {
 	public static readonly JsonSerializerOptions JsonOptions = new() {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-		WriteIndented = false,
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 		ReferenceHandler = ReferenceHandler.IgnoreCycles,
 		AllowOutOfOrderMetadataProperties = true,
+		WriteIndented = false,
 	};
 
 	public static readonly ValueComparer<SeriesMetadata> MetadataComparer = new(
