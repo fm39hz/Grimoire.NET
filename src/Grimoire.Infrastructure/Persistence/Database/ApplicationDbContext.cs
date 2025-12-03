@@ -16,14 +16,15 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterVariantModel> ChapterVariants { get; set; } = null!; // Added DbSet
 
-	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) =>
+	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
 		base.OnConfiguring(optionsBuilder.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
+		optionsBuilder.UseNpgsql().UseSnakeCaseNamingConvention();
+	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 
 		modelBuilder.Entity<SeriesModel>(entity => {
-			entity.ToTable("Series");
 			entity.Property(s => s.Metadata)
 				.HasColumnType("jsonb")
 				.HasConversion(
@@ -38,23 +39,19 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<VolumeModel>(entity => {
-			entity.ToTable("Volumes");
 			entity.OwnsOne(s => s.Metadata, metaBuilder => {
 				metaBuilder.ToJson();
 			});
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {
-			entity.ToTable("Chapters");
-			// Removed Content and Footnotes configuration
-			entity.HasMany(c => c.Variants) // Configure one-to-many relationship
+			entity.HasMany(c => c.Variants)
 				.WithOne(cv => cv.Chapter)
 				.HasForeignKey(cv => cv.ChapterId)
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 
-		modelBuilder.Entity<ChapterVariantModel>(entity => { // New configuration for ChapterVariantModel
-			entity.ToTable("ChapterVariants");
+		modelBuilder.Entity<ChapterVariantModel>(entity => {
 			entity.Property(cv => cv.Content)
 				.HasColumnType("jsonb")
 				.HasConversion(

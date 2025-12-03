@@ -1,14 +1,22 @@
 namespace Grimoire.Application.Dto.Common;
 
 using System.ComponentModel;
+using Microsoft.AspNetCore.Mvc;
 
 public record PaginationRequestDto {
-	[DefaultValue(1)] public int Page { get; set; } = 1;
-	[DefaultValue(10)] public int PageSize { get; set; } = 10;
-	public string? SortBy { get; set; }
-	public bool SortDescending { get; set; }
+	[FromQuery(Name = "page")]
+	[DefaultValue(1)]
+	public int Page { get; set; } = 1;
 
-	public int Skip => (Page - 1) * PageSize;
+	[FromQuery(Name = "pageSize")]
+	[DefaultValue(10)]
+	public int PageSize { get; set; } = 10;
+
+	[FromQuery(Name = "sortBy")] public string? SortBy { get; set; }
+
+	[FromQuery(Name = "sortDescending")] public bool SortDescending { get; set; }
+
+	[FromQuery(Name = "skip")] public int Skip => (Page - 1) * PageSize;
 
 	public void Validate() {
 		if (Page < 1) {

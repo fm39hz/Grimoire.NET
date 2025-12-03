@@ -1,11 +1,15 @@
 namespace Grimoire.Api;
 
+using System.Text.Json;
 using Domain.Constant;
 using Extension;
+using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
+using Microsoft.AspNetCore.Mvc.ApplicationModels;
 using Middleware;
 using Serilog;
 using Serilog.Events;
+using Transformer;
 
 public static class Program {
 	public static async Task Main(string[] args) {
@@ -67,7 +71,16 @@ public static class Program {
 
 	private static WebApplication Build(WebApplicationBuilder builder) {
 		builder.Services.AddEndpointsApiExplorer();
-		builder.Services.AddControllers();
+		builder.Services.AddControllers(options => {
+			options.Conventions.Add(new RouteTokenTransformerConvention(new KebabCaseTransformer()));
+		}).AddJsonOptions(options => {
+			options.JsonSerializerOptions.PropertyNamingPolicy = JsonConfiguration.JsonOptions.PropertyNamingPolicy;
+			options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
+			options.JsonSerializerOptions.ReferenceHandler = JsonConfiguration.JsonOptions.ReferenceHandler;
+			options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
+			options.JsonSerializerOptions.AllowOutOfOrderMetadataProperties =
+				JsonConfiguration.JsonOptions.AllowOutOfOrderMetadataProperties;
+		});
 		builder.Services.AddMvc();
 		builder.Services.AddServices();
 		builder.Services.AddLog(builder);
