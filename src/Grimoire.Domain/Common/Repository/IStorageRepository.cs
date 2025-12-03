@@ -1,7 +1,9 @@
+using Grimoire.Domain.Entity.Book;
+
 namespace Grimoire.Domain.Common.Repository;
 
 public interface IStorageRepository {
-	public Task<string> SaveFileAsync(string relativePath, Stream content, string contentType);
-	public Task<byte[]> GetFileAsync(string relativePath);
-	public Task DeleteFileAsync(string relativePath);
+	public Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType, string originalFileName, string refType);
+	public Task<byte[]> GetFileAsync(Guid assetId);
+	public Task DeleteFileAsync(Guid assetId);
 }

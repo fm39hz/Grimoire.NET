@@ -14,7 +14,7 @@ public static class StorageExtension {
 				// services.AddSingleton<IStorageRepository, S3StorageRepository>();
 				throw new NotImplementedException("S3 storage is not implemented yet.");
 			case "LocalStorage":
-				services.AddSingleton<IStorageRepository, LocalStorageRepository>();
+				services.AddScoped<IStorageRepository, LocalStorageRepository>();
 				break;
 		}
 
