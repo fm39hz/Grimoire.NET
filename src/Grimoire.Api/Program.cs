@@ -3,6 +3,7 @@ namespace Grimoire.Api;
 using Domain.Constant;
 using Extension;
 using Infrastructure.Persistence.Database;
+using Middleware;
 
 public static class Program {
 	public static async Task Main(string[] args) {
@@ -35,6 +36,7 @@ public static class Program {
 
 		app.UseCors("AllowAll");
 		app.MapControllers();
+		app.UseMiddleware<PaginationMiddleware>();
 		await app.RunAsync();
 	}
 
