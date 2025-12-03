@@ -5,6 +5,7 @@ using Application.Dto.Common;
 using Application.Service.Contract;
 using Domain.Constant;
 using Microsoft.AspNetCore.Mvc;
+using Grimoire.Domain.Entity.Book;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -39,4 +40,10 @@ public sealed class ChapterController(IChapterService service) : ControllerBase 
 		var result = await service.Delete(id);
 		return Results.Ok(result);
 	}
+
+    [HttpGet("{id:guid}/variant")]
+    public async Task<IResult> FindVariantsByChapterId(Guid id, [FromQuery] VariantType[]? type) {
+        var variants = await service.GetVariantsByChapterIdAsync(id, type);
+        return Results.Ok(variants);
+    }
 }
