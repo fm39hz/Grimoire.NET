@@ -6,15 +6,6 @@ using Microsoft.Extensions.Logging;
 public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logger) : IStorageRepository {
 	private readonly string _storagePath = Path.Combine(Path.GetTempPath(), "grimoire-files");
 
-	[LoggerMessage(LogLevel.Information, "Saving file to {filePath}")]
-	static partial void LogSavingFileToFilepath(ILogger<LocalStorageRepository> logger, string filePath);
-
-	[LoggerMessage(LogLevel.Information, "Getting file from {filePath}")]
-	static partial void LogGettingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
-
-	[LoggerMessage(LogLevel.Information, "Deleting file from {filePath}")]
-	static partial void LogDeletingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
-
 	public Task<string> SaveFileAsync(string relativePath, Stream content, string contentType) {
 		var filePath = Path.Combine(_storagePath, relativePath);
 		var directory = Path.GetDirectoryName(filePath);
@@ -45,4 +36,13 @@ public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logg
 
 		return Task.CompletedTask;
 	}
+
+	[LoggerMessage(LogLevel.Information, "Saving file to {filePath}")]
+	static partial void LogSavingFileToFilepath(ILogger<LocalStorageRepository> logger, string filePath);
+
+	[LoggerMessage(LogLevel.Information, "Getting file from {filePath}")]
+	static partial void LogGettingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
+
+	[LoggerMessage(LogLevel.Information, "Deleting file from {filePath}")]
+	static partial void LogDeletingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
 }

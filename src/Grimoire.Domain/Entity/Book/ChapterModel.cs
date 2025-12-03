@@ -19,20 +19,20 @@ public record ChapterModel : BaseModel {
 	/// <summary>
 	///     Order of this chapter within the volume
 	/// </summary>
-	public int Order { get; init; }
+	public int Order { get; set; }
 
 	/// <summary>
 	///     Title of the chapter
 	/// </summary>
-	public required string Title { get; init; }
+	public required string Title { get; set; }
 
 	/// <summary>
 	///     Content of the chapter, composed of various segments.
 	/// </summary>
-	public List<SegmentModel> Content { get; init; } = [];
+	public List<SegmentModel> Content { get; set; } = [];
 
 	/// <summary>
 	///     A dictionary of footnotes, where the key is the footnote ID.
 	/// </summary>
-	public List<FootnoteSegmentModel> Footnotes { get; init; } = [];
+	public List<FootnoteSegmentModel> Footnotes { get; set; } = [];
 }

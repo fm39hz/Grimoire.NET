@@ -23,14 +23,14 @@ public sealed class VolumeController(IVolumeService service) : ControllerBase {
 	}
 
 	[HttpPost]
-	public async Task<IResult> Create([FromBody] VolumeRequestDto entity) {
-		var createdVolume = await service.Create(entity.ToModel());
+	public async Task<IResult> Create([FromBody] CreateVolumeRequestDto dto) {
+		var createdVolume = await service.Create(dto);
 		return Results.Created($"/api/v1/volume/{createdVolume.Id}", new VolumeResponseDto(createdVolume));
 	}
 
 	[HttpPut("{id:guid}")]
-	public async Task<IResult> Update(Guid id, [FromBody] VolumeRequestDto entity) {
-		var updatedVolume = await service.Update(id, entity.ToModel());
+	public async Task<IResult> Update(Guid id, [FromBody] UpdateVolumeRequestDto dto) {
+		var updatedVolume = await service.Update(id, dto);
 		return Results.Ok(new VolumeResponseDto(updatedVolume));
 	}
 

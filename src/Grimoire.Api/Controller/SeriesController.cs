@@ -23,14 +23,14 @@ public sealed class SeriesController(ISeriesService service) : ControllerBase {
 	}
 
 	[HttpPost]
-	public async Task<IResult> Create([FromBody] SeriesRequestDto entity) {
-		var createdSeries = await service.Create(entity.ToModel());
+	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto) {
+		var createdSeries = await service.Create(dto);
 		return Results.Created($"/api/v1/series/{createdSeries.Id}", new SeriesResponseDto(createdSeries));
 	}
 
 	[HttpPut("{id:guid}")]
-	public async Task<IResult> Update(Guid id, [FromBody] SeriesRequestDto entity) {
-		var updatedSeries = await service.Update(id, entity.ToModel());
+	public async Task<IResult> Update(Guid id, [FromBody] UpdateSeriesRequestDto dto) {
+		var updatedSeries = await service.Update(id, dto);
 		return Results.Ok(new SeriesResponseDto(updatedSeries));
 	}
 

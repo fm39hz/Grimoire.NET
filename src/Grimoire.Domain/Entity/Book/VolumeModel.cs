@@ -19,17 +19,17 @@ public record VolumeModel : BaseModel {
 	/// <summary>
 	///     Order of this volume within the series
 	/// </summary>
-	public int Order { get; init; }
+	public int Order { get; set; }
 
 	/// <summary>
 	///     Title of the volume
 	/// </summary>
-	public required string Title { get; init; }
+	public required string Title { get; set; }
 
 	/// <summary>
 	///     Strongly-typed metadata for the volume
 	/// </summary>
-	public VolumeMetadata? Metadata { get; init; }
+	public VolumeMetadata? Metadata { get; set; }
 
 	/// <summary>
 	///     Collection of chapters in this volume

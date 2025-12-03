@@ -1,39 +1,44 @@
 namespace Grimoire.Application.Service.Contract;
 
 using Domain.Entity;
+using Dto;
 
 /// <summary>
 ///     An interface that declare Crud actions service
 /// </summary>
-/// <typeparam name="T">Target model</typeparam>
-public interface ICrudService<T> where T : IModel {
+/// <typeparam name="TModel">Target model</typeparam>
+/// <typeparam name="TCreateDto">Create DTO</typeparam>
+/// <typeparam name="TUpdateDto">Update DTO</typeparam>
+public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
+	where TModel : IModel
+	where TCreateDto : IRequestDto<TModel> {
 	/// <summary>
 	///     Find one entity with id in database
 	/// </summary>
 	/// <param name="id">Id of model</param>
 	/// <returns>Matched model</returns>
-	public Task<T?> FindOne(Guid id);
+	public Task<TModel?> FindOne(Guid id);
 
 	/// <summary>
 	///     Find all entity in database
 	/// </summary>
 	/// <returns>All matched model</returns>
-	public Task<IEnumerable<T>> FindAll();
+	public Task<IEnumerable<TModel>> FindAll();
 
 	/// <summary>
 	///     Create new entity in database
 	/// </summary>
-	/// <param name="entity">the entity value</param>
+	/// <param name="dto">the entity value</param>
 	/// <returns>Newly created model</returns>
-	public Task<T> Create(T entity);
+	public Task<TModel> Create(TCreateDto dto);
 
 	/// <summary>
 	///     Update one specify entity
 	/// </summary>
 	/// <param name="id">Id of model</param>
-	/// <param name="entity">the entity value</param>
+	/// <param name="dto">the entity value</param>
 	/// <returns>Updated model</returns>
-	public Task<T> Update(Guid id, T entity);
+	public Task<TModel> Update(Guid id, TUpdateDto dto);
 
 	/// <summary>
 	///     Delete one entity that has id

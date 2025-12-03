@@ -23,14 +23,14 @@ public sealed class ChapterController(IChapterService service) : ControllerBase 
 	}
 
 	[HttpPost]
-	public async Task<IResult> Create([FromBody] ChapterRequestDto entity) {
-		var createdChapter = await service.CreateFromImportAsync(entity);
+	public async Task<IResult> Create([FromBody] CreateChapterRequestDto dto) {
+		var createdChapter = await service.CreateFromImportAsync(dto);
 		return Results.Created($"/api/v1/chapter/{createdChapter.Id}", new ChapterResponseDto(createdChapter));
 	}
 
 	[HttpPut("{id:guid}")]
-	public async Task<IResult> Update(Guid id, [FromBody] ChapterRequestDto entity) {
-		var updatedChapter = await service.Update(id, entity.ToModel());
+	public async Task<IResult> Update(Guid id, [FromBody] UpdateChapterRequestDto dto) {
+		var updatedChapter = await service.Update(id, dto);
 		return Results.Ok(new ChapterResponseDto(updatedChapter));
 	}
 

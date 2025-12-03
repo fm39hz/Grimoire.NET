@@ -16,12 +16,12 @@ public record SeriesModel : BaseModel {
 	/// <summary>
 	///     Title of the series
 	/// </summary>
-	public required string Title { get; init; }
+	public required string Title { get; set; }
 
 	/// <summary>
 	///     Strongly-typed metadata for the series
 	/// </summary>
-	public SeriesMetadata Metadata { get; init; } = new();
+	public SeriesMetadata Metadata { get; set; } = new();
 
 	/// <summary>
 	///     Collection of volumes in this series

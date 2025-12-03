@@ -2,7 +2,7 @@ namespace Grimoire.Application.Dto.Book;
 
 using Domain.Entity.Book;
 
-public record ChapterRequestDto(
+public record CreateChapterRequestDto(
 	Guid VolumeId,
 	int Order,
 	string Title,
