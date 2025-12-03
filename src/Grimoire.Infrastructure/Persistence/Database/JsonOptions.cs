@@ -7,6 +7,8 @@ public static class JsonOptions {
 	public static readonly JsonSerializerOptions Default = new() {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		WriteIndented = false,
-		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+		ReferenceHandler = ReferenceHandler.IgnoreCycles,
+		AllowOutOfOrderMetadataProperties = true,
 	};
 }
