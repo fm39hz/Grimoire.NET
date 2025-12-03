@@ -13,7 +13,7 @@ public sealed record JsonConfiguration {
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 		ReferenceHandler = ReferenceHandler.IgnoreCycles,
 		AllowOutOfOrderMetadataProperties = true,
-		WriteIndented = false,
+		WriteIndented = false
 	};
 
 	public static readonly ValueComparer<SeriesMetadata> MetadataComparer = new(

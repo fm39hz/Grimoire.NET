@@ -5,6 +5,5 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 
 public sealed class VolumeRepository(ApplicationDbContext context)
-    : CrudRepository<VolumeModel>(context), IVolumeRepository {
-    
+	: CrudRepository<VolumeModel>(context), IVolumeRepository {
 }

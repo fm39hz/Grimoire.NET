@@ -35,7 +35,7 @@ public sealed class ChapterService(IChapterRepository repository) : IChapterServ
 			if (segment is TextSegmentModel textSeg) {
 				var updatedRuns = textSeg.Runs.Select(run => {
 					if (!string.IsNullOrEmpty(run.FootnoteId) &&
-						idMap.TryGetValue(run.FootnoteId, out Guid systemId)) {
+						idMap.TryGetValue(run.FootnoteId, out var systemId)) {
 						return run with { FootnoteId = systemId.ToString() };
 					}
 

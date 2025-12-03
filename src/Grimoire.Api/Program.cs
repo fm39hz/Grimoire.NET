@@ -1,11 +1,8 @@
 namespace Grimoire.Api;
 
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Domain.Constant;
 using Extension;
 using Infrastructure.Persistence.Database;
-using Microsoft.OpenApi.Models;
 
 public static class Program {
 	public static async Task Main(string[] args) {
