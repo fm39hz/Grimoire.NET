@@ -1,12 +1,12 @@
 namespace Grimoire.Infrastructure.Persistence.Database;
 
 using System.Text.Json;
+using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options) {
@@ -20,59 +20,47 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
-		var metadataComparer = new ValueComparer<SeriesMetadata>(
-			(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions.Default) ==
-						JsonSerializer.Serialize(c2, JsonOptions.Default),
-			c => JsonSerializer.Serialize(c, JsonOptions.Default).GetHashCode(),
-			c => JsonSerializer.Deserialize<SeriesMetadata>(
-				JsonSerializer.Serialize(c, JsonOptions.Default),
-				JsonOptions.Default)!
-			);
-		var contentComparer = new ValueComparer<List<SegmentModel>>(
-			(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions.Default) ==
-						JsonSerializer.Serialize(c2, JsonOptions.Default),
-			c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-			c => JsonSerializer.Deserialize<List<SegmentModel>>(JsonSerializer.Serialize(c, JsonOptions.Default),
-				JsonOptions.Default)!
-			);
-		modelBuilder.Entity<ChapterModel>(entity => {
-			entity.ToTable("Chapters");
-			entity.Property(c => c.Content)
-				.HasColumnType("jsonb")
-				.HasConversion(
-					v => JsonSerializer.Serialize(v, JsonOptions.Default),
-					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonOptions.Default) ??
-						new List<SegmentModel>()
-					).Metadata.SetValueComparer(contentComparer);
 
-			entity.Property(c => c.Footnotes)
-				.HasColumnType("jsonb")
-				.HasConversion(
-					v => JsonSerializer.Serialize(v, JsonOptions.Default),
-					v =>
-						JsonSerializer.Deserialize<List<FootnoteSegmentModel>>(
-							v, JsonOptions.Default) ??
-						new List<FootnoteSegmentModel>()
-					);
-		});
 		modelBuilder.Entity<SeriesModel>(entity => {
 			entity.ToTable("Series");
 			entity.Property(s => s.Metadata)
 				.HasColumnType("jsonb")
 				.HasConversion(
-					v => JsonSerializer.Serialize(v, JsonOptions.Default),
-					v => JsonSerializer.Deserialize<SeriesMetadata>(v, JsonOptions.Default) ?? new SeriesMetadata()
+					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					v => JsonSerializer.Deserialize<SeriesMetadata>(v, JsonConfiguration.JsonOptions) ??
+						new SeriesMetadata()
 					)
-				.Metadata.SetValueComparer(metadataComparer);
+				.Metadata.SetValueComparer(JsonConfiguration.MetadataComparer);
 			entity.HasIndex(s => s.Metadata)
 				.HasMethod("gin");
 			entity.HasIndex(s => s.Title);
 		});
+
 		modelBuilder.Entity<VolumeModel>(entity => {
 			entity.ToTable("Volumes");
 			entity.OwnsOne(s => s.Metadata, metaBuilder => {
 				metaBuilder.ToJson();
 			});
+		});
+
+		modelBuilder.Entity<ChapterModel>(entity => {
+			entity.ToTable("Chapters");
+			entity.Property(c => c.Content)
+				.HasColumnType("jsonb")
+				.HasConversion(
+					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonConfiguration.JsonOptions) ??
+						new List<SegmentModel>()
+					).Metadata.SetValueComparer(JsonConfiguration.ContentComparer);
+			entity.Property(c => c.Footnotes)
+				.HasColumnType("jsonb")
+				.HasConversion(
+					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					v =>
+						JsonSerializer.Deserialize<List<FootnoteSegmentModel>>(
+							v, JsonConfiguration.JsonOptions) ??
+						new List<FootnoteSegmentModel>()
+					).Metadata.SetValueComparer(JsonConfiguration.FootnoteComparer);
 		});
 	}
 }
