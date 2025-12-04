@@ -5,7 +5,7 @@ using Domain.Common.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
-[Route($"{RouteConstant.CONTROLLER}/file")]
+[Route($"{RouteConstant.CONTROLLER}")]
 public class FileController(IStorageRepository storageRepository) : ControllerBase {
 	[HttpPost("upload/{seriesId:guid}")]
 	public async Task<IActionResult> Upload(Guid seriesId, IFormFile file, [FromQuery] string refType = "Content") {
@@ -16,7 +16,7 @@ public class FileController(IStorageRepository storageRepository) : ControllerBa
 		await using var stream = file.OpenReadStream();
 		var asset = await storageRepository.UploadAssetAsync(seriesId, stream, file.ContentType, file.FileName,
 			refType);
-		return Ok(new { asset.Id, asset.Path });
+		return Ok(asset);
 	}
 
 	[HttpGet("{assetId:guid}")]
