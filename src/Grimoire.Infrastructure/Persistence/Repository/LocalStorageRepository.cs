@@ -1,16 +1,15 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
+using Configuration;
 using Database;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.Extensions.Logging;
 
-public partial class LocalStorageRepository(
-	ILogger<LocalStorageRepository> logger,
-	ApplicationDbContext dbContext,
-	IAssetRepository assetRepository) : IStorageRepository {
-	private readonly string _storagePath = Path.Combine(Path.GetTempPath(), "grimoire-files");
+public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logger, IAssetRepository assetRepository)
+	: IStorageRepository {
+	private readonly string _storagePath = Path.Combine(Path.GetTempPath(), StorageConfiguration.STORAGE_PATH);
 
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType,
 		string originalFileName, string refType) {
@@ -22,7 +21,7 @@ public partial class LocalStorageRepository(
 		}
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-		var assetPath = $"series/{seriesId}/{hash}{extension}";
+		var assetPath = $"{StorageConfiguration.SERIES_PATH}/{seriesId}/{hash}{extension}";
 		var filePath = Path.Combine(_storagePath, assetPath);
 
 		var directory = Path.GetDirectoryName(filePath);
@@ -52,12 +51,12 @@ public partial class LocalStorageRepository(
 	public async Task<byte[]> GetFileAsync(Guid assetId) {
 		var asset = await assetRepository.FindOne(assetId);
 		if (asset is null) {
-			return Array.Empty<byte>();
+			return [];
 		}
 
 		var filePath = Path.Combine(_storagePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
-		return !File.Exists(filePath)? Array.Empty<byte>() : await File.ReadAllBytesAsync(filePath);
+		return !File.Exists(filePath)? [] : await File.ReadAllBytesAsync(filePath);
 	}
 
 	public async Task DeleteFileAsync(Guid assetId) {
