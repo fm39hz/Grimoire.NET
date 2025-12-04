@@ -10,7 +10,7 @@ using Serilog;
 using Serilog.Events;
 using Transformer;
 
-public static class Program {
+public class Program {
 	public static async Task Main(string[] args) {
 		var builder = WebApplication.CreateBuilder(args);
 		builder.Host.UseSerilog((_, lc) => lc

@@ -26,5 +26,5 @@ public class SeriesMetadataDto {
 	/// <summary>
 	///     Gets or sets the URL of the cover image for the series.
 	/// </summary>
-	public string CoverImage { get; init; } = string.Empty;
+	public string CoverImage { get; set; } = string.Empty;
 }
