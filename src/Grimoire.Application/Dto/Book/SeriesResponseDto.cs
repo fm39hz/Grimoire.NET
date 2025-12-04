@@ -1,11 +1,9 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Common;
-using Domain.Entity.Book;
-using Domain.Entity.Book.Metadata;
+using Metadata;
 
-public class SeriesResponseDto(SeriesModel series) : IResponseDto {
-	public string Title { get; init; } = series.Title;
-	public SeriesMetadata Metadata { get; init; } = series.Metadata;
-	public Guid Id { get; init; } = series.Id;
+public class SeriesResponseDto {
+	public string Title { get; init; } = string.Empty;
+	public SeriesMetadataDto Metadata { get; init; } = new();
+	public Guid Id { get; init; } = Guid.Empty;
 }

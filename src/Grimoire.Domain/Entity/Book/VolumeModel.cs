@@ -12,14 +12,9 @@ public record VolumeModel : BaseModel {
 	public required Guid SeriesId { get; init; }
 
 	/// <summary>
-	///     Reference to the parent series
-	/// </summary>
-	public SeriesModel? Series { get; init; }
-
-	/// <summary>
 	///     Order of this volume within the series
 	/// </summary>
-	public int Order { get; set; }
+	public float Order { get; set; }
 
 	/// <summary>
 	///     Title of the volume
@@ -30,9 +25,4 @@ public record VolumeModel : BaseModel {
 	///     Strongly-typed metadata for the volume
 	/// </summary>
 	public VolumeMetadata? Metadata { get; set; }
-
-	/// <summary>
-	///     Collection of chapters in this volume
-	/// </summary>
-	public ICollection<ChapterModel> Chapters { get; init; } = new List<ChapterModel>();
 }

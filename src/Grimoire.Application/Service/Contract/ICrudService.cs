@@ -1,7 +1,6 @@
 namespace Grimoire.Application.Service.Contract;
 
 using Domain.Entity;
-using Dto;
 
 /// <summary>
 ///     An interface that declare Crud actions service
@@ -10,8 +9,7 @@ using Dto;
 /// <typeparam name="TCreateDto">Create DTO</typeparam>
 /// <typeparam name="TUpdateDto">Update DTO</typeparam>
 public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
-	where TModel : IModel
-	where TCreateDto : IRequestDto<TModel> {
+	where TModel : IModel {
 	/// <summary>
 	///     Find one entity with id in database
 	/// </summary>

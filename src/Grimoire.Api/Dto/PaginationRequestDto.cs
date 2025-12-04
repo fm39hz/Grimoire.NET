@@ -12,14 +12,11 @@ public record PaginationRequestDto {
 	[DefaultValue(10)]
 	public int PageSize { get; set; } = 10;
 
-	[FromQuery(Name = "sortBy")]
-	public string? SortBy { get; set; }
+	[FromQuery(Name = "sortBy")] public string? SortBy { get; set; }
 
-	[FromQuery(Name = "sortDescending")]
-	public bool SortDescending { get; set; }
+	[FromQuery(Name = "sortDescending")] public bool SortDescending { get; set; }
 
-	[FromQuery(Name = "skip")]
-	public int Skip => (Page - 1) * PageSize;
+	[FromQuery(Name = "skip")] public int Skip => (Page - 1) * PageSize;
 
 	public void Validate() {
 		if (Page < 1) {
@@ -29,7 +26,6 @@ public record PaginationRequestDto {
 		if (PageSize < 1) {
 			PageSize = 10;
 		}
-
 
 
 		if (PageSize > 100) {

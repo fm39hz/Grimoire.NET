@@ -1,5 +1,5 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Domain.Entity.Book.Metadata;
+using Metadata;
 
-public record UpdateSeriesRequestDto(string? Title, SeriesMetadata? Metadata);
+public record UpdateSeriesRequestDto(string? Title, SeriesMetadataDto? Metadata);

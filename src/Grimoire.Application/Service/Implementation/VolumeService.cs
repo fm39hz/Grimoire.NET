@@ -5,20 +5,22 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
+using Mapper;
 
-public sealed class VolumeService(IVolumeRepository repository) : IVolumeService {
+public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapper) : IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();
 
-	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) => await repository.Create(dto.ToModel());
+	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
+		var volume = mapper.CreateVolume(dto);
+		return await repository.Create(volume);
+	}
 
 	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto) {
 		var volume = await repository.FindOne(id) ??
 					throw new EntityNotFoundException($"Volume with id {id} not found");
-		volume.Order = dto.Order ?? volume.Order;
-		volume.Title = dto.Title ?? volume.Title;
-		volume.Metadata = dto.Metadata ?? volume.Metadata;
+		mapper.UpdateVolume(dto, volume);
 
 		return await repository.Update(volume);
 	}

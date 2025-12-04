@@ -1,0 +1,100 @@
+namespace Grimoire.Application.Mapper;
+
+using Domain.Entity;
+using Domain.Entity.Book;
+using Domain.Entity.Book.Metadata;
+using Domain.Entity.Book.Segment;
+using Dto.Book;
+using Dto.Book.Metadata;
+using Riok.Mapperly.Abstractions;
+
+public partial class BookMapper {
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	public partial SeriesModel CreateSeries(CreateSeriesRequestDto dto);
+
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	public partial VolumeModel CreateVolume(CreateVolumeRequestDto dto);
+
+	public ChapterModel CreateChapter(CreateChapterRequestDto dto) {
+		var idMap = new Dictionary<string, Guid>();
+		var cleanFootnotes = new List<FootnoteSegmentModel>();
+
+		if (dto.Footnotes != null) {
+			foreach (var note in dto.Footnotes) {
+				if (note == null || string.IsNullOrEmpty(note.InitialId)) {
+					continue;
+				}
+
+				var systemId = Guid.CreateVersion7();
+
+				idMap[note.InitialId] = systemId;
+				cleanFootnotes.Add(new FootnoteSegmentModel { Id = systemId, Segments = note.Segments });
+			}
+		}
+
+		var cleanContent = new List<SegmentModel>();
+
+		if (dto.Content == null) {
+			return new ChapterModel {
+				VolumeId = dto.VolumeId,
+				Order = dto.Order,
+				Title = dto.Title,
+				Content = cleanContent,
+				Footnotes = cleanFootnotes
+			};
+		}
+
+		{
+			foreach (var segment in dto.Content) {
+				if (segment is TextSegmentModel textSeg) {
+					var updatedRuns = textSeg.Runs.Select(run => {
+						if (!string.IsNullOrEmpty(run.FootnoteId) &&
+							idMap.TryGetValue(run.FootnoteId, out var systemId)) {
+							return run with { FootnoteId = systemId.ToString() };
+						}
+
+						return run;
+					}).ToList();
+
+					cleanContent.Add(textSeg with { Runs = updatedRuns });
+				}
+				else {
+					cleanContent.Add(segment);
+				}
+			}
+		}
+
+		return new ChapterModel {
+			VolumeId = dto.VolumeId,
+			Order = dto.Order,
+			Title = dto.Title,
+			Content = cleanContent,
+			Footnotes = cleanFootnotes
+		};
+	}
+
+#pragma warning disable RMG012
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	public partial void UpdateChapter(UpdateChapterRequestDto dto, [MappingTarget] ChapterModel model);
+#pragma warning restore RMG012
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	public partial void UpdateVolume(UpdateVolumeRequestDto dto, [MappingTarget] VolumeModel model);
+
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	public partial void UpdateSeries(UpdateSeriesRequestDto dto, [MappingTarget] SeriesModel model);
+
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	private partial SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto);
+}

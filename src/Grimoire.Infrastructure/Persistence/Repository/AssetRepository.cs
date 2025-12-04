@@ -11,8 +11,7 @@ public class AssetRepository(ApplicationDbContext dbContext)
 		await Entities
 			.FirstOrDefaultAsync(a => a.FileHash == fileHash);
 
-	public async Task<AssetModel?> GetBySeriesAndFileHashAsync(Guid seriesId, string fileHash) {
-		return await Entities
+	public async Task<AssetModel?> GetBySeriesAndFileHashAsync(Guid seriesId, string fileHash) =>
+		await Entities
 			.FirstOrDefaultAsync(a => a.SeriesId == seriesId && a.FileHash == fileHash);
-	}
 }

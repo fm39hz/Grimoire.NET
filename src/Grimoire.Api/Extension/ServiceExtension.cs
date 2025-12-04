@@ -1,5 +1,6 @@
 namespace Grimoire.Api.Extension;
 
+using Application.Mapper;
 using Application.Service.Contract;
 using Application.Service.Implementation;
 using Domain.Common.Repository;
@@ -17,6 +18,8 @@ public static class ServiceExtension {
 		service.AddScoped<ISeriesService, SeriesService>();
 		service.AddScoped<IVolumeService, VolumeService>();
 		service.AddScoped<IChapterService, ChapterService>();
+
+		service.AddScoped<IBookMapper, BookMapper>();
 
 
 		return service;

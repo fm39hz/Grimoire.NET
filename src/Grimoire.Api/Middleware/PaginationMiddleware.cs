@@ -1,9 +1,11 @@
 namespace Grimoire.Api.Middleware;
 
 using System.Reflection;
+using System.Text;
 using System.Text.Json;
-using Grimoire.Api.Dto;
+using Dto;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Controllers;
 
 public class PaginationMiddleware(RequestDelegate next) {
 	private static readonly JsonSerializerOptions _jsonOptions = new() {
@@ -37,7 +39,7 @@ public class PaginationMiddleware(RequestDelegate next) {
 
 	private static bool HasPaginationRequestDtoParameter(HttpContext context) {
 		var endpoint = context.GetEndpoint();
-		if (endpoint?.Metadata?.GetMetadata<Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor>() is not
+		if (endpoint?.Metadata?.GetMetadata<ControllerActionDescriptor>() is not
 			{ } actionDescriptor) {
 			return false;
 		}
@@ -236,9 +238,9 @@ public class PaginationMiddleware(RequestDelegate next) {
 	}
 
 	private static async Task WriteResponse(Stream originalBodyStream, string content, HttpResponse response) {
-		response.ContentLength = System.Text.Encoding.UTF8.GetByteCount(content);
+		response.ContentLength = Encoding.UTF8.GetByteCount(content);
 		response.ContentType = "application/json; charset=utf-8";
-		await originalBodyStream.WriteAsync(System.Text.Encoding.UTF8.GetBytes(content));
+		await originalBodyStream.WriteAsync(Encoding.UTF8.GetBytes(content));
 	}
 
 	private static async Task CopyResponseBody(MemoryStream responseBody, Stream originalBodyStream) {

@@ -12,14 +12,9 @@ public record ChapterModel : BaseModel {
 	public required Guid VolumeId { get; init; }
 
 	/// <summary>
-	///     Reference to the parent volume
-	/// </summary>
-	public VolumeModel? Volume { get; init; }
-
-	/// <summary>
 	///     Order of this chapter within the volume
 	/// </summary>
-	public int Order { get; set; }
+	public float Order { get; set; }
 
 	/// <summary>
 	///     Title of the chapter
