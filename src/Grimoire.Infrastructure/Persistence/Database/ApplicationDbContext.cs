@@ -15,7 +15,6 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<VolumeModel> Volumes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterModel> Chapters { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
-	[UsedImplicitly] public DbSet<ChapterVariantModel> ChapterVariants { get; set; } = null!; // Added DbSet
 
 	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
 		base.OnConfiguring(optionsBuilder.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
@@ -46,21 +45,14 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {
-			entity.HasMany(c => c.Variants)
-				.WithOne(cv => cv.Chapter)
-				.HasForeignKey(cv => cv.ChapterId)
-				.OnDelete(DeleteBehavior.Cascade);
-		});
-
-		modelBuilder.Entity<ChapterVariantModel>(entity => {
-			entity.Property(cv => cv.Content)
+			entity.Property(c => c.Content)
 				.HasColumnType("jsonb")
 				.HasConversion(
 					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
 					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonConfiguration.JsonOptions) ??
 						new List<SegmentModel>()
 					).Metadata.SetValueComparer(JsonConfiguration.ContentComparer);
-			entity.Property(cv => cv.Footnotes)
+			entity.Property(c => c.Footnotes)
 				.HasColumnType("jsonb")
 				.HasConversion(
 					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),

@@ -40,10 +40,4 @@ public sealed class ChapterController(IChapterService service) : ControllerBase 
 		var result = await service.Delete(id);
 		return Results.Ok(result);
 	}
-
-    [HttpGet("{id:guid}/variant")]
-    public async Task<IResult> FindVariantsByChapterId(Guid id, [FromQuery] VariantType[]? type) {
-        var variants = await service.GetVariantsByChapterIdAsync(id, type);
-        return Results.Ok(variants);
-    }
 }

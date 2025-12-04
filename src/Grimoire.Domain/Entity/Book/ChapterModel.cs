@@ -1,5 +1,7 @@
 namespace Grimoire.Domain.Entity.Book;
 
+using Segment;
+
 /// <summary>
 ///     Represents a chapter within a volume
 /// </summary>
@@ -17,7 +19,7 @@ public record ChapterModel : BaseModel {
 	/// <summary>
 	///     Order of this chapter within the volume
 	/// </summary>
-	public float Order { get; set; }
+	public int Order { get; set; }
 
 	/// <summary>
 	///     Title of the chapter
@@ -25,12 +27,12 @@ public record ChapterModel : BaseModel {
 	public required string Title { get; set; }
 
 	/// <summary>
-	///     Collection of variants for this chapter.
+	///     Content of the chapter, composed of various segments.
 	/// </summary>
-	public ICollection<ChapterVariantModel> Variants { get; init; } = [];
+	public List<SegmentModel> Content { get; set; } = [];
 
 	/// <summary>
-	///     The total word count of the chapter, aggregated from its variants.
+	///     A dictionary of footnotes, where the key is the footnote ID.
 	/// </summary>
-	public int WordCount => Variants.Sum(v => v.WordCount);
+	public List<FootnoteSegmentModel> Footnotes { get; set; } = [];
 }

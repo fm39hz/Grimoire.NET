@@ -4,6 +4,7 @@ using Domain.Entity.Book;
 using System.Collections.Generic;
 
 public record UpdateChapterRequestDto(
-	float? Order,
+	int? Order,
 	string? Title,
-	ICollection<CreateChapterVariantDto>? Variants);
+	List<SegmentModel>? Content,
+	List<ImportFootnoteDto>? Footnotes);
