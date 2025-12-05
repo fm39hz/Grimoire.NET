@@ -2,6 +2,7 @@ namespace Grimoire.Api.Extension;
 
 using Constant;
 using JetBrains.Annotations;
+using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Models;
 
 public static class NetworkExtension {
@@ -10,17 +11,14 @@ public static class NetworkExtension {
 		AddNetworkService(this IServiceCollection service, WebApplicationBuilder builder) {
 		var serverUrl = builder.Configuration["OpenApi:ServerUrl"] ?? "http://localhost:8080";
 
-		builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document, _, _) => {
-			document.Servers = [
-				new OpenApiServer { Url = serverUrl, Description = $"{RouteConstant.PROJECT_NAME} API Server" }
-			];
-			return Task.CompletedTask;
-		}));
+		// Using Swashbuckle only to avoid polymorphic type conflicts in ASP.NET Core OpenAPI
+		// builder.Services.AddOpenApi();
 		builder.Services.AddSwaggerGen(static opt => {
 			opt.SwaggerDoc(
 				RouteConstant.VERSION,
 				new OpenApiInfo { Title = $"{RouteConstant.PROJECT_NAME} API", Version = RouteConstant.VERSION }
-				);
+			);
+			opt.CustomSchemaIds(type => type.FullName);
 		});
 		builder.Services.AddCors(options => {
 			options.AddPolicy("AllowAll", policy => {
