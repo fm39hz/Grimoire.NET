@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Mapper;
 
+using Common;
 using Domain.Entity;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
@@ -17,6 +18,7 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	[MapProperty(nameof(CreateVolumeRequestDto.SeriesId), nameof(VolumeModel.SeriesId), Use = nameof(ParseStringToGuid))]
 	public partial VolumeModel CreateVolume(CreateVolumeRequestDto dto);
 
 	public ChapterModel CreateChapter(CreateChapterRequestDto dto) {
@@ -40,7 +42,7 @@ public partial class BookMapper {
 
 		if (dto.Content == null) {
 			return new ChapterModel {
-				VolumeId = dto.VolumeId,
+				VolumeId = PrefixedId.ToGuid(dto.VolumeId),
 				Order = dto.Order,
 				Title = dto.Title,
 				Content = cleanContent,
@@ -69,7 +71,7 @@ public partial class BookMapper {
 		}
 
 		return new ChapterModel {
-			VolumeId = dto.VolumeId,
+			VolumeId = PrefixedId.ToGuid(dto.VolumeId),
 			Order = dto.Order,
 			Title = dto.Title,
 			Content = cleanContent,
@@ -97,4 +99,7 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	private partial SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto);
+	
+	// Helper for parsing string IDs to Guid
+	private Guid ParseStringToGuid(string prefixedId) => PrefixedId.ToGuid(prefixedId);
 }

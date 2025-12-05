@@ -1,5 +1,6 @@
 namespace Grimoire.Api.Controller;
 
+using Application.Common;
 using Application.Dto.Book;
 using Application.Dto.Common;
 using Application.Mapper;
@@ -11,11 +12,12 @@ using Microsoft.AspNetCore.Mvc;
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
 public sealed class ChapterController(IChapterService service, IBookMapper mapper) : ControllerBase {
-	[HttpGet("{id:guid}")]
+	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(Guid id) {
-		var chapter = await service.FindOne(id);
+	public async Task<IResult> FindOne(string id) {
+		var guid = PrefixedId.ToGuid(id);
+		var chapter = await service.FindOne(guid);
 		return chapter is null? Results.NotFound() : Results.Ok(mapper.ToChapterDto(chapter));
 	}
 
@@ -42,20 +44,23 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	[ProducesResponseType(typeof(ChapterResponseDto), 201)]
 	public async Task<IResult> Create([FromBody] CreateChapterRequestDto dto) {
 		var createdChapter = await service.CreateFromImportAsync(dto);
-		return Results.Created($"{createdChapter.Id}", mapper.ToChapterDto(createdChapter));
+		var responseDto = mapper.ToChapterDto(createdChapter);
+		return Results.Created($"{responseDto.Id}", responseDto);
 	}
 
-	[HttpPatch("{id:guid}")]
+	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
-	public async Task<IResult> Update(Guid id, [FromBody] UpdateChapterRequestDto dto) {
-		var updatedChapter = await service.Update(id, dto);
+	public async Task<IResult> Update(string id, [FromBody] UpdateChapterRequestDto dto) {
+		var guid = PrefixedId.ToGuid(id);
+		var updatedChapter = await service.Update(guid, dto);
 		return Results.Ok(mapper.ToChapterDto(updatedChapter));
 	}
 
-	[HttpDelete("{id:guid}")]
+	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
-	public async Task<IResult> Delete(Guid id) {
-		var result = await service.Delete(id);
+	public async Task<IResult> Delete(string id) {
+		var guid = PrefixedId.ToGuid(id);
+		var result = await service.Delete(guid);
 		return Results.Ok(result);
 	}
 }

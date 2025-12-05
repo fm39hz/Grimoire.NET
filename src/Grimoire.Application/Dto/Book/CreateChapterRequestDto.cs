@@ -3,7 +3,7 @@ namespace Grimoire.Application.Dto.Book;
 using Domain.Entity.Book;
 
 public record CreateChapterRequestDto(
-	Guid VolumeId,
+	string VolumeId,
 	int Order,
 	string Title,
 	List<SegmentModel> Content,

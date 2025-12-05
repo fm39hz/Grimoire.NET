@@ -1,5 +1,6 @@
 namespace Grimoire.Api.Controller;
 
+using Application.Common;
 using Application.Dto.Book;
 using Application.Dto.Common;
 using Application.Mapper;
@@ -12,11 +13,12 @@ using Microsoft.AspNetCore.Mvc;
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
 public sealed class SeriesController(ISeriesService service, IBookMapper mapper) : ControllerBase {
-	[HttpGet("{id:guid}")]
+	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(Guid id) {
-		var series = await service.FindOne(id);
+	public async Task<IResult> FindOne(string id) {
+		var guid = PrefixedId.ToGuid(id);
+		var series = await service.FindOne(guid);
 		return series is null? Results.NotFound() : Results.Ok(mapper.ToSeriesDto(series));
 	}
 
@@ -45,37 +47,41 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto) {
 		try {
 			var createdSeries = await service.Create(dto);
-			return Results.Created($"{createdSeries.Id}", mapper.ToSeriesDto(createdSeries));
+			var responseDto = mapper.ToSeriesDto(createdSeries);
+			return Results.Created($"{responseDto.Id}", responseDto);
 		}
 		catch (UniqueConstraintException e) {
 			return Results.Conflict($"{e.ConstraintName} existed at {e.SchemaQualifiedTableName}");
 		}
 	}
 
-	[HttpPatch("{id:guid}")]
+	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
-	public async Task<IResult> Update(Guid id, [FromBody] UpdateSeriesRequestDto dto) {
-		var updatedSeries = await service.Update(id, dto);
+	public async Task<IResult> Update(string id, [FromBody] UpdateSeriesRequestDto dto) {
+		var guid = PrefixedId.ToGuid(id);
+		var updatedSeries = await service.Update(guid, dto);
 		return Results.Ok(mapper.ToSeriesDto(updatedSeries));
 	}
 
-	[HttpDelete("{id:guid}")]
+	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
-	public async Task<IResult> Delete(Guid id) {
-		var result = await service.Delete(id);
+	public async Task<IResult> Delete(string id) {
+		var guid = PrefixedId.ToGuid(id);
+		var result = await service.Delete(guid);
 		return Results.Ok(result);
 	}
 
-	[HttpGet("{id:guid}/volumes")]
+	[HttpGet("{id}/volumes")]
 	[ProducesResponseType(typeof(IEnumerable<VolumeResponseDto>), 200)]
-	public async Task<IResult> GetVolumes(Guid id, [FromQuery] PaginationRequestDto? pagination) {
+	public async Task<IResult> GetVolumes(string id, [FromQuery] PaginationRequestDto? pagination) {
+		var guid = PrefixedId.ToGuid(id);
 		if (pagination == null) {
-			var series = await service.FindAllVolumes(id);
+			var series = await service.FindAllVolumes(guid);
 			var dto = series.Select(mapper.ToVolumeDto);
 			return Results.Ok(dto);
 		}
 
-		var pagedVolumes = await service.FindAllVolumes(id, pagination.ToApplicationDto());
+		var pagedVolumes = await service.FindAllVolumes(guid, pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<VolumeResponseDto>(
 			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),
 			pagedVolumes.TotalCount,

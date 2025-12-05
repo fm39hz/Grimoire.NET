@@ -129,7 +129,7 @@ async function importBook(bookFolder) {
 
 			if (coverServerPath) {
 				seriesPayload.metadata.coverImageUrl = coverServerPath;
-				await api.put(`/series/${seriesId}`, seriesPayload);
+				await api.patch(`/series/${seriesId}`, seriesPayload);
 			}
 		}
 

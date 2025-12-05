@@ -8,5 +8,5 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(DividerSegmentDto), "Divider")]
 [JsonDerivedType(typeof(FootnoteSegmentDto), "Footnote")]
 public abstract record SegmentDto {
-	public Guid Id { get; init; } = Guid.Empty;
+	public string Id { get; init; } = string.Empty;
 }
