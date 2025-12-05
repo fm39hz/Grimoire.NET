@@ -16,7 +16,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	[ProducesResponseType(404)]
 	public async Task<IResult> FindOne(string id) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var chapter = await service.FindOne(guid);
 		return chapter is null? Results.NotFound() : Results.Ok(mapper.ToChapterDto(chapter));
 	}
@@ -51,7 +51,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	public async Task<IResult> Update(string id, [FromBody] UpdateChapterRequestDto dto) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var updatedChapter = await service.Update(guid, dto);
 		return Results.Ok(mapper.ToChapterDto(updatedChapter));
 	}
@@ -59,7 +59,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
 	public async Task<IResult> Delete(string id) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var result = await service.Delete(guid);
 		return Results.Ok(result);
 	}

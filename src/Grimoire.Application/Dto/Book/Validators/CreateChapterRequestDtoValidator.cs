@@ -27,12 +27,6 @@ public class CreateChapterRequestDtoValidator : AbstractValidator<CreateChapterR
 	}
 
 	private static bool BeValidVolumeId(string volumeId) {
-		if (string.IsNullOrWhiteSpace(volumeId))
-			return false;
-			
-		if (!volumeId.StartsWith($"{EntityPrefix.Volume}_"))
-			return false;
-			
-		return PrefixedId.TryToGuid(volumeId, out _);
+		return PrefixedId.TryToGuid(volumeId, EntityPrefix.Volume, out _);
 	}
 }

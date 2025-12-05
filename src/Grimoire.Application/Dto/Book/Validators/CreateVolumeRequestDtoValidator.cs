@@ -23,12 +23,6 @@ public class CreateVolumeRequestDtoValidator : AbstractValidator<CreateVolumeReq
 	}
 
 	private static bool BeValidSeriesId(string seriesId) {
-		if (string.IsNullOrWhiteSpace(seriesId))
-			return false;
-			
-		if (!seriesId.StartsWith($"{EntityPrefix.Series}_"))
-			return false;
-			
-		return PrefixedId.TryToGuid(seriesId, out _);
+		return PrefixedId.TryToGuid(seriesId, EntityPrefix.Series, out _);
 	}
 }

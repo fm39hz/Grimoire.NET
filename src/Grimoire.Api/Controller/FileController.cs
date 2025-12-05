@@ -17,7 +17,7 @@ public class FileController(IStorageRepository storageRepository) : ControllerBa
 			return BadRequest("File is empty.");
 		}
 
-		var guid = PrefixedId.ToGuid(seriesId);
+		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
 		await using var stream = file.OpenReadStream();
 		var asset = await storageRepository.UploadAssetAsync(guid, stream, file.ContentType, file.FileName,
 			refType);
@@ -28,7 +28,7 @@ public class FileController(IStorageRepository storageRepository) : ControllerBa
 	[ProducesResponseType(typeof(FileContentResult), 200)]
 	[ProducesResponseType(404)]
 	public async Task<IActionResult> Get(string assetId) {
-		var guid = PrefixedId.ToGuid(assetId);
+		var guid = PrefixedId.ToGuid(assetId, EntityPrefix.Asset);
 		var fileBytes = await storageRepository.GetFileAsync(guid);
 		if (fileBytes.Length == 0) {
 			return NotFound();
@@ -40,7 +40,7 @@ public class FileController(IStorageRepository storageRepository) : ControllerBa
 	[HttpDelete("{assetId}")]
 	[ProducesResponseType(204)]
 	public async Task<IActionResult> Delete(string assetId) {
-		var guid = PrefixedId.ToGuid(assetId);
+		var guid = PrefixedId.ToGuid(assetId, EntityPrefix.Asset);
 		await storageRepository.DeleteFileAsync(guid);
 		return NoContent();
 	}

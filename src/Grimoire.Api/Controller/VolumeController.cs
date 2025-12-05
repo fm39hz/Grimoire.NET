@@ -16,7 +16,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[ProducesResponseType(typeof(VolumeResponseDto), 200)]
 	[ProducesResponseType(404)]
 	public async Task<IResult> FindOne(string id) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		var volume = await service.FindOne(guid);
 		return volume is null? Results.NotFound() : Results.Ok(mapper.ToVolumeDto(volume));
 	}
@@ -51,7 +51,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(VolumeResponseDto), 200)]
 	public async Task<IResult> Update(string id, [FromBody] UpdateVolumeRequestDto dto) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		var updatedVolume = await service.Update(guid, dto);
 		return Results.Ok(mapper.ToVolumeDto(updatedVolume));
 	}
@@ -59,7 +59,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
 	public async Task<IResult> Delete(string id) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		var result = await service.Delete(guid);
 		return Results.Ok(result);
 	}
@@ -67,7 +67,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[HttpGet("{id}/chapters")]
 	[ProducesResponseType(typeof(IEnumerable<ChapterListResponseDto>), 200)]
 	public async Task<IResult> GetChapters(string id, [FromQuery] PaginationRequestDto? pagination) {
-		var guid = PrefixedId.ToGuid(id);
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		if (pagination == null) {
 			var chapters = await service.FindAllChapters(guid);
 			var dto = chapters.Select(mapper.ToChapterListDto);
