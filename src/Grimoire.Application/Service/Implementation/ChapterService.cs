@@ -16,9 +16,7 @@ public sealed class ChapterService(IChapterRepository repository, IBookMapper ma
 
 	public async Task<PagedResult<ChapterModel>> FindAllPaged(PaginationRequest request) {
 		var allItems = await repository.FindAll();
-		var totalCount = allItems.Count();
-		
-		return allItems.ToPagedList(request, totalCount);
+		return allItems.ToPagedList(request);
 	}
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {

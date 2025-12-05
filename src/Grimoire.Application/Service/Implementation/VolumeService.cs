@@ -16,9 +16,7 @@ public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapp
 
 	public async Task<PagedResult<VolumeModel>> FindAllPaged(PaginationRequest request) {
 		var allItems = await repository.FindAll();
-		var totalCount = allItems.Count();
-		
-		return allItems.ToPagedList(request, totalCount);
+		return allItems.ToPagedList(request);
 	}
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {

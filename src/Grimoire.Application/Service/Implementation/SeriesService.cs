@@ -16,9 +16,7 @@ public sealed class SeriesService(ISeriesRepository repository, IBookMapper mapp
 
 	public async Task<PagedResult<SeriesModel>> FindAllPaged(PaginationRequest request) {
 		var allItems = await repository.FindAll();
-		var totalCount = allItems.Count();
-		
-		return allItems.ToPagedList(request, totalCount);
+		return allItems.ToPagedList(request);
 	}
 
 	public async Task<SeriesModel> Create(CreateSeriesRequestDto dto) {
