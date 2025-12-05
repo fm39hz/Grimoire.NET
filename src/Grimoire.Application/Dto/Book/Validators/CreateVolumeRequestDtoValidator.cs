@@ -9,7 +9,8 @@ public class CreateVolumeRequestDtoValidator : AbstractValidator<CreateVolumeReq
 			.NotEmpty()
 			.WithMessage("SeriesId is required")
 			.Must(BeValidSeriesId)
-			.WithMessage("SeriesId must be a valid series ID with 'ser_' prefix (e.g., ser_01234567-89ab-cdef-0123-456789abcdef)");
+			.WithMessage(
+				"SeriesId must be a valid series ID with 'ser_' prefix");
 
 		RuleFor(x => x.Title)
 			.NotEmpty()
@@ -22,7 +23,5 @@ public class CreateVolumeRequestDtoValidator : AbstractValidator<CreateVolumeReq
 			.WithMessage("Order must be greater than or equal to 0");
 	}
 
-	private static bool BeValidSeriesId(string seriesId) {
-		return PrefixedId.TryToGuid(seriesId, EntityPrefix.Series, out _);
-	}
+	private static bool BeValidSeriesId(string seriesId) => PrefixedId.TryToGuid(seriesId, EntityPrefix.Series, out _);
 }

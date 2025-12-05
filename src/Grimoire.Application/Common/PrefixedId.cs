@@ -9,23 +9,24 @@ public static class PrefixedId {
 	/// <summary>
 	///     Convert Guid to prefixed string (e.g., ser_<uuid>)
 	/// </summary>
-	public static string ToString(string prefix, Guid guid) {
-		return $"{prefix}{Separator}{guid}";
-	}
+	public static string ToString(string prefix, Guid guid) => $"{prefix}{Separator}{guid}";
 
 	/// <summary>
 	///     Parse prefixed ID string and extract the Guid
 	/// </summary>
 	public static Guid ToGuid(string prefixedId) {
-		if (string.IsNullOrWhiteSpace(prefixedId))
+		if (string.IsNullOrWhiteSpace(prefixedId)) {
 			throw new ArgumentException("ID cannot be null or empty", nameof(prefixedId));
+		}
 
 		var parts = prefixedId.Split(Separator, 2);
-		if (parts.Length != 2)
+		if (parts.Length != 2) {
 			throw new FormatException($"Invalid prefixed ID format: {prefixedId}");
+		}
 
-		if (!Guid.TryParse(parts[1], out var guid))
+		if (!Guid.TryParse(parts[1], out var guid)) {
 			throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}");
+		}
 
 		return guid;
 	}
@@ -34,21 +35,25 @@ public static class PrefixedId {
 	///     Parse prefixed ID string with validation of expected prefix
 	/// </summary>
 	public static Guid ToGuid(string prefixedId, string expectedPrefix) {
-		if (string.IsNullOrWhiteSpace(prefixedId))
+		if (string.IsNullOrWhiteSpace(prefixedId)) {
 			throw new ArgumentException("ID cannot be null or empty", nameof(prefixedId));
+		}
 
 		var parts = prefixedId.Split(Separator, 2);
-		if (parts.Length != 2)
+		if (parts.Length != 2) {
 			throw new FormatException($"Invalid prefixed ID format: {prefixedId}");
+		}
 
 		var actualPrefix = parts[0];
-		if (actualPrefix != expectedPrefix)
+		if (actualPrefix != expectedPrefix) {
 			throw new ArgumentException(
 				$"Invalid ID prefix. Expected '{expectedPrefix}{Separator}' but got '{actualPrefix}{Separator}'",
 				nameof(prefixedId));
+		}
 
-		if (!Guid.TryParse(parts[1], out var guid))
+		if (!Guid.TryParse(parts[1], out var guid)) {
 			throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}");
+		}
 
 		return guid;
 	}
@@ -58,12 +63,14 @@ public static class PrefixedId {
 	/// </summary>
 	public static bool TryToGuid(string? prefixedId, out Guid guid) {
 		guid = default;
-		if (string.IsNullOrWhiteSpace(prefixedId))
+		if (string.IsNullOrWhiteSpace(prefixedId)) {
 			return false;
+		}
 
 		var parts = prefixedId.Split(Separator, 2);
-		if (parts.Length != 2)
+		if (parts.Length != 2) {
 			return false;
+		}
 
 		return Guid.TryParse(parts[1], out guid);
 	}
@@ -73,15 +80,18 @@ public static class PrefixedId {
 	/// </summary>
 	public static bool TryToGuid(string? prefixedId, string expectedPrefix, out Guid guid) {
 		guid = default;
-		if (string.IsNullOrWhiteSpace(prefixedId))
+		if (string.IsNullOrWhiteSpace(prefixedId)) {
 			return false;
+		}
 
 		var parts = prefixedId.Split(Separator, 2);
-		if (parts.Length != 2)
+		if (parts.Length != 2) {
 			return false;
+		}
 
-		if (parts[0] != expectedPrefix)
+		if (parts[0] != expectedPrefix) {
 			return false;
+		}
 
 		return Guid.TryParse(parts[1], out guid);
 	}
@@ -90,12 +100,14 @@ public static class PrefixedId {
 	///     Get the prefix from a prefixed ID
 	/// </summary>
 	public static string? GetPrefix(string? prefixedId) {
-		if (string.IsNullOrWhiteSpace(prefixedId))
+		if (string.IsNullOrWhiteSpace(prefixedId)) {
 			return null;
+		}
 
 		var separatorIndex = prefixedId.IndexOf(Separator);
-		if (separatorIndex <= 0)
+		if (separatorIndex <= 0) {
 			return null;
+		}
 
 		return prefixedId[..separatorIndex];
 	}

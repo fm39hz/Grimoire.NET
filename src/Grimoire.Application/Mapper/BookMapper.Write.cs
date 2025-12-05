@@ -18,7 +18,8 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
-	[MapProperty(nameof(CreateVolumeRequestDto.SeriesId), nameof(VolumeModel.SeriesId), Use = nameof(ParseStringToGuid))]
+	[MapProperty(nameof(CreateVolumeRequestDto.SeriesId), nameof(VolumeModel.SeriesId),
+		Use = nameof(ParseStringToGuid))]
 	public partial VolumeModel CreateVolume(CreateVolumeRequestDto dto);
 
 	public ChapterModel CreateChapter(CreateChapterRequestDto dto) {
@@ -99,7 +100,7 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	private partial SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto);
-	
+
 	// Helper for parsing string IDs to Guid
-	private Guid ParseStringToGuid(string prefixedId) => PrefixedId.ToGuid(prefixedId);
+	private static Guid ParseStringToGuid(string prefixedId) => PrefixedId.ToGuid(prefixedId);
 }

@@ -1,6 +1,5 @@
 namespace Grimoire.Application.Dto.Book.Validators;
 
-using Application.Common;
 using FluentValidation;
 
 public class CreateSeriesRequestDtoValidator : AbstractValidator<CreateSeriesRequestDto> {

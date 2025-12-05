@@ -7,12 +7,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Grimoire.Domain\Grimoire.Domain.csproj" />
+		<ProjectReference Include="..\Grimoire.Domain\Grimoire.Domain.csproj"/>
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="FluentValidation" />
-		<PackageReference Include="Riok.Mapperly" />
+		<PackageReference Include="FluentValidation"/>
+		<PackageReference Include="Riok.Mapperly"/>
 	</ItemGroup>
 
 </Project>

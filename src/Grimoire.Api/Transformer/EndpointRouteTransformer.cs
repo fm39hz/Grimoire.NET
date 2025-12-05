@@ -2,11 +2,12 @@ namespace Grimoire.Api.Transformer;
 
 using System.Text.RegularExpressions;
 using Humanizer;
-using Microsoft.AspNetCore.Routing;
 
 public partial class EndpointRouteTransformer : IOutboundParameterTransformer {
 	public string? TransformOutbound(object? value) {
-		if (value == null) return null;
+		if (value == null) {
+			return null;
+		}
 
 		var str = value.ToString();
 		var pluralized = str!.Pluralize();

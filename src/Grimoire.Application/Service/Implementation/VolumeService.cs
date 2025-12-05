@@ -9,7 +9,10 @@ using Dto.Common;
 using Extensions;
 using Mapper;
 
-public sealed class VolumeService(IVolumeRepository repository, IChapterRepository chapterRepository, IBookMapper mapper) : IVolumeService {
+public sealed class VolumeService(
+	IVolumeRepository repository,
+	IChapterRepository chapterRepository,
+	IBookMapper mapper) : IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();

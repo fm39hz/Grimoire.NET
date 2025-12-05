@@ -10,19 +10,19 @@ using Riok.Mapperly.Abstractions;
 public partial class BookMapper {
 	[MapProperty(nameof(SeriesModel.Id), nameof(SeriesResponseDto.Id), Use = nameof(MapSeriesId))]
 	public partial SeriesResponseDto ToSeriesDto(SeriesModel model);
-	
+
 	[MapProperty(nameof(VolumeModel.Id), nameof(VolumeResponseDto.Id), Use = nameof(MapVolumeId))]
 	[MapProperty(nameof(VolumeModel.SeriesId), nameof(VolumeResponseDto.SeriesId), Use = nameof(MapSeriesId))]
 	public partial VolumeResponseDto ToVolumeDto(VolumeModel model);
-	
+
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterResponseDto.Id), Use = nameof(MapChapterId))]
 	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterResponseDto.VolumeId), Use = nameof(MapVolumeId))]
 	public partial ChapterResponseDto ToChapterDto(ChapterModel model);
-	
+
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]
 	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterListResponseDto.VolumeId), Use = nameof(MapVolumeId))]
 	public partial ChapterListResponseDto ToChapterListDto(ChapterModel model);
-	
+
 	[MapProperty(nameof(AssetModel.Id), nameof(AssetResponseDto.Id), Use = nameof(MapAssetId))]
 	[MapProperty(nameof(AssetModel.SeriesId), nameof(AssetResponseDto.SeriesId), Use = nameof(MapSeriesId))]
 	public partial AssetResponseDto ToAssetDto(AssetModel model);
@@ -34,11 +34,11 @@ public partial class BookMapper {
 		FootnoteSegmentModel f => ToFootnoteDto(f),
 		_ => throw new NotImplementedException($"Unknown segment type: {model.GetType().Name}")
 	};
-	
+
 	// ID conversion helpers for Mapperly
-	private string MapSeriesId(Guid id) => PrefixedId.ToString(EntityPrefix.Series, id);
-	private string MapVolumeId(Guid id) => PrefixedId.ToString(EntityPrefix.Volume, id);
-	private string MapChapterId(Guid id) => PrefixedId.ToString(EntityPrefix.Chapter, id);
-	private string MapSegmentId(Guid id) => PrefixedId.ToString(EntityPrefix.Segment, id);
-	private string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
+	private static string MapSeriesId(Guid id) => PrefixedId.ToString(EntityPrefix.Series, id);
+	private static string MapVolumeId(Guid id) => PrefixedId.ToString(EntityPrefix.Volume, id);
+	private static string MapChapterId(Guid id) => PrefixedId.ToString(EntityPrefix.Chapter, id);
+	private static string MapSegmentId(Guid id) => PrefixedId.ToString(EntityPrefix.Segment, id);
+	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 }

@@ -45,6 +45,7 @@ db-clear: ## Clear database and stop PostgreSQL database
 	docker exec grimoire-db psql -U admin -d grimoire -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO admin; GRANT ALL ON SCHEMA public TO public;" || true
 	docker stop grimoire-db || true
 	docker rm grimoire-db || true
+	rm -rf /tmp/grimoire-files/
 	@echo "PostgreSQL database cleared, stopped and removed."
 
 clean: ## Clean build artifacts

@@ -9,7 +9,8 @@ public class CreateChapterRequestDtoValidator : AbstractValidator<CreateChapterR
 			.NotEmpty()
 			.WithMessage("VolumeId is required")
 			.Must(BeValidVolumeId)
-			.WithMessage("VolumeId must be a valid volume ID with 'vol_' prefix (e.g., vol_01234567-89ab-cdef-0123-456789abcdef)");
+			.WithMessage(
+				"VolumeId must be a valid volume ID with 'vol_' prefix");
 
 		RuleFor(x => x.Title)
 			.NotEmpty()
@@ -26,7 +27,5 @@ public class CreateChapterRequestDtoValidator : AbstractValidator<CreateChapterR
 			.WithMessage("Content is required");
 	}
 
-	private static bool BeValidVolumeId(string volumeId) {
-		return PrefixedId.TryToGuid(volumeId, EntityPrefix.Volume, out _);
-	}
+	private static bool BeValidVolumeId(string volumeId) => PrefixedId.TryToGuid(volumeId, EntityPrefix.Volume, out _);
 }
