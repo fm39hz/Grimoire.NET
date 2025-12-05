@@ -80,6 +80,7 @@ public class Program {
 				JsonConfiguration.JsonOptions.AllowOutOfOrderMetadataProperties;
 		});
 		builder.Services.AddMvc();
+		builder.Services.AddValidation();
 		builder.Services.AddServices();
 		builder.Services.AddLog(builder);
 		builder.Services.AddStorage(builder);
