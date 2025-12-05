@@ -52,7 +52,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 		}
 	}
 
-	[HttpPut("{id:guid}")]
+	[HttpPatch("{id:guid}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	public async Task<IResult> Update(Guid id, [FromBody] UpdateSeriesRequestDto dto) {
 		var updatedSeries = await service.Update(id, dto);

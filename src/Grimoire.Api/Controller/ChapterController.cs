@@ -45,7 +45,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 		return Results.Created($"{createdChapter.Id}", mapper.ToChapterDto(createdChapter));
 	}
 
-	[HttpPut("{id:guid}")]
+	[HttpPatch("{id:guid}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	public async Task<IResult> Update(Guid id, [FromBody] UpdateChapterRequestDto dto) {
 		var updatedChapter = await service.Update(id, dto);

@@ -45,7 +45,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 		return Results.Created($"{createdVolume.Id}", mapper.ToVolumeDto(createdVolume));
 	}
 
-	[HttpPut("{id:guid}")]
+	[HttpPatch("{id:guid}")]
 	[ProducesResponseType(typeof(VolumeResponseDto), 200)]
 	public async Task<IResult> Update(Guid id, [FromBody] UpdateVolumeRequestDto dto) {
 		var updatedVolume = await service.Update(id, dto);
