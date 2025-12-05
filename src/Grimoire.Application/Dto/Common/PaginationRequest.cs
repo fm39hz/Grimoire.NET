@@ -1,17 +1,17 @@
 namespace Grimoire.Application.Dto.Common;
 
 public class PaginationRequest {
-	private int _pageSize = 10;
-	private int _pageIndex = 1;
+	private readonly int _pageIndex = 1;
+	private readonly int _pageSize = 10;
 
 	public int PageIndex {
 		get => _pageIndex;
-		set => _pageIndex = value < 1 ? 1 : value;
+		init => _pageIndex = value < 1? 1 : value;
 	}
 
 	public int PageSize {
 		get => _pageSize;
-		set => _pageSize = value switch {
+		init => _pageSize = value switch {
 			< 1 => 10,
 			> 100 => 100,
 			_ => value
