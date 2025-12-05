@@ -9,12 +9,13 @@ using Dto.Common;
 using Extensions;
 using Mapper;
 
-public sealed class SeriesService(ISeriesRepository repository, IBookMapper mapper) : ISeriesService {
+public sealed class SeriesService(ISeriesRepository repository, IVolumeRepository volumeRepository, IBookMapper mapper)
+	: ISeriesService {
 	public async Task<SeriesModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<SeriesModel>> FindAll() => await repository.FindAll();
 
-	public async Task<PagedResult<SeriesModel>> FindAllPaged(PaginationRequest request) {
+	public async Task<PagedResult<SeriesModel>> FindAll(PaginationRequest request) {
 		var allItems = await repository.FindAll();
 		return allItems.ToPagedList(request);
 	}
@@ -32,4 +33,12 @@ public sealed class SeriesService(ISeriesRepository repository, IBookMapper mapp
 	}
 
 	public async Task<int> Delete(Guid id) => await repository.Delete(id);
+
+	public async Task<IEnumerable<VolumeModel>> FindAllVolumes(Guid seriesId) =>
+		await volumeRepository.FindBySeriesId(seriesId);
+
+	public async Task<PagedResult<VolumeModel>> FindAllVolumes(Guid seriesId, PaginationRequest pagination) {
+		var volumes = await FindAllVolumes(seriesId);
+		return volumes.ToPagedList(pagination);
+	}
 }

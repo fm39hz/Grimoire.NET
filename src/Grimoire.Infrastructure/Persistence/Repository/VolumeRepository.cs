@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class VolumeRepository(ApplicationDbContext context)
 	: CrudRepository<VolumeModel>(context), IVolumeRepository {
-	
 	public async Task<PagedResult<VolumeModel>> FindAllPaged(PaginationRequest request) {
 		var query = Entities.AsQueryable();
 		var count = await query.CountAsync();
@@ -20,4 +19,10 @@ public sealed class VolumeRepository(ApplicationDbContext context)
 
 		return new PagedResult<VolumeModel>(items, count, request.PageIndex, request.PageSize);
 	}
+
+	public async Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId) =>
+		await Entities
+			.Where(v => v.SeriesId == seriesId)
+			.OrderBy(v => v.Order)
+			.ToListAsync();
 }

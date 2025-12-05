@@ -29,13 +29,13 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 			return Results.Ok(dto);
 		}
 
-		var pagedSeries = await service.FindAllPaged(pagination.ToApplicationDto());
+		var pagedSeries = await service.FindAll(pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<SeriesResponseDto>(
 			pagedSeries.Items.Select(mapper.ToSeriesDto).ToList(),
 			pagedSeries.TotalCount,
 			pagedSeries.PageIndex,
 			pagedSeries.PageSize
-		);
+			);
 		return Results.Ok(pagedDto);
 	}
 
@@ -64,5 +64,24 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	public async Task<IResult> Delete(Guid id) {
 		var result = await service.Delete(id);
 		return Results.Ok(result);
+	}
+
+	[HttpGet("{id:guid}/volumes")]
+	[ProducesResponseType(typeof(IEnumerable<VolumeResponseDto>), 200)]
+	public async Task<IResult> GetVolumes(Guid id, [FromQuery] PaginationRequestDto? pagination) {
+		if (pagination == null) {
+			var series = await service.FindAllVolumes(id);
+			var dto = series.Select(mapper.ToVolumeDto);
+			return Results.Ok(dto);
+		}
+
+		var pagedVolumes = await service.FindAllVolumes(id, pagination.ToApplicationDto());
+		var pagedDto = new PagedResult<VolumeResponseDto>(
+			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),
+			pagedVolumes.TotalCount,
+			pagedVolumes.PageIndex,
+			pagedVolumes.PageSize
+			);
+		return Results.Ok(pagedDto);
 	}
 }
