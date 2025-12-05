@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 public abstract class CrudRepository<T>(DbContext context) : IRepository<T> where T : BaseModel, IModel {
 	protected DbSet<T> Entities => context.Set<T>();
 	protected DbContext Context => context;
-	
+
 	public virtual async Task<T?> FindOne(Guid id) => await Entities.FirstOrDefaultAsync(entity => entity.Id == id);
 
 	public virtual async Task<IEnumerable<T>> FindAll() => await Entities.ToListAsync();
@@ -40,8 +40,9 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	}
 
 	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities) {
-		Entities.UpdateRange(entities);
+		var baseModels = entities.ToList();
+		Entities.UpdateRange(baseModels);
 		await context.SaveChangesAsync();
-		return context.Set<T>().Where(entity => entities.Select(e => e.Id).Contains(entity.Id));
+		return context.Set<T>().Where(entity => baseModels.Select(e => e.Id).Contains(entity.Id));
 	}
 }
