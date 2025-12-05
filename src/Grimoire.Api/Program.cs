@@ -5,6 +5,7 @@ using Extension;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
+using Middleware;
 using Serilog;
 using Serilog.Events;
 using Transformer;
@@ -18,13 +19,13 @@ public class Program {
 
 		var app = Build(builder);
 
+		// Global exception handling - must be first in pipeline
+		app.UseMiddleware<GlobalExceptionMiddleware>();
+
 		if (app.Environment.IsDevelopment()) {
 			app.UseHsts();
 			// Disable MapOpenApi due to polymorphic type conflict in ASP.NET Core OpenAPI
 			// app.MapOpenApi();
-			app.UseExceptionHandler(new ExceptionHandlerOptions {
-				AllowStatusCode404Response = true, ExceptionHandlingPath = "/error"
-			});
 			{
 				await using var scope = app.Services.CreateAsyncScope();
 				await using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
