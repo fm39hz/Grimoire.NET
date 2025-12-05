@@ -1,6 +1,7 @@
 namespace Grimoire.Application.Service.Contract;
 
 using Domain.Entity;
+using Dto.Common;
 
 /// <summary>
 ///     An interface that declare Crud actions service
@@ -22,6 +23,13 @@ public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
 	/// </summary>
 	/// <returns>All matched model</returns>
 	public Task<IEnumerable<TModel>> FindAll();
+
+	/// <summary>
+	///     Find all entity in database with pagination
+	/// </summary>
+	/// <param name="request">Pagination parameters</param>
+	/// <returns>Paged result</returns>
+	public Task<PagedResult<TModel>> FindAllPaged(PaginationRequest request);
 
 	/// <summary>
 	///     Create new entity in database
