@@ -14,7 +14,7 @@ public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapp
 
 	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();
 
-	public async Task<PagedResult<VolumeModel>> FindAllPaged(PaginationRequest request) {
+	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request) {
 		var allItems = await repository.FindAll();
 		return allItems.ToPagedList(request);
 	}

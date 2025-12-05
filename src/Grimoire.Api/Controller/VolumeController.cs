@@ -28,7 +28,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 			return Results.Ok(dto);
 		}
 
-		var pagedVolumes = await service.FindAllPaged(pagination.ToApplicationDto());
+		var pagedVolumes = await service.FindAll(pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<VolumeResponseDto>(
 			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),
 			pagedVolumes.TotalCount,

@@ -29,7 +29,7 @@ public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
 	/// </summary>
 	/// <param name="request">Pagination parameters</param>
 	/// <returns>Paged result</returns>
-	public Task<PagedResult<TModel>> FindAllPaged(PaginationRequest request);
+	public Task<PagedResult<TModel>> FindAll(PaginationRequest request);
 
 	/// <summary>
 	///     Create new entity in database

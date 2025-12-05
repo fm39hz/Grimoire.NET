@@ -28,7 +28,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 			return Results.Ok(dto);
 		}
 
-		var pagedChapters = await service.FindAllPaged(pagination.ToApplicationDto());
+		var pagedChapters = await service.FindAll(pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<ChapterResponseDto>(
 			pagedChapters.Items.Select(mapper.ToChapterDto).ToList(),
 			pagedChapters.TotalCount,
