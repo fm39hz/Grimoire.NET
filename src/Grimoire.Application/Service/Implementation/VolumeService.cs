@@ -18,12 +18,7 @@ public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapp
 		var allItems = await repository.FindAll();
 		var totalCount = allItems.Count();
 		
-		var items = allItems
-			.Skip((request.PageIndex - 1) * request.PageSize)
-			.Take(request.PageSize)
-			.ToList();
-		
-		return new PagedResult<VolumeModel>(items, totalCount, request.PageIndex, request.PageSize);
+		return allItems.ToPagedList(request, totalCount);
 	}
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
