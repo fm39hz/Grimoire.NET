@@ -6,10 +6,17 @@ using Database;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
-public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logger, IAssetRepository assetRepository)
+public partial class LocalStorageRepository(
+	ILogger<LocalStorageRepository> logger,
+	IAssetRepository assetRepository,
+	IOptions<StorageConfiguration> storageOptions)
 	: IStorageRepository {
-	private readonly string _storagePath = Path.Combine(Path.GetTempPath(), StorageConfiguration.STORAGE_PATH);
+	private readonly StorageConfiguration _config = storageOptions.Value;
+	private string StoragePath => _config.UseTemporaryDirectory 
+		? Path.Combine(Path.GetTempPath(), _config.BasePath)
+		: _config.BasePath;
 
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType,
 		string originalFileName, string refType) {
@@ -21,8 +28,8 @@ public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logg
 		}
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-		var assetPath = $"{StorageConfiguration.SERIES_PATH}/{seriesId}/{hash}{extension}";
-		var filePath = Path.Combine(_storagePath, assetPath);
+		var assetPath = $"{_config.SeriesPath}/{seriesId}/{hash}{extension}";
+		var filePath = Path.Combine(StoragePath, assetPath);
 
 		var directory = Path.GetDirectoryName(filePath);
 		if (directory is not null) {
@@ -54,7 +61,7 @@ public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logg
 			return [];
 		}
 
-		var filePath = Path.Combine(_storagePath, asset.Path);
+		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
 		return !File.Exists(filePath)? [] : await File.ReadAllBytesAsync(filePath);
 	}
@@ -65,7 +72,7 @@ public partial class LocalStorageRepository(ILogger<LocalStorageRepository> logg
 			return;
 		}
 
-		var filePath = Path.Combine(_storagePath, asset.Path);
+		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogDeletingFileFromFilepath(logger, filePath);
 		if (File.Exists(filePath)) {
 			File.Delete(filePath);
