@@ -63,7 +63,7 @@ async function uploadAsset(localPath, contextId) {
 			headers: form.getHeaders(),
 			params: { file: "Image" },
 		});
-		return res.data.path;
+		return res.data.id;
 	} catch (e) {
 		return null;
 	}
@@ -112,23 +112,23 @@ async function importBook(bookFolder) {
 			metadata: {
 				...data.metadata,
 				description: data.metadata.description,
-				coverImageUrl: null,
+				coverImage: null,
 			},
 		};
 
 		const seriesRes = await api.post("/series", seriesPayload);
 		const seriesId = seriesRes.data.id;
 
-		if (data.metadata.coverImageUrl) {
+		if (data.metadata.coverImage) {
 			console.log("   Uploading Cover...");
 			const coverLocalPath = path.resolve(
 				assetsRoot,
-				data.metadata.coverImageUrl,
+				data.metadata.coverImage,
 			);
 			const coverServerPath = await uploadAsset(coverLocalPath, seriesId);
 
 			if (coverServerPath) {
-				seriesPayload.metadata.coverImageUrl = coverServerPath;
+				seriesPayload.metadata.coverImage = coverServerPath;
 				await api.patch(`/series/${seriesId}`, seriesPayload);
 			}
 		}

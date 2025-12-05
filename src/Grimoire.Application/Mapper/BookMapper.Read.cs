@@ -22,6 +22,10 @@ public partial class BookMapper {
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]
 	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterListResponseDto.VolumeId), Use = nameof(MapVolumeId))]
 	public partial ChapterListResponseDto ToChapterListDto(ChapterModel model);
+	
+	[MapProperty(nameof(AssetModel.Id), nameof(AssetResponseDto.Id), Use = nameof(MapAssetId))]
+	[MapProperty(nameof(AssetModel.SeriesId), nameof(AssetResponseDto.SeriesId), Use = nameof(MapSeriesId))]
+	public partial AssetResponseDto ToAssetDto(AssetModel model);
 
 	private SegmentDto MapSegment(SegmentModel model) => model switch {
 		TextSegmentModel t => ToTextDto(t),
@@ -36,4 +40,5 @@ public partial class BookMapper {
 	private string MapVolumeId(Guid id) => PrefixedId.ToString(EntityPrefix.Volume, id);
 	private string MapChapterId(Guid id) => PrefixedId.ToString(EntityPrefix.Chapter, id);
 	private string MapSegmentId(Guid id) => PrefixedId.ToString(EntityPrefix.Segment, id);
+	private string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 }
