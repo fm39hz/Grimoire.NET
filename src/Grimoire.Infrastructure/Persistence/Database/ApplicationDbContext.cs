@@ -39,12 +39,14 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<VolumeModel>(entity => {
+			entity.HasIndex(e => e.SeriesId);
 			entity.OwnsOne(s => s.Metadata, metaBuilder => {
 				metaBuilder.ToJson();
 			});
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {
+			entity.HasIndex(e => e.VolumeId);
 			entity.Property(c => c.Content)
 				.HasColumnType("jsonb")
 				.HasConversion(
