@@ -1,7 +1,7 @@
 import axios from "axios";
+import FormData from "form-data";
 import fs from "fs-extra";
 import path from "path";
-import FormData from "form-data";
 import { fileURLToPath } from "url";
 
 const API_URL = "http://localhost:5062/api/v1";
@@ -59,7 +59,7 @@ async function uploadAsset(localPath, contextId) {
 	try {
 		const form = new FormData();
 		form.append("file", fs.createReadStream(localPath));
-		const res = await api.post(`/file/upload/${contextId}`, form, {
+		const res = await api.post(`/files/upload/${contextId}`, form, {
 			headers: form.getHeaders(),
 			params: { file: "Image" },
 		});
@@ -135,7 +135,7 @@ async function importBook(bookFolder) {
 
 		for (const vol of data.volumes) {
 			console.log(`   📂 Volume: ${vol.title}`);
-			const volRes = await api.post("/volume", {
+			const volRes = await api.post("/volumes", {
 				seriesId: seriesId,
 				title: vol.title,
 				order: vol.order,
@@ -156,7 +156,7 @@ async function importBook(bookFolder) {
 					}
 				}
 
-				await api.post("/chapter", {
+				await api.post("/chapters", {
 					volumeId: volumeId,
 					title: chap.title,
 					order: chap.order,
@@ -181,4 +181,3 @@ async function importBook(bookFolder) {
 		}
 	}
 })();
-

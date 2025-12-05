@@ -70,7 +70,7 @@ public class Program {
 	private static WebApplication Build(WebApplicationBuilder builder) {
 		builder.Services.AddEndpointsApiExplorer();
 		builder.Services.AddControllers(options => {
-			options.Conventions.Add(new RouteTokenTransformerConvention(new KebabCaseTransformer()));
+			options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer()));
 		}).AddJsonOptions(options => {
 			options.JsonSerializerOptions.PropertyNamingPolicy = JsonConfiguration.JsonOptions.PropertyNamingPolicy;
 			options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
