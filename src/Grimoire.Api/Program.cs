@@ -5,7 +5,6 @@ using Extension;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
-using Middleware;
 using Serilog;
 using Serilog.Events;
 using Transformer;
@@ -21,7 +20,8 @@ public class Program {
 
 		if (app.Environment.IsDevelopment()) {
 			app.UseHsts();
-			app.MapOpenApi();
+			// Disable MapOpenApi due to polymorphic type conflict in ASP.NET Core OpenAPI
+			// app.MapOpenApi();
 			app.UseExceptionHandler(new ExceptionHandlerOptions {
 				AllowStatusCode404Response = true, ExceptionHandlingPath = "/error"
 			});
@@ -31,7 +31,9 @@ public class Program {
 				await dbContext.Database.EnsureCreatedAsync();
 			}
 
-			app.UseSwagger();
+			app.UseSwagger(options => {
+				options.RouteTemplate = "openapi/{documentName}.json";
+			});
 			app.UseSwaggerUI(static opt => {
 				opt.SwaggerEndpoint($"/openapi/{RouteConstant.VERSION}.json",
 					$"{RouteConstant.PROJECT_NAME} API {RouteConstant.VERSION}");
@@ -64,7 +66,6 @@ public class Program {
 					: LogEventLevel.Information;
 			};
 		});
-		app.UseMiddleware<PaginationMiddleware>();
 		await app.RunAsync();
 	}
 
