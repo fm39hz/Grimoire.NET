@@ -5,12 +5,26 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
+using Dto.Common;
+using Extensions;
 using Mapper;
 
 public sealed class ChapterService(IChapterRepository repository, IBookMapper mapper) : IChapterService {
 	public async Task<ChapterModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<ChapterModel>> FindAll() => await repository.FindAll();
+
+	public async Task<PagedResult<ChapterModel>> FindAllPaged(PaginationRequest request) {
+		var allItems = await repository.FindAll();
+		var totalCount = allItems.Count();
+		
+		var items = allItems
+			.Skip((request.PageIndex - 1) * request.PageSize)
+			.Take(request.PageSize)
+			.ToList();
+		
+		return new PagedResult<ChapterModel>(items, totalCount, request.PageIndex, request.PageSize);
+	}
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {
 		var chapter = mapper.CreateChapter(dto);

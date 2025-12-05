@@ -5,12 +5,26 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
+using Dto.Common;
+using Extensions;
 using Mapper;
 
 public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapper) : IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();
+
+	public async Task<PagedResult<VolumeModel>> FindAllPaged(PaginationRequest request) {
+		var allItems = await repository.FindAll();
+		var totalCount = allItems.Count();
+		
+		var items = allItems
+			.Skip((request.PageIndex - 1) * request.PageSize)
+			.Take(request.PageSize)
+			.ToList();
+		
+		return new PagedResult<VolumeModel>(items, totalCount, request.PageIndex, request.PageSize);
+	}
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
 		var volume = mapper.CreateVolume(dto);
