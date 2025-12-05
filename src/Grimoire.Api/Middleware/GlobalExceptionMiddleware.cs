@@ -1,5 +1,6 @@
 namespace Grimoire.Api.Middleware;
 
+using System.Diagnostics;
 using System.Text.Json;
 using Domain.Exception;
 using Infrastructure.Configuration;
@@ -60,7 +61,7 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 			Status = statusCode,
 			Extensions = {
 				["errors"] = new Dictionary<string, string[]> { { "message", [message] } },
-				["traceId"] = System.Diagnostics.Activity.Current?.Id ?? context.TraceIdentifier
+				["traceId"] = Activity.Current?.Id ?? context.TraceIdentifier
 			}
 		};
 

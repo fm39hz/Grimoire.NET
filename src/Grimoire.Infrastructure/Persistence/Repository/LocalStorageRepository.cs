@@ -2,7 +2,6 @@ namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
 using Configuration;
-using Database;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.Extensions.Logging;
@@ -14,7 +13,8 @@ public partial class LocalStorageRepository(
 	IOptions<StorageConfiguration> storageOptions)
 	: IStorageRepository {
 	private readonly StorageConfiguration _config = storageOptions.Value;
-	private string StoragePath => _config.UseTemporaryDirectory 
+
+	private string StoragePath => _config.UseTemporaryDirectory
 		? Path.Combine(Path.GetTempPath(), _config.BasePath)
 		: _config.BasePath;
 

@@ -34,7 +34,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 			pagedChapters.TotalCount,
 			pagedChapters.PageIndex,
 			pagedChapters.PageSize
-		);
+			);
 		return Results.Ok(pagedDto);
 	}
 

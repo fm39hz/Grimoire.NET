@@ -34,7 +34,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 			pagedVolumes.TotalCount,
 			pagedVolumes.PageIndex,
 			pagedVolumes.PageSize
-		);
+			);
 		return Results.Ok(pagedDto);
 	}
 

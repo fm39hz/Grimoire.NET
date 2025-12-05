@@ -10,7 +10,7 @@ public static class StorageExtension {
 	public static IServiceCollection AddStorage(this IServiceCollection services, WebApplicationBuilder builder) {
 		services.Configure<StorageConfiguration>(
 			builder.Configuration.GetSection(StorageConfiguration.SectionName));
-		
+
 		var storageType = builder.Configuration.GetValue<string>("Storage:Type");
 
 		switch (storageType) {

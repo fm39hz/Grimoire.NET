@@ -2,7 +2,6 @@ namespace Grimoire.Api.Extension;
 
 using Constant;
 using JetBrains.Annotations;
-using Microsoft.AspNetCore.OpenApi;
 using Microsoft.OpenApi.Models;
 
 public static class NetworkExtension {
@@ -17,7 +16,7 @@ public static class NetworkExtension {
 			opt.SwaggerDoc(
 				RouteConstant.VERSION,
 				new OpenApiInfo { Title = $"{RouteConstant.PROJECT_NAME} API", Version = RouteConstant.VERSION }
-			);
+				);
 			opt.CustomSchemaIds(type => type.FullName);
 		});
 		builder.Services.AddCors(options => {

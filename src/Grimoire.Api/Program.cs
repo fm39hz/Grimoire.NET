@@ -19,13 +19,10 @@ public class Program {
 
 		var app = Build(builder);
 
-		// Global exception handling - must be first in pipeline
 		app.UseMiddleware<GlobalExceptionMiddleware>();
 
 		if (app.Environment.IsDevelopment()) {
 			app.UseHsts();
-			// Disable MapOpenApi due to polymorphic type conflict in ASP.NET Core OpenAPI
-			// app.MapOpenApi();
 			{
 				await using var scope = app.Services.CreateAsyncScope();
 				await using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
