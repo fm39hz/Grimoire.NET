@@ -2,40 +2,34 @@ namespace Grimoire.Api.Middleware;
 
 using System.Text.Json;
 using Domain.Exception;
+using Infrastructure.Configuration;
 
-public class GlobalExceptionMiddleware {
-	private readonly RequestDelegate _next;
-	private readonly ILogger<GlobalExceptionMiddleware> _logger;
-	private static readonly JsonSerializerOptions JsonOptions = new() {
-		PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-	};
-
-	public GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger) {
-		_next = next;
-		_logger = logger;
-	}
-
+public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<GlobalExceptionMiddleware> logger) {
 	public async Task InvokeAsync(HttpContext context) {
 		try {
-			await _next(context);
-
-			// Handle 401/403 responses with empty body
+			await next(context);
 			if (!context.Response.HasStarted) {
-				if (context.Response.StatusCode == 401) {
-					await HandleErrorAsync(context, 401, "Unauthorized. Please login or refresh your token.");
-				}
-				else if (context.Response.StatusCode == 403) {
-					await HandleErrorAsync(context, 403, "Forbidden. You don't have permission to access this resource.");
+				switch (context.Response.StatusCode) {
+					case 401:
+						await HandleErrorAsync(context, 401, "Unauthorized. Please login or refresh your token.");
+						break;
+					case 403:
+						await HandleErrorAsync(context, 403,
+							"Forbidden. You don't have permission to access this resource.");
+						break;
+					case 404:
+						await HandleErrorAsync(context, 404, "Resource not found.");
+						break;
 				}
 			}
 		}
-		catch (System.Exception ex) {
-			_logger.LogError(ex, "Unhandled exception: {Message}", ex.Message);
+		catch (Exception ex) {
+			LogUnhandledExceptionMessage(logger, ex, ex.Message);
 			await HandleExceptionAsync(context, ex);
 		}
 	}
 
-	private static async Task HandleExceptionAsync(HttpContext context, System.Exception exception) {
+	private static async Task HandleExceptionAsync(HttpContext context, Exception exception) {
 		var statusCode = exception switch {
 			EntityNotFoundException => StatusCodes.Status404NotFound,
 			ArgumentException => StatusCodes.Status400BadRequest,
@@ -47,7 +41,6 @@ public class GlobalExceptionMiddleware {
 
 		var message = exception.Message;
 
-		// Hide internal error details in production
 		if (statusCode == 500 && !context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()) {
 			message = "An internal server error occurred. Please try again later.";
 		}
@@ -59,15 +52,14 @@ public class GlobalExceptionMiddleware {
 		context.Response.ContentType = "application/json";
 		context.Response.StatusCode = statusCode;
 
-		var response = new {
-			succeeded = false,
-			statusCode = statusCode,
-			message = message,
-			timestamp = DateTime.UtcNow
-		};
+		var response = new { succeed = false, statusCode, message, timestamp = DateTime.UtcNow };
 
-		var json = JsonSerializer.Serialize(response, JsonOptions);
-		
+		var json = JsonSerializer.Serialize(response, JsonConfiguration.JsonOptions);
+
 		await context.Response.WriteAsync(json);
 	}
+
+	[LoggerMessage(LogLevel.Error, "Unhandled exception: {message}")]
+	static partial void LogUnhandledExceptionMessage(ILogger<GlobalExceptionMiddleware> logger, Exception ex,
+		string message);
 }

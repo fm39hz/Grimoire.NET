@@ -7,7 +7,7 @@ using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 
-public sealed record JsonConfiguration {
+public static class JsonConfiguration {
 	public static readonly JsonSerializerOptions JsonOptions = new() {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
