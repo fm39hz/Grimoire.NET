@@ -12,7 +12,7 @@ help: ## Show this help message
 	@echo "  make debug     - Debug the application"
 	@echo "  make db-up     - Start PostgreSQL database with Docker"
 	@echo "  make db-down   - Stop PostgreSQL database"
-	@echo "  make db-clear - Clear database and stop PostgreSQL database"
+	@echo "  make db-clear 	- Clear database and stop PostgreSQL database"
 	@echo "  make clean     - Clean build artifacts"
 	@echo ""
 
@@ -50,6 +50,3 @@ db-clear: ## Clear database and stop PostgreSQL database
 clean: ## Clean build artifacts
 	dotnet clean
 	dotnet nuget locals all --clear
-
-test: ## Run tests
-	dotnet test
