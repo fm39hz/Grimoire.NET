@@ -9,7 +9,7 @@ using Dto.Common;
 using Extensions;
 using Mapper;
 
-public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapper) : IVolumeService {
+public sealed class VolumeService(IVolumeRepository repository, IChapterRepository chapterRepository, IBookMapper mapper) : IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();
@@ -33,4 +33,12 @@ public sealed class VolumeService(IVolumeRepository repository, IBookMapper mapp
 	}
 
 	public async Task<int> Delete(Guid id) => await repository.Delete(id);
+
+	public async Task<IEnumerable<ChapterModel>> FindAllChapters(Guid volumeId) =>
+		await chapterRepository.FindByVolumeId(volumeId);
+
+	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId, PaginationRequest pagination) {
+		var chapters = await FindAllChapters(volumeId);
+		return chapters.ToPagedList(pagination);
+	}
 }

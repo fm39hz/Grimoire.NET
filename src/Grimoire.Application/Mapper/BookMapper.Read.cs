@@ -7,6 +7,7 @@ using Dto.Book.Segment;
 
 public partial class BookMapper {
 	public partial ChapterResponseDto ToChapterDto(ChapterModel model);
+	public partial ChapterListResponseDto ToChapterListDto(ChapterModel model);
 	public partial SeriesResponseDto ToSeriesDto(SeriesModel model);
 	public partial VolumeResponseDto ToVolumeDto(VolumeModel model);
 

@@ -58,4 +58,23 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 		var result = await service.Delete(id);
 		return Results.Ok(result);
 	}
+
+	[HttpGet("{id:guid}/chapters")]
+	[ProducesResponseType(typeof(IEnumerable<ChapterListResponseDto>), 200)]
+	public async Task<IResult> GetChapters(Guid id, [FromQuery] PaginationRequestDto? pagination) {
+		if (pagination == null) {
+			var chapters = await service.FindAllChapters(id);
+			var dto = chapters.Select(mapper.ToChapterListDto);
+			return Results.Ok(dto);
+		}
+
+		var pagedChapters = await service.FindAllChapters(id, pagination.ToApplicationDto());
+		var pagedDto = new PagedResult<ChapterListResponseDto>(
+			pagedChapters.Items.Select(mapper.ToChapterListDto).ToList(),
+			pagedChapters.TotalCount,
+			pagedChapters.PageIndex,
+			pagedChapters.PageSize
+			);
+		return Results.Ok(pagedDto);
+	}
 }

@@ -5,6 +5,7 @@ using Dto.Book;
 
 public interface IBookMapper {
 	public ChapterResponseDto ToChapterDto(ChapterModel model);
+	public ChapterListResponseDto ToChapterListDto(ChapterModel model);
 	public SeriesResponseDto ToSeriesDto(SeriesModel model);
 	public VolumeResponseDto ToVolumeDto(VolumeModel model);
 	public SeriesModel CreateSeries(CreateSeriesRequestDto dto);
