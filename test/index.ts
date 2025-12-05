@@ -14,6 +14,15 @@ const api = axios.create({
 	maxBodyLength: Infinity,
 });
 
+// Type definitions for pagination
+interface PagedResult<T> {
+	items: T[];
+	totalCount: number;
+	pageIndex: number;
+	pageSize: number;
+	totalPages: number;
+}
+
 api.interceptors.response.use(
 	(res) => res,
 	(err) => {
