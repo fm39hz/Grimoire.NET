@@ -1,6 +1,7 @@
 namespace Grimoire.Api.Controller;
 
 using Application.Dto.Book;
+using Application.Dto.Common;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
@@ -12,19 +13,35 @@ using Microsoft.AspNetCore.Mvc;
 [Route(RouteConstant.CONTROLLER)]
 public sealed class SeriesController(ISeriesService service, IBookMapper mapper) : ControllerBase {
 	[HttpGet("{id:guid}")]
+	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
+	[ProducesResponseType(404)]
 	public async Task<IResult> FindOne(Guid id) {
 		var series = await service.FindOne(id);
 		return series is null? Results.NotFound() : Results.Ok(mapper.ToSeriesDto(series));
 	}
 
 	[HttpGet]
+	[ProducesResponseType(typeof(PagedResult<SeriesResponseDto>), 200)]
 	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination) {
-		var series = await service.FindAll();
-		var dto = series.Select(mapper.ToSeriesDto);
-		return Results.Ok(dto);
+		if (pagination == null) {
+			var series = await service.FindAll();
+			var dto = series.Select(mapper.ToSeriesDto);
+			return Results.Ok(dto);
+		}
+
+		var pagedSeries = await service.FindAllPaged(pagination.ToApplicationDto());
+		var pagedDto = new PagedResult<SeriesResponseDto>(
+			pagedSeries.Items.Select(mapper.ToSeriesDto).ToList(),
+			pagedSeries.TotalCount,
+			pagedSeries.PageIndex,
+			pagedSeries.PageSize
+		);
+		return Results.Ok(pagedDto);
 	}
 
 	[HttpPost]
+	[ProducesResponseType(typeof(SeriesResponseDto), 201)]
+	[ProducesResponseType(409)]
 	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto) {
 		try {
 			var createdSeries = await service.Create(dto);
@@ -36,12 +53,14 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	}
 
 	[HttpPut("{id:guid}")]
+	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	public async Task<IResult> Update(Guid id, [FromBody] UpdateSeriesRequestDto dto) {
 		var updatedSeries = await service.Update(id, dto);
 		return Results.Ok(mapper.ToSeriesDto(updatedSeries));
 	}
 
 	[HttpDelete("{id:guid}")]
+	[ProducesResponseType(typeof(bool), 200)]
 	public async Task<IResult> Delete(Guid id) {
 		var result = await service.Delete(id);
 		return Results.Ok(result);
