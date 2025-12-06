@@ -20,6 +20,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		base.OnModelCreating(modelBuilder);
 
 		modelBuilder.Entity<SeriesModel>(entity => {
+			entity.Property(s => s.Title)
+				.HasMaxLength(500)
+				.IsRequired();
+			
 			entity.Property(s => s.Metadata)
 				.HasColumnType("jsonb")
 				.HasConversion(
@@ -33,14 +37,22 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<VolumeModel>(entity => {
-			entity.HasIndex(e => e.SeriesId);
+			entity.Property(v => v.Title)
+				.HasMaxLength(500)
+				.IsRequired();
+			
+			entity.HasIndex(e => new { e.SeriesId, e.Order });
 			entity.OwnsOne(s => s.Metadata, metaBuilder => {
 				metaBuilder.ToJson();
 			});
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {
-			entity.HasIndex(e => e.VolumeId);
+			entity.Property(c => c.Title)
+				.HasMaxLength(500)
+				.IsRequired();
+			
+			entity.HasIndex(e => new { e.VolumeId, e.Order });
 			entity.Property(c => c.Content)
 				.HasColumnType("jsonb")
 				.HasConversion(
@@ -57,6 +69,25 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 							v, JsonConfiguration.JsonOptions) ??
 						new List<FootnoteSegmentModel>()
 					).Metadata.SetValueComparer(JsonConfiguration.FootnoteComparer);
+		});
+
+		modelBuilder.Entity<AssetModel>(entity => {
+			entity.Property(a => a.Path)
+				.HasMaxLength(1000)
+				.IsRequired();
+			
+			entity.Property(a => a.FileHash)
+				.HasMaxLength(64)
+				.IsRequired();
+			
+			entity.Property(a => a.RefType)
+				.HasMaxLength(50)
+				.IsRequired();
+			
+			entity.HasIndex(a => a.SeriesId);
+			entity.HasIndex(a => a.FileHash);
+			entity.HasIndex(a => new { a.SeriesId, a.FileHash });
+			entity.HasIndex(a => a.RefType);
 		});
 	}
 }
