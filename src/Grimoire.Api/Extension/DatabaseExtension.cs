@@ -1,5 +1,6 @@
 namespace Grimoire.Api.Extension;
 
+using EntityFramework.Exceptions.PostgreSQL;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
 using Infrastructure.Persistence.Seeder;
@@ -14,6 +15,8 @@ public static class DatabaseExtension {
 		var postgresConnection = new PostgreSqlConfiguration(builder.Configuration);
 		builder.Services.AddDbContext<ApplicationDbContext>(options =>
 			options.UseNpgsql(postgresConnection.ConnectionString)
+				.UseSnakeCaseNamingConvention()
+				.UseExceptionProcessor()
 				.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
 		// service.AddTransient<AdminSeeder>();
 		service.AddTransient<DatabaseSeeder>();

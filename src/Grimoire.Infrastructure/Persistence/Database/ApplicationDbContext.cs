@@ -16,11 +16,6 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<ChapterModel> Chapters { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
 
-	protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) {
-		base.OnConfiguring(optionsBuilder.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
-		optionsBuilder.UseNpgsql().UseSnakeCaseNamingConvention().UseExceptionProcessor();
-	}
-
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 
@@ -33,8 +28,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 						new SeriesMetadata()
 					)
 				.Metadata.SetValueComparer(JsonConfiguration.MetadataComparer);
-			entity.HasIndex(s => s.Metadata)
-				.HasMethod("gin");
+			entity.HasIndex(s => s.Metadata).HasMethod("gin");
 			entity.HasIndex(s => s.Title).IsUnique();
 		});
 
