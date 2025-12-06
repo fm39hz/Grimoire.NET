@@ -101,6 +101,11 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	private partial SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto);
 
+	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
+	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	private partial VolumeMetadata ToVolumeMetadata(VolumeMetadataDto dto);
+
 	// Helper for parsing string IDs to Guid
 	private static Guid ParseStringToGuid(string prefixedId) => PrefixedId.ToGuid(prefixedId);
 }

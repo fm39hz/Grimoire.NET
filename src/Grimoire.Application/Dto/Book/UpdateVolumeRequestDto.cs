@@ -1,5 +1,5 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Domain.Entity.Book.Metadata;
+using Metadata;
 
-public record UpdateVolumeRequestDto(int? Order, string? Title, VolumeMetadata? Metadata);
+public record UpdateVolumeRequestDto(int? Order, string? Title, VolumeMetadataDto? Metadata);
