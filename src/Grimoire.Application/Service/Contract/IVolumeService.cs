@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Contract;
 
+using Domain.Common;
 using Domain.Entity.Book;
 using Dto.Book;
 using Dto.Common;
