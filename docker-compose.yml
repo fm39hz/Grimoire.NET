@@ -12,27 +12,30 @@ services:
         ports: ["5432:5432"]
 
     # 2. Storage
-    minio:
-        image: minio/minio
-        container_name: grimoire-storage
-        command: server /data --console-address ":9001"
-        environment:
-            MINIO_ROOT_USER: admin
-            MINIO_ROOT_PASSWORD: password
-        volumes: [miniodata:/data]
-        ports: ["9000:9000", "9001:9001"]
+    # minio:
+    #     image: minio/minio
+    #     container_name: grimoire-storage
+    #     command: server /data --console-address ":9001"
+    #     environment:
+    #         MINIO_ROOT_USER: admin
+    #         MINIO_ROOT_PASSWORD: password
+    #     volumes: [miniodata:/data]
+    #     ports: ["9000:9000", "9001:9001"]
 
     # 3. API & Worker (Chạy chung container cho đơn giản hóa MVP)
     api:
         build: .
         container_name: grimoire-api
         environment:
-            - ConnectionStrings__Default=Host=postgres;Database=grimoire;Username=admin;Password=admin
-            - Storage__Endpoint=minio:9000
-            - Storage__AccessKey=admin
-            - Storage__SecretKey=password
-        depends_on: [postgres, minio]
-        ports: ["5000:8080"]
+            - ASPNETCORE_ENVIRONMENT=Development
+            - OpenApi__ServerUrl=http://localhost:8080
+            - ConnectionStrings__Postgre=Host=postgres;Database=grimoire;Username=admin;Password=admin
+            - Storage__UseTemporaryDirectory=true
+            - Storage__Type=LocalStorage
+            - Storage__BasePath=grimoire-files
+            - Storage__SeriesPath=series
+        depends_on: [postgres]
+        ports: ["8080:8080"]
 
 volumes:
     pgdata:

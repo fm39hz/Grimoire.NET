@@ -8,6 +8,10 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
+# 1. COPY THE PACKAGE MANAGEMENT FILE
+COPY ["Directory.Packages.props", "."]
+# COPY ["Directory.Build.props", "."]
+
 # Copy all project files for dependency resolution
 COPY ["src/Grimoire.Api/Grimoire.Api.csproj", "src/Grimoire.Api/"]
 COPY ["src/Grimoire.Application/Grimoire.Application.csproj", "src/Grimoire.Application/"]
