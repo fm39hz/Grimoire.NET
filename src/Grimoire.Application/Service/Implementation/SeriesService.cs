@@ -1,12 +1,12 @@
 namespace Grimoire.Application.Service.Implementation;
 
 using Contract;
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
-using Extensions;
 using Mapper;
 
 public sealed class SeriesService(ISeriesRepository repository, IVolumeRepository volumeRepository, IBookMapper mapper)
@@ -16,8 +16,7 @@ public sealed class SeriesService(ISeriesRepository repository, IVolumeRepositor
 	public async Task<IEnumerable<SeriesModel>> FindAll() => await repository.FindAll();
 
 	public async Task<PagedResult<SeriesModel>> FindAll(PaginationRequest request) {
-		var allItems = await repository.FindAll();
-		return allItems.ToPagedList(request);
+		return await repository.FindAll(request.PageIndex, request.PageSize);
 	}
 
 	public async Task<SeriesModel> Create(CreateSeriesRequestDto dto) {
@@ -38,7 +37,6 @@ public sealed class SeriesService(ISeriesRepository repository, IVolumeRepositor
 		await volumeRepository.FindBySeriesId(seriesId);
 
 	public async Task<PagedResult<VolumeModel>> FindAllVolumes(Guid seriesId, PaginationRequest pagination) {
-		var volumes = await FindAllVolumes(seriesId);
-		return volumes.ToPagedList(pagination);
+		return await volumeRepository.FindBySeriesId(seriesId, pagination.PageIndex, pagination.PageSize);
 	}
 }
