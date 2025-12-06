@@ -3,6 +3,7 @@ namespace Grimoire.Api.Controller;
 using Application.Common;
 using Application.Dto.Book;
 using Application.Dto.Common;
+using Domain.Common;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
