@@ -7,15 +7,15 @@ using Microsoft.AspNetCore.Mvc;
 public record PaginationRequestDto {
 	[FromQuery(Name = "pageIndex")]
 	[DefaultValue(1)]
-	private int PageIndex { get; } = 1;
+	public int PageIndex { get; init; }
 
 	[FromQuery(Name = "pageSize")]
 	[DefaultValue(10)]
-	private int PageSize { get; } = 10;
+	public int PageSize { get; init; }
 
-	[FromQuery(Name = "sortBy")] public string? SortBy { get; set; }
+	[FromQuery(Name = "sortBy")] public string? SortBy { get; init; }
 
-	[FromQuery(Name = "sortDescending")] public bool SortDescending { get; set; }
+	[FromQuery(Name = "sortDescending")] public bool SortDescending { get; init; }
 
 	public PaginationRequest ToApplicationDto() => new() {
 		PageIndex = PageIndex, PageSize = PageSize, SortBy = SortBy, SortDescending = SortDescending
