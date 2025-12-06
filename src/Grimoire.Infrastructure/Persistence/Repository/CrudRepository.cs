@@ -1,6 +1,5 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
-using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
 using Microsoft.EntityFrameworkCore;
@@ -14,15 +13,17 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	public virtual async Task<IEnumerable<T>> FindAll() => 
 		await Entities.AsNoTracking().ToListAsync();
 
-	public virtual async Task<PagedResult<T>> FindAll(int pageIndex, int pageSize) {
-		var query = Entities.AsNoTracking();
-		var totalCount = await query.CountAsync();
-		var items = await query
+	public virtual async Task<IEnumerable<T>> FindAll(int pageIndex, int pageSize) {
+		var items = await Entities.AsNoTracking()
 			.Skip((pageIndex - 1) * pageSize)
 			.Take(pageSize)
 			.ToListAsync();
 		
-		return new PagedResult<T>(items, totalCount, pageIndex, pageSize);
+		return items;
+	}
+
+	public virtual async Task<int> CountAll() {
+		return await Entities.AsNoTracking().CountAsync();
 	}
 
 	public async Task<T> Create(T entity) {

@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Service.Implementation;
 
+using Common;
 using Contract;
-using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
@@ -15,7 +15,9 @@ public sealed class ChapterService(IChapterRepository repository, IBookMapper ma
 	public async Task<IEnumerable<ChapterModel>> FindAll() => await repository.FindAll();
 
 	public async Task<PagedResult<ChapterModel>> FindAll(PaginationRequest request) {
-		return await repository.FindAll(request.PageIndex, request.PageSize);
+		var items = await repository.FindAll(request.PageIndex, request.PageSize);
+		var totalCount = await repository.CountAll();
+		return new PagedResult<ChapterModel>(items.ToList(), totalCount, request.PageIndex, request.PageSize);
 	}
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {

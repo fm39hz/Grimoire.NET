@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Service.Implementation;
 
+using Common;
 using Contract;
-using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
@@ -18,7 +18,9 @@ public sealed class VolumeService(
 	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();
 
 	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request) {
-		return await repository.FindAll(request.PageIndex, request.PageSize);
+		var items = await repository.FindAll(request.PageIndex, request.PageSize);
+		var totalCount = await repository.CountAll();
+		return new PagedResult<VolumeModel>(items.ToList(), totalCount, request.PageIndex, request.PageSize);
 	}
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
@@ -40,6 +42,8 @@ public sealed class VolumeService(
 		await chapterRepository.FindByVolumeId(volumeId);
 
 	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId, PaginationRequest pagination) {
-		return await chapterRepository.FindByVolumeId(volumeId, pagination.PageIndex, pagination.PageSize);
+		var items = await chapterRepository.FindByVolumeId(volumeId, pagination.PageIndex, pagination.PageSize);
+		var totalCount = await chapterRepository.CountByVolumeId(volumeId);
+		return new PagedResult<ChapterModel>(items.ToList(), totalCount, pagination.PageIndex, pagination.PageSize);
 	}
 }

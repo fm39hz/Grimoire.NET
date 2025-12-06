@@ -1,7 +1,6 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using Database;
-using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.EntityFrameworkCore;
@@ -16,18 +15,22 @@ public sealed class VolumeRepository(ApplicationDbContext context)
 			.OrderBy(v => v.Order)
 			.ToListAsync();
 
-	public async Task<PagedResult<VolumeModel>> FindBySeriesId(Guid seriesId, int pageIndex, int pageSize) {
-		var query = Entities
+	public async Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId, int pageIndex, int pageSize) {
+		var items = await Entities
 			.AsNoTracking()
-			.Where(v => v.SeriesId == seriesId);
-		
-		var totalCount = await query.CountAsync();
-		var items = await query
+			.Where(v => v.SeriesId == seriesId)
 			.OrderBy(v => v.Order)
 			.Skip((pageIndex - 1) * pageSize)
 			.Take(pageSize)
 			.ToListAsync();
 		
-		return new PagedResult<VolumeModel>(items, totalCount, pageIndex, pageSize);
+		return items;
+	}
+
+	public async Task<int> CountBySeriesId(Guid seriesId) {
+		return await Entities
+			.AsNoTracking()
+			.Where(v => v.SeriesId == seriesId)
+			.CountAsync();
 	}
 }
