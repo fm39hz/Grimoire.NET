@@ -9,9 +9,11 @@ public class AssetRepository(ApplicationDbContext dbContext)
 	: CrudRepository<AssetModel>(dbContext), IAssetRepository {
 	public async Task<AssetModel?> GetByFileHashAsync(string fileHash) =>
 		await Entities
+			.AsNoTracking()
 			.FirstOrDefaultAsync(a => a.FileHash == fileHash);
 
 	public async Task<AssetModel?> GetBySeriesAndFileHashAsync(Guid seriesId, string fileHash) =>
 		await Entities
+			.AsNoTracking()
 			.FirstOrDefaultAsync(a => a.SeriesId == seriesId && a.FileHash == fileHash);
 }

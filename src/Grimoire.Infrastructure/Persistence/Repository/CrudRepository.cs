@@ -1,5 +1,6 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
 using Microsoft.EntityFrameworkCore;
@@ -7,9 +8,22 @@ using Microsoft.EntityFrameworkCore;
 public abstract class CrudRepository<T>(DbContext context) : IRepository<T> where T : BaseModel, IModel {
 	protected DbSet<T> Entities => context.Set<T>();
 
-	public virtual async Task<T?> FindOne(Guid id) => await Entities.FirstOrDefaultAsync(entity => entity.Id == id);
+	public virtual async Task<T?> FindOne(Guid id) => 
+		await Entities.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == id);
 
-	public virtual async Task<IEnumerable<T>> FindAll() => await Entities.ToListAsync();
+	public virtual async Task<IEnumerable<T>> FindAll() => 
+		await Entities.AsNoTracking().ToListAsync();
+
+	public virtual async Task<PagedResult<T>> FindAll(int pageIndex, int pageSize) {
+		var query = Entities.AsNoTracking();
+		var totalCount = await query.CountAsync();
+		var items = await query
+			.Skip((pageIndex - 1) * pageSize)
+			.Take(pageSize)
+			.ToListAsync();
+		
+		return new PagedResult<T>(items, totalCount, pageIndex, pageSize);
+	}
 
 	public async Task<T> Create(T entity) {
 		var result = Entities.Add(entity);
@@ -24,24 +38,13 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	}
 
 	public async Task<int> Delete(Guid id) {
-		try {
-			var entity = await FindOne(id);
-			if (entity != null) {
-				Entities.Remove(entity);
-			}
-
-			return await context.SaveChangesAsync();
-		}
-		catch (DbUpdateConcurrencyException e) {
-			Console.WriteLine(e);
-			throw;
-		}
+		return await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync();
 	}
 
 	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities) {
 		var baseModels = entities.ToList();
 		Entities.UpdateRange(baseModels);
 		await context.SaveChangesAsync();
-		return context.Set<T>().Where(entity => baseModels.Select(e => e.Id).Contains(entity.Id));
+		return baseModels;
 	}
 }
