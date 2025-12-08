@@ -8,6 +8,13 @@ using Microsoft.EntityFrameworkCore;
 public sealed class ChapterRepository(ApplicationDbContext context)
 	: CrudRepository<ChapterModel>(context), IChapterRepository {
 	
+	public override async Task<ChapterModel?> FindOne(Guid id) =>
+		await Entities
+			.AsNoTracking()
+			.AsSplitQuery()
+			.Include(c => c.ContentData)
+			.FirstOrDefaultAsync(c => c.Id == id);
+	
 	public async Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId) =>
 		await Entities
 			.AsNoTracking()

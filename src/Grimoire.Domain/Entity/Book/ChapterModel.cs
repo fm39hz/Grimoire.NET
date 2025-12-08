@@ -1,7 +1,5 @@
 namespace Grimoire.Domain.Entity.Book;
 
-using Segment;
-
 /// <summary>
 ///     Represents a chapter within a volume
 /// </summary>
@@ -22,12 +20,12 @@ public record ChapterModel : BaseModel {
 	public required string Title { get; set; }
 
 	/// <summary>
-	///     Content of the chapter, composed of various segments.
+	///     Status of the chapter
 	/// </summary>
-	public List<SegmentModel> Content { get; set; } = [];
+	public ChapterStatus Status { get; set; } = ChapterStatus.Draft;
 
 	/// <summary>
-	///     A dictionary of footnotes, where the key is the footnote ID.
+	///     Navigation property to chapter content (1-1 relationship)
 	/// </summary>
-	public List<FootnoteSegmentModel> Footnotes { get; set; } = [];
+	public ChapterContentModel? ContentData { get; set; }
 }

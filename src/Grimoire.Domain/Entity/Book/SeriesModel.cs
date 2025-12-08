@@ -9,6 +9,8 @@ public record SeriesModel : BaseModel {
 	public SeriesModel(SeriesModel other) : base(other) {
 		Title = other.Title;
 		Metadata = other.Metadata;
+		GlossaryTerms = other.GlossaryTerms;
+		SourceMaterials = other.SourceMaterials;
 	}
 
 	/// <summary>
@@ -20,4 +22,14 @@ public record SeriesModel : BaseModel {
 	///     Strongly-typed metadata for the series
 	/// </summary>
 	public SeriesMetadata Metadata { get; set; } = new();
+
+	/// <summary>
+	///     Collection of glossary terms for this series
+	/// </summary>
+	public ICollection<GlossaryTerm> GlossaryTerms { get; init; } = [];
+
+	/// <summary>
+	///     Collection of source materials for this series
+	/// </summary>
+	public ICollection<SourceMaterial> SourceMaterials { get; init; } = [];
 }

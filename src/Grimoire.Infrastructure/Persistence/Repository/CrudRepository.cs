@@ -7,18 +7,19 @@ using Microsoft.EntityFrameworkCore;
 public abstract class CrudRepository<T>(DbContext context) : IRepository<T> where T : BaseModel, IModel {
 	protected DbSet<T> Entities => context.Set<T>();
 
-	public virtual async Task<T?> FindOne(Guid id) => 
+	public virtual async Task<T?> FindOne(Guid id) =>
 		await Entities.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == id);
 
-	public virtual async Task<IEnumerable<T>> FindAll() => 
+	public virtual async Task<IEnumerable<T>> FindAll() =>
 		await Entities.AsNoTracking().ToListAsync();
 
 	public virtual async Task<IEnumerable<T>> FindAll(int pageIndex, int pageSize) {
 		var items = await Entities.AsNoTracking()
+			.OrderBy(e => e.Id)
 			.Skip((pageIndex - 1) * pageSize)
 			.Take(pageSize)
 			.ToListAsync();
-		
+
 		return items;
 	}
 
