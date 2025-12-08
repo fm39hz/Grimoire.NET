@@ -6,5 +6,6 @@ public record CreateChapterRequestDto(
 	string VolumeId,
 	int Order,
 	string Title,
-	List<SegmentModel> Content,
-	List<ImportFootnoteDto> Footnotes);
+	List<SegmentModel>? Content,
+	List<ImportFootnoteDto>? Footnotes,
+	string? RawContent);
