@@ -10,10 +10,14 @@ using Dto.Book.Metadata;
 using Riok.Mapperly.Abstractions;
 
 public partial class BookMapper {
+#pragma warning disable RMG012
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	[MapperIgnoreTarget(nameof(SeriesModel.GlossaryTerms))]
+	[MapperIgnoreTarget(nameof(SeriesModel.SourceMaterials))]
 	public partial SeriesModel CreateSeries(CreateSeriesRequestDto dto);
+#pragma warning restore RMG012
 
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
@@ -41,17 +45,7 @@ public partial class BookMapper {
 
 		var cleanContent = new List<SegmentModel>();
 
-		if (dto.Content == null) {
-			return new ChapterModel {
-				VolumeId = PrefixedId.ToGuid(dto.VolumeId),
-				Order = dto.Order,
-				Title = dto.Title,
-				Content = cleanContent,
-				Footnotes = cleanFootnotes
-			};
-		}
-
-		{
+		if (dto.Content != null) {
 			foreach (var segment in dto.Content) {
 				if (segment is TextSegmentModel textSeg) {
 					var updatedRuns = textSeg.Runs.Select(run => {
@@ -71,12 +65,17 @@ public partial class BookMapper {
 			}
 		}
 
+		var chapterId = Guid.CreateVersion7();
 		return new ChapterModel {
+			Id = chapterId,
 			VolumeId = PrefixedId.ToGuid(dto.VolumeId),
 			Order = dto.Order,
 			Title = dto.Title,
-			Content = cleanContent,
-			Footnotes = cleanFootnotes
+			ContentData = new ChapterContentModel {
+				Id = chapterId,
+				Segments = cleanContent,
+				Footnotes = cleanFootnotes
+			}
 		};
 	}
 
@@ -91,10 +90,14 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	public partial void UpdateVolume(UpdateVolumeRequestDto dto, [MappingTarget] VolumeModel model);
 
+#pragma warning disable RMG012
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	[MapperIgnoreTarget(nameof(SeriesModel.GlossaryTerms))]
+	[MapperIgnoreTarget(nameof(SeriesModel.SourceMaterials))]
 	public partial void UpdateSeries(UpdateSeriesRequestDto dto, [MappingTarget] SeriesModel model);
+#pragma warning restore RMG012
 
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]

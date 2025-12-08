@@ -15,9 +15,16 @@ public partial class BookMapper {
 	[MapProperty(nameof(VolumeModel.SeriesId), nameof(VolumeResponseDto.SeriesId), Use = nameof(MapSeriesId))]
 	public partial VolumeResponseDto ToVolumeDto(VolumeModel model);
 
-	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterResponseDto.Id), Use = nameof(MapChapterId))]
-	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterResponseDto.VolumeId), Use = nameof(MapVolumeId))]
-	public partial ChapterResponseDto ToChapterDto(ChapterModel model);
+	public ChapterResponseDto ToChapterDto(ChapterModel model) {
+		return new ChapterResponseDto {
+			Id = MapChapterId(model.Id),
+			VolumeId = MapVolumeId(model.VolumeId),
+			Title = model.Title,
+			Order = (int)model.Order,
+			Content = model.ContentData?.Segments.Select(MapSegment).ToList() ?? [],
+			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? []
+		};
+	}
 
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]
 	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterListResponseDto.VolumeId), Use = nameof(MapVolumeId))]
