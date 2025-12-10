@@ -12,7 +12,8 @@ public static class DatabaseExtension {
 	[UsedImplicitly]
 	public static IServiceCollection
 		AddDatabaseContext(this IServiceCollection service, WebApplicationBuilder builder) {
-		var postgresConnection = new PostgreSqlConfiguration(builder.Configuration);
+		var connectionString = builder.Configuration["ConnectionStrings:Postgre"]!;
+		var postgresConnection = new PostgreSqlConfiguration(connectionString);
 		builder.Services.AddDbContext<ApplicationDbContext>(options =>
 			options.UseNpgsql(postgresConnection.ConnectionString)
 				.UseSnakeCaseNamingConvention()
