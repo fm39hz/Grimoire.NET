@@ -15,7 +15,6 @@ public sealed class ChapterService(
 	ISourceMaterialRepository sourceRepository,
 	IBookMapper mapper,
 	IngestionStrategyFactory strategyFactory) : IChapterService {
-	
 	public async Task<ChapterModel?> FindOne(Guid id) => await chapterRepository.FindOne(id);
 
 	public async Task<IEnumerable<ChapterModel>> FindAll() => await chapterRepository.FindAll();
@@ -41,7 +40,7 @@ public sealed class ChapterService(
 
 		// Save chapter with content
 		var chapter = await chapterRepository.Create(result.Chapter);
-		
+
 		return chapter;
 	}
 

@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Mapper;
 
-using Common;
+using Domain.Common;
 using Domain.Entity;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
@@ -72,9 +72,7 @@ public partial class BookMapper {
 			Order = dto.Order,
 			Title = dto.Title,
 			ContentData = new ChapterContentModel {
-				Id = chapterId,
-				Segments = cleanContent,
-				Footnotes = cleanFootnotes
+				Id = chapterId, Segments = cleanContent, Footnotes = cleanFootnotes
 			}
 		};
 	}

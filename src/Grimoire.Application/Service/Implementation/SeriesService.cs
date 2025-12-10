@@ -9,7 +9,10 @@ using Dto.Book;
 using Dto.Common;
 using Mapper;
 
-public sealed class SeriesService(ISeriesRepository repository, IVolumeRepository volumeRepository, IBookMapper mapper)
+public sealed class SeriesService(
+	ISeriesRepository repository,
+	IVolumeRepository volumeRepository,
+	IBookMapper mapper)
 	: ISeriesService {
 	public async Task<SeriesModel?> FindOne(Guid id) => await repository.FindOne(id);
 

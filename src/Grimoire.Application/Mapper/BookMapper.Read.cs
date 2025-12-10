@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Mapper;
 
-using Common;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -15,8 +15,8 @@ public partial class BookMapper {
 	[MapProperty(nameof(VolumeModel.SeriesId), nameof(VolumeResponseDto.SeriesId), Use = nameof(MapSeriesId))]
 	public partial VolumeResponseDto ToVolumeDto(VolumeModel model);
 
-	public ChapterResponseDto ToChapterDto(ChapterModel model) {
-		return new ChapterResponseDto {
+	public ChapterResponseDto ToChapterDto(ChapterModel model) =>
+		new() {
 			Id = MapChapterId(model.Id),
 			VolumeId = MapVolumeId(model.VolumeId),
 			Title = model.Title,
@@ -24,7 +24,6 @@ public partial class BookMapper {
 			Content = model.ContentData?.Segments.Select(MapSegment).ToList() ?? [],
 			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? []
 		};
-	}
 
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]
 	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterListResponseDto.VolumeId), Use = nameof(MapVolumeId))]
