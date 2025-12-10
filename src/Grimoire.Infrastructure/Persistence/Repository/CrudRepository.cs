@@ -23,9 +23,7 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 		return items;
 	}
 
-	public virtual async Task<int> CountAll() {
-		return await Entities.AsNoTracking().CountAsync();
-	}
+	public virtual async Task<int> CountAll() => await Entities.AsNoTracking().CountAsync();
 
 	public async Task<T> Create(T entity) {
 		var result = Entities.Add(entity);
@@ -39,9 +37,7 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 		return result.Entity;
 	}
 
-	public async Task<int> Delete(Guid id) {
-		return await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync();
-	}
+	public async Task<int> Delete(Guid id) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync();
 
 	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities) {
 		var baseModels = entities.ToList();

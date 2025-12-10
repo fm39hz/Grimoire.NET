@@ -5,10 +5,8 @@ using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
-using EntityFramework.Exceptions.PostgreSQL;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options) {
 	[UsedImplicitly] public DbSet<SeriesModel> Series { get; set; } = null!;

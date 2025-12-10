@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class SourceMaterialRepository(ApplicationDbContext context)
 	: CrudRepository<SourceMaterial>(context), ISourceMaterialRepository {
-	
 	public async Task<IEnumerable<SourceMaterial>> FindBySeriesId(Guid seriesId) =>
 		await Entities
 			.AsNoTracking()

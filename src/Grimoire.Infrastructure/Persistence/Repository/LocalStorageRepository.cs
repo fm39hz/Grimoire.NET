@@ -66,6 +66,22 @@ public partial class LocalStorageRepository(
 		return !File.Exists(filePath)? [] : await File.ReadAllBytesAsync(filePath);
 	}
 
+	public async Task<Stream?> GetFileStreamAsync(Guid assetId) {
+		var asset = await assetRepository.FindOne(assetId);
+		if (asset is null) {
+			return null;
+		}
+
+		var filePath = Path.Combine(StoragePath, asset.Path);
+		LogGettingFileFromFilepath(logger, filePath);
+
+		if (!File.Exists(filePath)) {
+			return null;
+		}
+
+		return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+	}
+
 	public async Task DeleteFileAsync(Guid assetId) {
 		var asset = await assetRepository.FindOne(assetId);
 		if (asset is null) {

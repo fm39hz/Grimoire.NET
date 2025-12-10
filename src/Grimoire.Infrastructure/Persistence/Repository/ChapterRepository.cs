@@ -7,14 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class ChapterRepository(ApplicationDbContext context)
 	: CrudRepository<ChapterModel>(context), IChapterRepository {
-	
 	public override async Task<ChapterModel?> FindOne(Guid id) =>
 		await Entities
 			.AsNoTracking()
 			.AsSplitQuery()
 			.Include(c => c.ContentData)
 			.FirstOrDefaultAsync(c => c.Id == id);
-	
+
 	public async Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId) =>
 		await Entities
 			.AsNoTracking()
@@ -32,14 +31,13 @@ public sealed class ChapterRepository(ApplicationDbContext context)
 			.Skip((pageIndex - 1) * pageSize)
 			.Take(pageSize)
 			.ToListAsync();
-		
+
 		return items;
 	}
 
-	public async Task<int> CountByVolumeId(Guid volumeId) {
-		return await Entities
+	public async Task<int> CountByVolumeId(Guid volumeId) =>
+		await Entities
 			.AsNoTracking()
 			.Where(c => c.VolumeId == volumeId)
 			.CountAsync();
-	}
 }

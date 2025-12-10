@@ -7,7 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class VolumeRepository(ApplicationDbContext context)
 	: CrudRepository<VolumeModel>(context), IVolumeRepository {
-	
 	public async Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId) =>
 		await Entities
 			.AsNoTracking()
@@ -23,14 +22,13 @@ public sealed class VolumeRepository(ApplicationDbContext context)
 			.Skip((pageIndex - 1) * pageSize)
 			.Take(pageSize)
 			.ToListAsync();
-		
+
 		return items;
 	}
 
-	public async Task<int> CountBySeriesId(Guid seriesId) {
-		return await Entities
+	public async Task<int> CountBySeriesId(Guid seriesId) =>
+		await Entities
 			.AsNoTracking()
 			.Where(v => v.SeriesId == seriesId)
 			.CountAsync();
-	}
 }
