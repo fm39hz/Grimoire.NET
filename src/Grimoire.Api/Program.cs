@@ -20,9 +20,9 @@ public class Program {
 		var app = Build(builder);
 
 		app.UseMiddleware<GlobalExceptionMiddleware>();
+		// app.UseHealthChecks("/health");
 
 		if (app.Environment.IsDevelopment()) {
-			app.UseHsts();
 			{
 				await using var scope = app.Services.CreateAsyncScope();
 				await using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -40,6 +40,7 @@ public class Program {
 			});
 		}
 		else {
+			app.UseHsts();
 			app.UseHttpsRedirection();
 		}
 

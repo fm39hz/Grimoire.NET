@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Service.Strategy;
 
 using System.Text.RegularExpressions;
-using Common;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -9,9 +9,8 @@ using Dto.Book;
 /// <summary>
 ///     Strategy for ingesting raw Markdown content
 /// </summary>
-public partial class RawMarkdownIngestionStrategy : IIngestionStrategy {
-	[GeneratedRegex(@"<[^>]+>", RegexOptions.Compiled)]
-	private static partial Regex HtmlTagRegex();
+public class RawMarkdownIngestionStrategy : IIngestionStrategy {
+	private static Regex HtmlTagRegex { get; } = new("<[^>]+>");
 
 	public bool CanHandle(CreateChapterRequestDto dto) {
 		if (string.IsNullOrWhiteSpace(dto.RawContent)) {
@@ -19,7 +18,7 @@ public partial class RawMarkdownIngestionStrategy : IIngestionStrategy {
 		}
 
 		// Check if content contains HTML tags (simple validation)
-		return !HtmlTagRegex().IsMatch(dto.RawContent);
+		return !HtmlTagRegex.IsMatch(dto.RawContent);
 	}
 
 	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto) {
@@ -65,11 +64,7 @@ public partial class RawMarkdownIngestionStrategy : IIngestionStrategy {
 			Status = ChapterStatus.Draft
 		};
 
-		var content = new ChapterContentModel {
-			Id = chapterId,
-			Segments = segments,
-			Footnotes = []
-		};
+		var content = new ChapterContentModel { Id = chapterId, Segments = segments, Footnotes = [] };
 
 		return Task.FromResult(new IngestionResult(chapter, content, source));
 	}

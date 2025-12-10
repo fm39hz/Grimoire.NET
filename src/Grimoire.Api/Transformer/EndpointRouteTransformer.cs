@@ -3,7 +3,9 @@ namespace Grimoire.Api.Transformer;
 using System.Text.RegularExpressions;
 using Humanizer;
 
-public partial class EndpointRouteTransformer : IOutboundParameterTransformer {
+public class EndpointRouteTransformer : IOutboundParameterTransformer {
+	private static Regex ToKebabCaseRegex { get; } = new("([a-z])([A-Z])");
+
 	public string? TransformOutbound(object? value) {
 		if (value == null) {
 			return null;
@@ -11,10 +13,7 @@ public partial class EndpointRouteTransformer : IOutboundParameterTransformer {
 
 		var str = value.ToString();
 		var pluralized = str!.Pluralize();
-		var kebabCase = ToKebabCaseRegex().Replace(pluralized, "$1-$2");
+		var kebabCase = ToKebabCaseRegex.Replace(pluralized, "$1-$2");
 		return kebabCase.ToLowerInvariant();
 	}
-
-	[GeneratedRegex("([a-z])([A-Z])")]
-	private static partial Regex ToKebabCaseRegex();
 }

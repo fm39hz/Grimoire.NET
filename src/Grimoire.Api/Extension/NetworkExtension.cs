@@ -2,7 +2,7 @@ namespace Grimoire.Api.Extension;
 
 using Constant;
 using JetBrains.Annotations;
-using Microsoft.OpenApi.Models;
+using Microsoft.OpenApi;
 
 public static class NetworkExtension {
 	[UsedImplicitly]
