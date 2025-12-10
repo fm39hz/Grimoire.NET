@@ -7,5 +7,6 @@ public interface IStorageRepository {
 		string refType);
 
 	public Task<byte[]> GetFileAsync(Guid assetId);
+	public Task<Stream?> GetFileStreamAsync(Guid assetId);
 	public Task DeleteFileAsync(Guid assetId);
 }

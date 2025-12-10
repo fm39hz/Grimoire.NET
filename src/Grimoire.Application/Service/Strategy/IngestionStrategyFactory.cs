@@ -21,7 +21,7 @@ public class IngestionStrategyFactory {
 		ArgumentNullException.ThrowIfNull(dto);
 
 		var strategy = _strategies.FirstOrDefault(s => s.CanHandle(dto));
-		
+
 		if (strategy is null) {
 			throw new InvalidOperationException(
 				"No ingestion strategy found that can handle the provided DTO");

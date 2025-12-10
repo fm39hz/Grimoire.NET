@@ -1,0 +1,37 @@
+namespace Grimoire.Application.Dto.Book;
+
+/// <summary>
+///     Defines a section in the export structure
+/// </summary>
+public record ExportSectionDto {
+	/// <summary>
+	///     Type of section (e.g., "IntroPage", "TOC", "Content", "Description")
+	/// </summary>
+	public required string Type { get; init; }
+
+	/// <summary>
+	///     Custom CSS to apply to this section
+	/// </summary>
+	public string? CustomCss { get; init; }
+
+	/// <summary>
+	///     Additional options for this section
+	/// </summary>
+	public Dictionary<string, object>? Options { get; init; }
+}
+
+/// <summary>
+///     Defines the overall structure/layout of the export
+/// </summary>
+public record ExportStructureDto {
+	/// <summary>
+	///     Ordered list of sections that make up the document structure
+	///     Example: ["IntroPage", "TOC", "Content"] or ["IntroPage", "Content", "TOC"]
+	/// </summary>
+	public List<ExportSectionDto> Sections { get; init; } = [];
+
+	/// <summary>
+	///     Global CSS to apply to the entire document
+	/// </summary>
+	public string? GlobalCss { get; init; }
+}

@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Service.Strategy;
 
-using Common;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -9,10 +9,9 @@ using Dto.Book;
 ///     Strategy for ingesting pre-processed content (Content is already segmented)
 /// </summary>
 public class PreProcessedIngestionStrategy : IIngestionStrategy {
-	public bool CanHandle(CreateChapterRequestDto dto) {
+	public bool CanHandle(CreateChapterRequestDto dto) =>
 		// Can handle if Content array exists (even if empty)
-		return dto.Content is not null;
-	}
+		dto.Content is not null;
 
 	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto) {
 		if (!CanHandle(dto)) {
@@ -31,10 +30,7 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 
 				var systemId = Guid.CreateVersion7();
 				idMap[note.InitialId] = systemId;
-				cleanFootnotes.Add(new FootnoteSegmentModel { 
-					Id = systemId, 
-					Segments = note.Segments 
-				});
+				cleanFootnotes.Add(new FootnoteSegmentModel { Id = systemId, Segments = note.Segments });
 			}
 		}
 
@@ -47,6 +43,7 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 						idMap.TryGetValue(run.FootnoteId, out var systemId)) {
 						return run with { FootnoteId = systemId.ToString() };
 					}
+
 					return run;
 				}).ToList();
 
@@ -58,7 +55,7 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 		}
 
 		var chapterId = Guid.CreateVersion7();
-		
+
 		var chapter = new ChapterModel {
 			Id = chapterId,
 			VolumeId = PrefixedId.ToGuid(dto.VolumeId),
@@ -67,11 +64,7 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 			Status = ChapterStatus.Done
 		};
 
-		var content = new ChapterContentModel {
-			Id = chapterId,
-			Segments = cleanContent,
-			Footnotes = cleanFootnotes
-		};
+		var content = new ChapterContentModel { Id = chapterId, Segments = cleanContent, Footnotes = cleanFootnotes };
 
 		return Task.FromResult(new IngestionResult(chapter, content, null));
 	}
