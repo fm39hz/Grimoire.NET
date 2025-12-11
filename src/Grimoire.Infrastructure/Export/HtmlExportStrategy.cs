@@ -2,16 +2,17 @@ namespace Grimoire.Infrastructure.Export;
 
 using System.Text;
 using Application.Dto.Book;
+using Application.Service.Contract;
 using Application.Service.Strategy;
 using Common;
-using Domain.Common.Repository;
 using Domain.Entity.Book;
 
 /// <summary>
 ///     Strategy for exporting series to HTML format
 /// </summary>
 public class HtmlExportStrategy(
-	IChapterRepository chapterRepository) : IExportStrategy {
+	IVolumeService volumeService,
+	IChapterService chapterService) : IExportStrategy {
 	public ExportFormat Format => ExportFormat.Html;
 
 	public async Task<ExportResult> ExportAsync(
@@ -196,7 +197,7 @@ public class HtmlExportStrategy(
 			html.AppendLine($"<div class='volume' id='volume-{volume.Id}'>");
 			html.AppendLine($"<h2>{volume.Title}</h2>");
 
-			var chapters = await chapterRepository.FindByVolumeId(volume.Id);
+			var chapters = await volumeService.FindAllChapters(volume.Id);
 			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
 
 			foreach (var chapter in orderedChapters) {

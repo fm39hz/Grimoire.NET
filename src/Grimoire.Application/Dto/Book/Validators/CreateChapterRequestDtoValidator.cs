@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Dto.Book.Validators;
 
-using Domain.Common;
+using Application.Common;
 using FluentValidation;
 
 public class CreateChapterRequestDtoValidator : AbstractValidator<CreateChapterRequestDto> {
@@ -22,9 +22,12 @@ public class CreateChapterRequestDtoValidator : AbstractValidator<CreateChapterR
 			.GreaterThanOrEqualTo(0)
 			.WithMessage("Order must be greater than or equal to 0");
 
-		RuleFor(x => x.Content)
-			.NotNull()
-			.WithMessage("Content is required");
+		// Either Content OR RawContent must be provided (XOR validation)
+		RuleFor(x => x)
+			.Must(x => x.Content != null || !string.IsNullOrEmpty(x.RawContent))
+			.WithMessage("Either Content or RawContent must be provided")
+			.Must(x => !(x.Content != null && !string.IsNullOrEmpty(x.RawContent)))
+			.WithMessage("Cannot provide both Content and RawContent - only one is allowed");
 	}
 
 	private static bool BeValidVolumeId(string volumeId) => PrefixedId.TryToGuid(volumeId, EntityPrefix.Volume, out _);

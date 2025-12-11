@@ -1,23 +1,26 @@
 namespace Grimoire.Infrastructure.Export;
 
+using Application.Common;
 using Application.Dto.Book;
 using Application.Extensions;
+using Application.Service.Contract;
 using Application.Service.Strategy;
 using Common;
-using Domain.Common;
-using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Epub;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 ///     Strategy for exporting series to EPUB format
 /// </summary>
 public class EpubExportStrategy(
-	IChapterRepository chapterRepository,
-	IStorageRepository storageRepository,
-	IAssetRepository assetRepository) : IExportStrategy {
-	private readonly ImageAssetProcessor _imageProcessor = new(assetRepository, storageRepository);
+	IChapterService chapterService,
+	IVolumeService volumeService,
+	IStorageService storageService,
+	IAssetService assetService,
+	ILogger<EpubExportStrategy> logger) : IExportStrategy {
+	private readonly ImageAssetProcessor _imageProcessor = new(assetService, storageService, logger);
 
 	public ExportFormat Format => ExportFormat.Epub;
 
@@ -51,7 +54,7 @@ public class EpubExportStrategy(
 			string? coverLocalPath = null;
 			if (!string.IsNullOrEmpty(series.Metadata?.CoverImage)) {
 				if (PrefixedId.TryToGuid(series.Metadata.CoverImage, EntityPrefix.Asset, out var coverAssetId)) {
-					var coverAsset = await assetRepository.FindOne(coverAssetId);
+					var coverAsset = await assetService.FindOne(coverAssetId);
 					if (coverAsset != null) {
 						var coverExtension = Path.GetExtension(coverAsset.Path);
 						if (string.IsNullOrEmpty(coverExtension)) {
@@ -60,7 +63,7 @@ public class EpubExportStrategy(
 
 						coverLocalPath = $"images/cover{coverExtension}";
 						packageBuilder.AddImageFileStream($"OEBPS/{coverLocalPath}",
-							async () => await storageRepository.GetFileStreamAsync(coverAssetId));
+							async () => await storageService.GetFileStreamAsync(coverAssetId));
 						packageBuilder.SetCoverImage(coverLocalPath);
 					}
 				}
@@ -103,30 +106,30 @@ public class EpubExportStrategy(
 		var imageFileMap = new Dictionary<string, string>(); // AssetKey (assetId) -> relative path in EPUB
 		var assetToPath = new Dictionary<Guid, string>();    // Track asset reuse across chapters
 
-		Console.WriteLine($"[EPUB Export] Starting bulk image processing for series: {seriesId}");
+		logger.LogInformation("Starting bulk image processing for series: {SeriesId}", seriesId);
 
 		// Get all chapters from all volumes
 		var allChapters = new List<(ChapterModel chapter, string chapterName)>();
 		foreach (var volume in volumes) {
-			var chapters = await chapterRepository.FindByVolumeId(volume.Id);
+			var chapters = await volumeService.FindAllChapters(volume.Id);
 			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
 
-			Console.WriteLine($"[EPUB Export] Volume '{volume.Title}' has {orderedChapters.Count} chapters");
+			logger.LogInformation("Volume '{VolumeTitle}' has {ChapterCount} chapters", volume.Title, orderedChapters.Count);
 
 			foreach (var chapter in orderedChapters) {
-				var chapterWithContent = await chapterRepository.FindOne(chapter.Id);
+				var chapterWithContent = await chapterService.FindOne(chapter.Id);
 				if (chapterWithContent?.ContentData != null) {
 					// Sanitize chapter name for filesystem
 					var sanitizedChapterName = SanitizeFileName(chapterWithContent.Title);
 					allChapters.Add((chapterWithContent, sanitizedChapterName));
 
 					var imageCount = chapterWithContent.ContentData.Segments.OfType<ImageSegmentModel>().Count();
-					Console.WriteLine($"[EPUB Export] Chapter '{chapterWithContent.Title}' has {imageCount} images");
+					logger.LogInformation("Chapter '{ChapterTitle}' has {ImageCount} images", chapterWithContent.Title, imageCount);
 				}
 			}
 		}
 
-		Console.WriteLine($"[EPUB Export] Total chapters to process: {allChapters.Count}");
+		logger.LogInformation("Total chapters to process: {ChapterCount}", allChapters.Count);
 
 		// Process each chapter's images
 		var totalImages = 0;
@@ -142,30 +145,30 @@ public class EpubExportStrategy(
 				// Parse AssetKey using PrefixedId utility (format: "ast_guid")
 				if (!PrefixedId.TryToGuid(imageSegment.AssetKey, EntityPrefix.Asset, out var assetId)) {
 					// Fallback for legacy data or invalid format
-					Console.WriteLine($"[EPUB Export] WARNING: Invalid asset ID format: {imageSegment.AssetKey}");
+					logger.LogWarning("Invalid asset ID format: {AssetKey}", imageSegment.AssetKey);
 					imageFileMap[imageSegment.AssetKey] = imageSegment.AssetKey;
 					continue;
 				}
 
-				Console.WriteLine(
-					$"[EPUB Export] Processing image - AssetKey: {imageSegment.AssetKey}, Asset ID: {assetId}");
+				logger.LogDebug("Processing image - AssetKey: {AssetKey}, Asset ID: {AssetId}", 
+					imageSegment.AssetKey, assetId);
 
 				// Check if this asset was already processed
 				if (assetToPath.TryGetValue(assetId, out var existingPath)) {
 					// Reuse existing path
-					Console.WriteLine($"[EPUB Export] Reusing existing path for asset {assetId}: {existingPath}");
+					logger.LogDebug("Reusing existing path for asset {AssetId}: {Path}", assetId, existingPath);
 					imageFileMap[imageSegment.AssetKey] = existingPath;
 					continue;
 				}
 
-				// Fetch asset from repository
-				var asset = await assetRepository.FindOne(assetId);
+				// Fetch asset from service
+				var asset = await assetService.FindOne(assetId);
 				if (asset == null) {
-					Console.WriteLine($"[EPUB Export] WARNING: Asset {assetId} not found in repository!");
+					logger.LogWarning("Asset {AssetId} not found", assetId);
 					continue;
 				}
 
-				Console.WriteLine($"[EPUB Export] Found asset: {asset.Path}");
+				logger.LogDebug("Found asset: {AssetPath}", asset.Path);
 
 				// Create structured filename: chapterName/image_N.ext
 				var extension = Path.GetExtension(asset.Path);
@@ -179,9 +182,9 @@ public class EpubExportStrategy(
 				// Add image to EPUB using stream provider (lazy loading)
 				var capturedAssetId = assetId; // Capture for closure
 				packageBuilder.AddImageFileStream($"OEBPS/images/{relativePath}",
-					async () => await storageRepository.GetFileStreamAsync(capturedAssetId));
+					async () => await storageService.GetFileStreamAsync(capturedAssetId));
 
-				Console.WriteLine($"[EPUB Export] Registered stream for EPUB: OEBPS/images/{relativePath}");
+				logger.LogDebug("Registered stream for EPUB: OEBPS/images/{RelativePath}", relativePath);
 
 				// Map AssetKey to relative filename for HTML rendering
 				imageFileMap[imageSegment.AssetKey] = relativePath;
@@ -192,8 +195,8 @@ public class EpubExportStrategy(
 			}
 		}
 
-		Console.WriteLine($"[EPUB Export] Bulk image processing complete. Total images processed: {totalImages}");
-		Console.WriteLine($"[EPUB Export] ImageFileMap has {imageFileMap.Count} entries");
+		logger.LogInformation("Bulk image processing complete. Total images processed: {TotalImages}", totalImages);
+		logger.LogInformation("ImageFileMap has {EntryCount} entries", imageFileMap.Count);
 
 		return imageFileMap;
 	}
@@ -251,7 +254,7 @@ public class EpubExportStrategy(
 					break;
 
 				default:
-					Console.WriteLine($"[EPUB Export] WARNING: Unknown section type: {section.Type}");
+					logger.LogWarning("Unknown section type: {SectionType}", section.Type);
 					break;
 			}
 		}
@@ -338,7 +341,7 @@ public class EpubExportStrategy(
 		Dictionary<string, string> imageFileMap) {
 		var chapterIndex = 1;
 		foreach (var volume in volumeList) {
-			var chapters = await chapterRepository.FindByVolumeId(volume.Id);
+			var chapters = await volumeService.FindAllChapters(volume.Id);
 			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
 
 			var volumeNav = new NavPoint {
@@ -346,7 +349,7 @@ public class EpubExportStrategy(
 			};
 
 			foreach (var chapter in orderedChapters) {
-				var chapterWithContent = await chapterRepository.FindOne(chapter.Id);
+				var chapterWithContent = await chapterService.FindOne(chapter.Id);
 				if (chapterWithContent?.ContentData == null) {
 					continue;
 				}

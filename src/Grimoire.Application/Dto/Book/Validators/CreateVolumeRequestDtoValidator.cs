@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Dto.Book.Validators;
 
-using Domain.Common;
+using Application.Common;
 using FluentValidation;
 
 public class CreateVolumeRequestDtoValidator : AbstractValidator<CreateVolumeRequestDto> {

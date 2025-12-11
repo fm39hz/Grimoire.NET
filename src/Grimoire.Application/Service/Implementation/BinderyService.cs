@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Service.Implementation;
 
+using Common;
 using Contract;
-using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;

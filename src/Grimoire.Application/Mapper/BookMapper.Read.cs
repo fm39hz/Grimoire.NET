@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Mapper;
 
-using Domain.Common;
+using Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;

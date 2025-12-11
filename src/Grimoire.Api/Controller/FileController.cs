@@ -1,15 +1,15 @@
 namespace Grimoire.Api.Controller;
 
+using Application.Common;
 using Application.Dto.Book;
 using Application.Mapper;
+using Application.Service.Contract;
 using Constant;
-using Domain.Common;
-using Domain.Common.Repository;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route($"{RouteConstant.CONTROLLER}")]
-public class FileController(IStorageRepository storageRepository, IBookMapper mapper) : ControllerBase {
+public class FileController(IStorageService storageService, IBookMapper mapper) : ControllerBase {
 	[HttpPost("upload/{seriesId}")]
 	[ProducesResponseType(typeof(AssetResponseDto), 200)]
 	[ProducesResponseType(400)]
@@ -20,7 +20,7 @@ public class FileController(IStorageRepository storageRepository, IBookMapper ma
 
 		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
 		await using var stream = file.OpenReadStream();
-		var asset = await storageRepository.UploadAssetAsync(guid, stream, file.ContentType, file.FileName,
+		var asset = await storageService.UploadAssetAsync(guid, stream, file.ContentType, file.FileName,
 			refType);
 		return Ok(mapper.ToAssetDto(asset));
 	}
@@ -30,19 +30,19 @@ public class FileController(IStorageRepository storageRepository, IBookMapper ma
 	[ProducesResponseType(404)]
 	public async Task<IActionResult> Get(string assetId) {
 		var guid = PrefixedId.ToGuid(assetId, EntityPrefix.Asset);
-		var fileBytes = await storageRepository.GetFileAsync(guid);
-		if (fileBytes.Length == 0) {
+		var stream = await storageService.GetFileStreamAsync(guid);
+		if (stream == null) {
 			return NotFound();
 		}
 
-		return File(fileBytes, "application/octet-stream");
+		return File(stream, "application/octet-stream");
 	}
 
 	[HttpDelete("{assetId}")]
 	[ProducesResponseType(204)]
 	public async Task<IActionResult> Delete(string assetId) {
 		var guid = PrefixedId.ToGuid(assetId, EntityPrefix.Asset);
-		await storageRepository.DeleteFileAsync(guid);
+		await storageService.DeleteFileAsync(guid);
 		return NoContent();
 	}
 }

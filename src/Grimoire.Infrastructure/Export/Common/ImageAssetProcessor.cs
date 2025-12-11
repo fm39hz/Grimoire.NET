@@ -1,14 +1,18 @@
 namespace Grimoire.Infrastructure.Export.Common;
 
-using Domain.Common;
-using Domain.Common.Repository;
+using Application.Common;
+using Application.Service.Contract;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
+using Microsoft.Extensions.Logging;
 
 /// <summary>
 ///     Handles image asset processing for export strategies
 /// </summary>
-public class ImageAssetProcessor(IAssetRepository assetRepository, IStorageRepository storageRepository) {
+public class ImageAssetProcessor(
+	IAssetService assetService,
+	IStorageService storageService,
+	ILogger logger) {
 	/// <summary>
 	///     Processes all images for a list of chapters and returns a mapping of asset keys to file paths
 	/// </summary>
@@ -30,6 +34,7 @@ public class ImageAssetProcessor(IAssetRepository assetRepository, IStorageRepos
 			var imageIndex = 1;
 			foreach (var imageSegment in imageSegments) {
 				if (!PrefixedId.TryToGuid(imageSegment.AssetKey, EntityPrefix.Asset, out var assetId)) {
+					logger.LogWarning("Invalid asset ID format: {AssetKey}", imageSegment.AssetKey);
 					imageFileMap[imageSegment.AssetKey] = imageSegment.AssetKey;
 					continue;
 				}
@@ -40,8 +45,9 @@ public class ImageAssetProcessor(IAssetRepository assetRepository, IStorageRepos
 					continue;
 				}
 
-				var asset = await assetRepository.FindOne(assetId);
+				var asset = await assetService.FindOne(assetId);
 				if (asset == null) {
+					logger.LogWarning("Asset {AssetId} not found in repository", assetId);
 					continue;
 				}
 
@@ -64,5 +70,5 @@ public class ImageAssetProcessor(IAssetRepository assetRepository, IStorageRepos
 	/// <summary>
 	///     Gets the file stream for an asset
 	/// </summary>
-	public async Task<Stream?> GetAssetStream(Guid assetId) => await storageRepository.GetFileStreamAsync(assetId);
+	public async Task<Stream?> GetAssetStream(Guid assetId) => await storageService.GetFileStreamAsync(assetId);
 }
