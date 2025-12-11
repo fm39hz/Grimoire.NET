@@ -36,15 +36,21 @@ public partial class LocalStorageRepository(
 			Directory.CreateDirectory(directory);
 		}
 
-		if (!File.Exists(filePath)) {
+		// Write file with exception handling for race conditions
+		try {
 			LogSavingFileToFilepath(logger, filePath);
 			content.Seek(0, SeekOrigin.Begin);
-			await using var fileStream = new FileStream(filePath, FileMode.Create);
+			// Use FileMode.CreateNew to prevent overwriting if file was created by another thread
+			await using var fileStream = new FileStream(filePath, FileMode.CreateNew);
 			await content.CopyToAsync(fileStream);
+		}
+		catch (IOException ex) when (ex.Message.Contains("already exists") || File.Exists(filePath)) {
+			// File was created by another concurrent operation, this is acceptable
+			logger.LogDebug("File already exists at {FilePath}, continuing with asset creation", filePath);
 		}
 
 		var newAsset = new AssetModel {
-			Id = Guid.NewGuid(),
+			Id = Guid.CreateVersion7(),
 			SeriesId = seriesId,
 			Path = assetPath,
 			FileHash = hash,

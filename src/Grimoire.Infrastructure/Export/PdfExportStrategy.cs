@@ -19,7 +19,7 @@ public class PdfExportStrategy : IExportStrategy {
 			// Consider using a library like iTextSharp, PdfSharp, or QuestPDF
 
 			var memoryStream = new MemoryStream();
-			var writer = new StreamWriter(memoryStream);
+			await using var writer = new StreamWriter(memoryStream);
 			await writer.WriteAsync($"PDF export for series: {series.Title}");
 			await writer.FlushAsync();
 			memoryStream.Position = 0;

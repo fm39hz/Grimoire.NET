@@ -19,19 +19,8 @@ public static class DatabaseExtension {
 				.UseSnakeCaseNamingConvention()
 				.UseExceptionProcessor()
 				.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
-		// service.AddTransient<AdminSeeder>();
+		
 		service.AddTransient<DatabaseSeeder>();
-
-		service.AddDbContext<ApplicationDbContext>(optionsBuilder => {
-			optionsBuilder.UseNpgsql().UseSnakeCaseNamingConvention();
-			// var seeders = new List<ISeeder> {
-			// 	new AdminSeeder(userSeed),
-			// };
-			// var databaseSeeder = new DatabaseSeeder(seeders);
-			// optionsBuilder.UseSeeding((context, _) => databaseSeeder.SeedAll(context))
-			// 	.UseAsyncSeeding(async (context, _, cancellationToken) =>
-			// 		await databaseSeeder.SeedAllAsync(context, cancellationToken));
-		});
 
 		return service;
 	}

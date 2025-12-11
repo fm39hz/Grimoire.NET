@@ -1,8 +1,6 @@
 namespace Grimoire.Domain.Exception;
 
-using Exception = System.Exception;
-
-public class EntityNotFoundException : Exception {
+public class EntityNotFoundException : System.Exception {
 	public EntityNotFoundException() {
 	}
 
@@ -10,7 +8,7 @@ public class EntityNotFoundException : Exception {
 		: base(message) {
 	}
 
-	public EntityNotFoundException(string message, Exception inner)
+	public EntityNotFoundException(string message, System.Exception inner)
 		: base(message, inner) {
 	}
 }

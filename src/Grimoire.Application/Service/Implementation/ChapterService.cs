@@ -12,6 +12,7 @@ using Strategy;
 
 public sealed class ChapterService(
 	IChapterRepository chapterRepository,
+	IVolumeRepository volumeRepository,
 	ISourceMaterialRepository sourceRepository,
 	IBookMapper mapper,
 	IngestionStrategyFactory strategyFactory) : IChapterService {
@@ -26,6 +27,13 @@ public sealed class ChapterService(
 	}
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {
+		// Validate that the Volume exists
+		var volumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
+		var volume = await volumeRepository.FindOne(volumeId);
+		if (volume == null) {
+			throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+		}
+
 		// Use strategy pattern to handle different ingestion types
 		var strategy = strategyFactory.GetStrategy(dto);
 		var result = await strategy.ExecuteAsync(dto);

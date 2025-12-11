@@ -30,10 +30,16 @@ public sealed class BinderyService(
 	private async Task<IEnumerable<VolumeModel>> GetSpecificVolumes(Guid seriesId, List<string> volumeIds) {
 		var volumes = new List<VolumeModel>();
 		foreach (var volumeId in volumeIds) {
-			var guid = PrefixedId.ToGuid(volumeId, EntityPrefix.Volume);
-			var volume = await volumeRepository.FindOne(guid);
-			if (volume != null && volume.SeriesId == seriesId) {
-				volumes.Add(volume);
+			try {
+				var guid = PrefixedId.ToGuid(volumeId, EntityPrefix.Volume);
+				var volume = await volumeRepository.FindOne(guid);
+				if (volume != null && volume.SeriesId == seriesId) {
+					volumes.Add(volume);
+				}
+			}
+			catch (FormatException) {
+				// Skip invalid volume IDs instead of failing entire operation
+				continue;
 			}
 		}
 

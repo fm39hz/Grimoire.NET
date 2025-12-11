@@ -2,6 +2,7 @@ namespace Grimoire.Application.Service.Strategy;
 
 using System.Text.RegularExpressions;
 using Common;
+using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -9,7 +10,7 @@ using Dto.Book;
 /// <summary>
 ///     Strategy for ingesting raw Markdown content
 /// </summary>
-public class RawMarkdownIngestionStrategy : IIngestionStrategy {
+public class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : IIngestionStrategy {
 	private static Regex HtmlTagRegex { get; } = new("<[^>]+>");
 
 	public bool CanHandle(CreateChapterRequestDto dto) {
@@ -21,7 +22,7 @@ public class RawMarkdownIngestionStrategy : IIngestionStrategy {
 		return !HtmlTagRegex.IsMatch(dto.RawContent);
 	}
 
-	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto) {
+	public async Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto) {
 		if (!CanHandle(dto)) {
 			throw new InvalidOperationException("This strategy cannot handle the provided DTO");
 		}
@@ -29,6 +30,12 @@ public class RawMarkdownIngestionStrategy : IIngestionStrategy {
 		var volumeId = PrefixedId.ToGuid(dto.VolumeId);
 		var chapterId = Guid.CreateVersion7();
 		var sourceId = Guid.CreateVersion7();
+
+		// Fetch the volume to get SeriesId
+		var volume = await volumeRepository.FindOne(volumeId);
+		if (volume == null) {
+			throw new InvalidOperationException($"Volume with ID {dto.VolumeId} not found");
+		}
 
 		// Parse RawContent into segments (simple split by newline)
 		var lines = dto.RawContent!.Split('\n', StringSplitOptions.RemoveEmptyEntries);
@@ -46,12 +53,10 @@ public class RawMarkdownIngestionStrategy : IIngestionStrategy {
 			}
 		}
 
-		// Create SourceMaterial for backup
-		// Note: We need to get SeriesId from Volume, but we don't have it in DTO
-		// For now, we'll create a placeholder - this should be fetched from the database
+		// Create SourceMaterial for backup with the correct SeriesId
 		var source = new SourceMaterial {
 			Id = sourceId,
-			SeriesId = Guid.Empty, // TODO: Fetch from Volume entity
+			SeriesId = volume.SeriesId,
 			Title = $"{dto.Title} - Raw Source",
 			MarkdownContent = dto.RawContent!
 		};
@@ -66,6 +71,6 @@ public class RawMarkdownIngestionStrategy : IIngestionStrategy {
 
 		var content = new ChapterContentModel { Id = chapterId, Segments = segments, Footnotes = [] };
 
-		return Task.FromResult(new IngestionResult(chapter, content, source));
+		return new IngestionResult(chapter, content, source);
 	}
 }

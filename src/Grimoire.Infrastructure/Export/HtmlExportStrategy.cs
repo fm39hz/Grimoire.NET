@@ -59,7 +59,7 @@ public class HtmlExportStrategy(
 			html.AppendLine("</html>");
 
 			var memoryStream = new MemoryStream();
-			var writer = new StreamWriter(memoryStream, Encoding.UTF8);
+			await using var writer = new StreamWriter(memoryStream, Encoding.UTF8);
 			await writer.WriteAsync(html.ToString());
 			await writer.FlushAsync();
 			memoryStream.Position = 0;

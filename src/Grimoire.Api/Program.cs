@@ -82,9 +82,9 @@ public class Program {
 		});
 		builder.Services.AddMvc();
 		builder.Services.AddValidation();
-		builder.Services.AddServices();
+		builder.Services.AddServices(builder);
 		builder.Services.AddLog(builder);
-		builder.Services.AddStorage(builder);
+		// Storage is now registered in AddServices -> AddInfrastructure
 		builder.Services.AddNetworkService(builder);
 		builder.Services.AddDatabaseContext(builder);
 

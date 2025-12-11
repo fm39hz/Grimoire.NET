@@ -6,9 +6,9 @@ using JetBrains.Annotations;
 
 public static class ServiceExtension {
 	[UsedImplicitly]
-	public static IServiceCollection AddServices(this IServiceCollection service) {
+	public static IServiceCollection AddServices(this IServiceCollection service, WebApplicationBuilder builder) {
 		service.AddApplication();
-		service.AddInfrastructure();
+		service.AddInfrastructure(builder.Configuration);
 
 		return service;
 	}
