@@ -29,9 +29,7 @@ public class Program {
 				await dbContext.Database.EnsureCreatedAsync();
 			}
 
-			app.UseSwagger(options => {
-				options.RouteTemplate = "openapi/{documentName}.json";
-			});
+			app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
 			app.UseSwaggerUI(static opt => {
 				opt.SwaggerEndpoint($"/openapi/{RouteConstant.VERSION}.json",
 					$"{RouteConstant.PROJECT_NAME} API {RouteConstant.VERSION}");
@@ -46,33 +44,25 @@ public class Program {
 
 		app.UseCors("AllowAll");
 		app.MapControllers();
-		app.UseSerilogRequestLogging(options => {
-			options.GetLevel = (httpContext, _, ex) => {
-				var path = httpContext.Request.Path.Value;
+		app.UseSerilogRequestLogging(options => options.GetLevel = (httpContext, _, ex) => {
+			var path = httpContext.Request.Path.Value;
 
-				if (string.IsNullOrEmpty(path)) {
-					return LogEventLevel.Information;
-				}
-
-				if (path.StartsWith("/openapi")) {
-					return ex != null || httpContext.Response.StatusCode >= 500
-						? LogEventLevel.Error
-						: LogEventLevel.Verbose;
-				}
-
-				return ex != null || httpContext.Response.StatusCode >= 500
+			return string.IsNullOrEmpty(path)
+				? LogEventLevel.Information
+				: path.StartsWith("/openapi")
+				? ex != null || httpContext.Response.StatusCode >= 500
 					? LogEventLevel.Error
-					: LogEventLevel.Information;
-			};
+					: LogEventLevel.Verbose
+				: ex != null || httpContext.Response.StatusCode >= 500
+				? LogEventLevel.Error
+				: LogEventLevel.Information;
 		});
 		await app.RunAsync();
 	}
 
 	private static WebApplication Build(WebApplicationBuilder builder) {
 		builder.Services.AddEndpointsApiExplorer();
-		builder.Services.AddControllers(options => {
-			options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer()));
-		}).AddJsonOptions(options => {
+		builder.Services.AddControllers(options => options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer()))).AddJsonOptions(options => {
 			options.JsonSerializerOptions.PropertyNamingPolicy = JsonConfiguration.JsonOptions.PropertyNamingPolicy;
 			options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
 			options.JsonSerializerOptions.ReferenceHandler = JsonConfiguration.JsonOptions.ReferenceHandler;
@@ -84,7 +74,6 @@ public class Program {
 		builder.Services.AddValidation();
 		builder.Services.AddServices(builder);
 		builder.Services.AddLog(builder);
-		// Storage is now registered in AddServices -> AddInfrastructure
 		builder.Services.AddNetworkService(builder);
 		builder.Services.AddDatabaseContext(builder);
 

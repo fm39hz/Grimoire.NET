@@ -1,10 +1,10 @@
 namespace Grimoire.Api.Controller;
 
-using Domain.Common;
 using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
+using Domain.Common;
 using Domain.Entity.Book;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,7 +20,7 @@ public class FileController(IStorageService storageService, IBookMapper mapper) 
 		}
 
 		if (!Enum.TryParse<AssetRefType>(refType, true, out var assetRefType)) {
-			return BadRequest($"Invalid refType. Must be 'Cover' or 'Content'.");
+			return BadRequest("Invalid refType. Must be 'Cover' or 'Content'.");
 		}
 
 		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);

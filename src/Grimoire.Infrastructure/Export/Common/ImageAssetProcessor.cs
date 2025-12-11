@@ -1,7 +1,7 @@
 namespace Grimoire.Infrastructure.Export.Common;
 
-using Domain.Common;
 using Application.Service.Contract;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Microsoft.Extensions.Logging;

@@ -19,7 +19,7 @@ public static class DatabaseExtension {
 				.UseSnakeCaseNamingConvention()
 				.UseExceptionProcessor()
 				.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
-		
+
 		service.AddTransient<DatabaseSeeder>();
 
 		return service;

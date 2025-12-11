@@ -34,7 +34,7 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	public async Task<T> Update(T entity) {
 		// Mark entity as updated (sets UpdatedAt timestamp)
 		entity.MarkAsUpdated();
-		
+
 		var result = Entities.Update(entity);
 		await context.SaveChangesAsync();
 		return result.Entity;
@@ -44,12 +44,12 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 
 	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities) {
 		var baseModels = entities.ToList();
-		
+
 		// Mark all entities as updated
 		foreach (var entity in baseModels) {
 			entity.MarkAsUpdated();
 		}
-		
+
 		Entities.UpdateRange(baseModels);
 		await context.SaveChangesAsync();
 		return baseModels;

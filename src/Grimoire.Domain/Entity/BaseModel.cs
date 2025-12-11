@@ -5,11 +5,6 @@ namespace Grimoire.Domain.Entity;
 /// </summary>
 public abstract class BaseModel : IModel {
 	/// <summary>
-	///     Unique identifier for the entity
-	/// </summary>
-	public Guid Id { get; init; } = Guid.CreateVersion7();
-
-	/// <summary>
 	///     Timestamp when the entity was created
 	/// </summary>
 	public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
@@ -20,9 +15,12 @@ public abstract class BaseModel : IModel {
 	public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
 	/// <summary>
+	///     Unique identifier for the entity
+	/// </summary>
+	public Guid Id { get; init; } = Guid.CreateVersion7();
+
+	/// <summary>
 	///     Marks the entity as updated with current timestamp
 	/// </summary>
-	public virtual void MarkAsUpdated() {
-		UpdatedAt = DateTime.UtcNow;
-	}
+	public virtual void MarkAsUpdated() => UpdatedAt = DateTime.UtcNow;
 }

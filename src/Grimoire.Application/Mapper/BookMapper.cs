@@ -25,8 +25,6 @@ public partial class BookMapper : IBookMapper {
 	private partial TextRunDto ToTextRunDto(TextRun model);
 
 
-	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	private partial TextSegmentModel ToTextSegment(TextSegmentDto dto);
 }

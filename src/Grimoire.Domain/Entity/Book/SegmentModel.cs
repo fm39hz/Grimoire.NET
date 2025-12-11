@@ -17,4 +17,4 @@ public abstract record SegmentModel {
 	///     Unique identifier for the segment (used for footnote references)
 	/// </summary>
 	public Guid Id { get; init; } = Guid.CreateVersion7();
-};
+}

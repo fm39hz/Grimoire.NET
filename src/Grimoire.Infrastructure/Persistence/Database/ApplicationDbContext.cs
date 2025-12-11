@@ -22,7 +22,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<SeriesModel>(entity => {
 			entity.Property(s => s.Id).ValueGeneratedOnAdd();
-			
+
 			entity.Property(s => s.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -51,7 +51,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<VolumeModel>(entity => {
 			entity.Property(v => v.Id).ValueGeneratedOnAdd();
-			
+
 			entity.Property(v => v.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -64,7 +64,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<ChapterModel>(entity => {
 			entity.Property(c => c.Id).ValueGeneratedOnAdd();
-			
+
 			entity.Property(c => c.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -105,7 +105,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<GlossaryTerm>(entity => {
 			entity.Property(g => g.Id).ValueGeneratedOnAdd();
-			
+
 			entity.Property(g => g.Term)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -122,7 +122,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<SourceMaterial>(entity => {
 			entity.Property(sm => sm.Id).ValueGeneratedOnAdd();
-			
+
 			entity.Property(sm => sm.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -139,7 +139,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<AssetModel>(entity => {
 			entity.Property(a => a.Id).ValueGeneratedOnAdd();
-			
+
 			entity.Property(a => a.Path)
 				.HasMaxLength(1000)
 				.IsRequired();

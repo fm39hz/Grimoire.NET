@@ -5,10 +5,10 @@ using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
-using DomainCommon = Domain.Common;
 using Dto;
 using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Mvc;
+using DomainCommon = Domain.Common;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]

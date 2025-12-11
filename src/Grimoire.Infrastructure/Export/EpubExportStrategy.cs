@@ -1,11 +1,11 @@
 namespace Grimoire.Infrastructure.Export;
 
-using Domain.Common;
 using Application.Dto.Book;
 using Application.Extensions;
 using Application.Service.Contract;
 using Application.Service.Strategy;
 using Common;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Epub;
@@ -114,7 +114,8 @@ public class EpubExportStrategy(
 			var chapters = await volumeService.FindAllChapters(volume.Id);
 			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
 
-			logger.LogInformation("Volume '{VolumeTitle}' has {ChapterCount} chapters", volume.Title, orderedChapters.Count);
+			logger.LogInformation("Volume '{VolumeTitle}' has {ChapterCount} chapters", volume.Title,
+				orderedChapters.Count);
 
 			foreach (var chapter in orderedChapters) {
 				var chapterWithContent = await chapterService.FindOne(chapter.Id);
@@ -124,7 +125,8 @@ public class EpubExportStrategy(
 					allChapters.Add((chapterWithContent, sanitizedChapterName));
 
 					var imageCount = chapterWithContent.ContentData.Segments.OfType<ImageSegmentModel>().Count();
-					logger.LogInformation("Chapter '{ChapterTitle}' has {ImageCount} images", chapterWithContent.Title, imageCount);
+					logger.LogInformation("Chapter '{ChapterTitle}' has {ImageCount} images", chapterWithContent.Title,
+						imageCount);
 				}
 			}
 		}
@@ -150,7 +152,7 @@ public class EpubExportStrategy(
 					continue;
 				}
 
-				logger.LogDebug("Processing image - AssetKey: {AssetKey}, Asset ID: {AssetId}", 
+				logger.LogDebug("Processing image - AssetKey: {AssetKey}, Asset ID: {AssetId}",
 					imageSegment.AssetKey, assetId);
 
 				// Check if this asset was already processed
