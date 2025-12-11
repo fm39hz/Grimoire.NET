@@ -5,12 +5,7 @@ using Segment;
 /// <summary>
 ///     Represents the content data for a chapter (vertical partitioning for heavy data)
 /// </summary>
-public record ChapterContentModel {
-	/// <summary>
-	///     Primary key and foreign key to Chapter
-	/// </summary>
-	public required Guid Id { get; init; }
-
+public class ChapterContentModel : BaseModel {
 	/// <summary>
 	///     Processed content segments (stored as JSONB)
 	/// </summary>

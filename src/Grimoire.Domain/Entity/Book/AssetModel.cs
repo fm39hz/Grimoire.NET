@@ -3,7 +3,7 @@ namespace Grimoire.Domain.Entity.Book;
 /// <summary>
 ///     Represents an asset (file) stored in S3 Compatible
 /// </summary>
-public record AssetModel : BaseModel {
+public class AssetModel : BaseModel {
 	/// <summary>
 	///     Foreign key to the series this asset belongs to
 	/// </summary>

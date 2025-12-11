@@ -3,7 +3,7 @@ namespace Grimoire.Domain.Entity.Book;
 /// <summary>
 ///     Represents normalized input text (Markdown) for a Series
 /// </summary>
-public record SourceMaterial : BaseModel {
+public class SourceMaterial : BaseModel {
 	/// <summary>
 	///     Foreign key to the series
 	/// </summary>

@@ -97,14 +97,8 @@ public partial class BookMapper {
 	public partial void UpdateSeries(UpdateSeriesRequestDto dto, [MappingTarget] SeriesModel model);
 #pragma warning restore RMG012
 
-	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	private partial SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto);
 
-	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.Id))]
 	private partial VolumeMetadata ToVolumeMetadata(VolumeMetadataDto dto);
 
 	// Helper for parsing string IDs to Guid

@@ -5,14 +5,7 @@ using Metadata;
 /// <summary>
 ///     Represents a book series (e.g., a manga series)
 /// </summary>
-public record SeriesModel : BaseModel {
-	public SeriesModel(SeriesModel other) : base(other) {
-		Title = other.Title;
-		Metadata = other.Metadata;
-		GlossaryTerms = other.GlossaryTerms;
-		SourceMaterials = other.SourceMaterials;
-	}
-
+public class SeriesModel : BaseModel {
 	/// <summary>
 	///     Title of the series
 	/// </summary>

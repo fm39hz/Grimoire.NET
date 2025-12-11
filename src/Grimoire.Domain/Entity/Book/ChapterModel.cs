@@ -3,7 +3,7 @@ namespace Grimoire.Domain.Entity.Book;
 /// <summary>
 ///     Represents a chapter within a volume
 /// </summary>
-public record ChapterModel : BaseModel {
+public class ChapterModel : BaseModel {
 	/// <summary>
 	///     Foreign key to the volume
 	/// </summary>

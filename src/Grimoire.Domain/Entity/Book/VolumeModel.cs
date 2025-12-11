@@ -5,7 +5,7 @@ using Metadata;
 /// <summary>
 ///     Represents a volume within a series
 /// </summary>
-public record VolumeModel : BaseModel {
+public class VolumeModel : BaseModel {
 	/// <summary>
 	///     Foreign key to the series
 	/// </summary>
