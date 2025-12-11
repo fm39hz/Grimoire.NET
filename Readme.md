@@ -16,8 +16,8 @@
 
 - **Runtime**: .NET 9
 - **Database**: PostgreSQL 16 + EF Core 9 (JSONB for flexible metadata)
-- **Storage**: MinIO (S3-compatible object storage)
-- **Jobs**: Hangfire for background processing
+- **Storage**: S3-compatible object storage
+- **Jobs**: Background processing service
 - **Rendering**: RazorLight for HTML template rendering
 
 ## Architecture
@@ -45,40 +45,14 @@ Content is stored using JSONB for flexibility:
 - **Segments**: Polymorphic content units (Text, Image, Divider)
 - **Text Segments**: Rich text with formatting (bold, italic, footnotes)
 
-## API Features
+## Getting Started
 
-### The Collector (Data Import)
+### Deployment with Docker
 
-- `POST /api/assets/upload`: Smart upload with deduplication
-- `POST /api/v1/import/chapter`: Import raw chapter data
-
-### The Librarian (Metadata Management)
-
-- `PUT /api/v1/volumes/{id}/metadata`: Update volume metadata
-
-### The Editor (Manual Editing)
-
-- `GET /api/v1/chapters/{id}/content`: Retrieve chapter content
-- `PUT /api/v1/chapters/{id}/segments/{segmentId}`: Update content segments
-
-### The Bindery (Publishing)
-
-- `POST /api/v1/bindery/series/{id}/bind`: Export series to EPUB
-
-## Infrastructure
-
-### Storage (MinIO)
-
-- `grimoire-assets`: Source assets (covers, content images)
-- `grimoire-exports`: Generated EPUB files
-
-### Rendering Engine
-
-Uses RazorLight with CSHTML templates for consistent HTML generation:
-
-- `Chapter.cshtml`: Chapter content rendering
-- `Intro.cshtml`: Book introduction and metadata
-- `toc.cshtml`: Table of contents
+1. Clone the repository
+2. Run `docker compose up --build` to start all services
+3. Access the API at `http://localhost:5062`
+4. PostgreSQL at `localhost:5432` (user: admin, password: admin, database: grimoire)
 
 ### Local Development
 
@@ -87,16 +61,56 @@ Uses RazorLight with CSHTML templates for consistent HTML generation:
   - Build and run the application
   - Clean up resources
 
-## Getting Started
+## Project Technical Highlights
 
-1. Clone the repository
-2. Run `docker compose up --build` to start all services
-3. Access the API at `http://localhost:5062`
-4. MinIO console at `http://localhost:9001`
-5. PostgreSQL at `localhost:5432` (user: admin, password: admin, database: grimoire)
+- **Core Architecture**: Clean architecture with Domain, Application, Infrastructure, and API layers
+- **Database**: PostgreSQL with EF Core, JSONB support for flexible metadata
+- **Storage**: S3-compatible integration for asset management
+- **CRUD Operations**: Full CRUD for Series, Volumes, and Chapters
+- **File Management**: Upload, retrieve, and delete assets with deduplication
+- **Data Import**: Chapter import with preprocessed and raw markdown ingestion strategies
+- **Export System**: EPUB 3.3 export with full metadata, footnotes, and anthology support
+- **HTML Export**: Generate HTML files from book content
+- **Validation**: FluentValidation for all DTOs
+- **Testing**: E2E test suite for full workflow
+
+## Milestones
+
+- [x] Series/Volume/Chapter CRUD operations
+- [x] Asset management and storage
+- [x] Basic metadata handling
+- [x] EPUB 3.3 export
+- [x] Import strategies for chapter content
+- [x] HTML export
+- [ ] PDF export implementation
+- [ ] Background job processing
+- [ ] Comprehensive error handling
+- [ ] API documentation
+- [ ] Performance optimization
+- [ ] Production deployment guide
+- [ ] Search and filtering
+- [ ] Bulk operations
+- [ ] Content preview
+- [ ] Asset optimization
+- [ ] Enhanced validation and business rules
+
+## Known Issues
+
+1. **RawMarkdownIngestionStrategy** - SeriesId is hardcoded to Guid.Empty (src/Grimoire.Application/Service/Strategy/RawMarkdownIngestionStrategy.cs:54)
+2. **PdfExportStrategy** - Not implemented yet (src/Grimoire.Infrastructure/Export/PdfExportStrategy.cs:18)
+
+## Contributing
+
+Contributions are welcome! Please ensure:
+
+- All tests pass before submitting PR
+- Follow existing code style and architecture patterns
+- Update documentation for new features
+- Add unit tests for new functionality
 
 ## Project Structure
 
 - `doc/`: Documentation and specifications
 - `src/`: Source code (API, Application, Domain, Infrastructure layers)
-- `templates/`: Razor templates for EPUB rendering
+- `test/`: E2E test suite with sample assets
+- `templates/`: Razor templates for EPUB rendering (if exists)
