@@ -1,10 +1,9 @@
 namespace Grimoire.Application.Service.Strategy;
 
-using Common;
-using DomainCommon = Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
+using DomainCommon = Domain.Common;
 
 /// <summary>
 ///     Strategy for ingesting pre-processed content (Content is already segmented)
@@ -59,7 +58,7 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 
 		var chapter = new ChapterModel {
 			Id = chapterId,
-			VolumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId),
+			VolumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume),
 			Order = dto.Order,
 			Title = dto.Title,
 			Status = ChapterStatus.Done

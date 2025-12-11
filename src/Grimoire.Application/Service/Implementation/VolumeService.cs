@@ -2,13 +2,13 @@ namespace Grimoire.Application.Service.Implementation;
 
 using Common;
 using Contract;
-using DomainCommon = Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
 using Mapper;
+using DomainCommon = Domain.Common;
 
 public sealed class VolumeService(
 	IVolumeRepository repository,

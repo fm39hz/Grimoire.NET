@@ -1,7 +1,6 @@
 namespace Grimoire.Application.Mapper;
 
-using Application.Common;
-using DomainCommon = Domain.Common;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -43,9 +42,17 @@ public partial class BookMapper {
 	};
 
 	// ID conversion helpers for Mapperly
-	private static string MapSeriesId(Guid id) => DomainCommon.PrefixedId.ToString(DomainCommon.EntityPrefix.Series, id);
-	private static string MapVolumeId(Guid id) => DomainCommon.PrefixedId.ToString(DomainCommon.EntityPrefix.Volume, id);
-	private static string MapChapterId(Guid id) => DomainCommon.PrefixedId.ToString(DomainCommon.EntityPrefix.Chapter, id);
-	private static string MapSegmentId(Guid id) => DomainCommon.PrefixedId.ToString(DomainCommon.EntityPrefix.Segment, id);
-	private static string MapAssetId(Guid id) => DomainCommon.PrefixedId.ToString(DomainCommon.EntityPrefix.Asset, id);
+	private static string MapSeriesId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Series, id);
+
+	private static string MapVolumeId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Volume, id);
+
+	private static string MapChapterId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Chapter, id);
+
+	private static string MapSegmentId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Segment, id);
+
+	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 }

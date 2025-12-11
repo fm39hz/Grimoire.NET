@@ -1,13 +1,12 @@
 namespace Grimoire.Application.Service.Implementation;
 
-using Common;
 using Contract;
-using DomainCommon = Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
 using Strategy;
+using DomainCommon = Domain.Common;
 
 public sealed class BinderyService(
 	ISeriesRepository seriesRepository,
@@ -40,7 +39,6 @@ public sealed class BinderyService(
 			}
 			catch (FormatException) {
 				// Skip invalid volume IDs instead of failing entire operation
-				continue;
 			}
 		}
 

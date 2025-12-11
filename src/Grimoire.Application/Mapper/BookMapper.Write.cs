@@ -1,7 +1,5 @@
 namespace Grimoire.Application.Mapper;
 
-using Common;
-using DomainCommon = Domain.Common;
 using Domain.Entity;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
@@ -9,6 +7,7 @@ using Domain.Entity.Book.Segment;
 using Dto.Book;
 using Dto.Book.Metadata;
 using Riok.Mapperly.Abstractions;
+using DomainCommon = Domain.Common;
 
 public partial class BookMapper {
 #pragma warning disable RMG012
@@ -69,7 +68,7 @@ public partial class BookMapper {
 		var chapterId = Guid.CreateVersion7();
 		return new ChapterModel {
 			Id = chapterId,
-			VolumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId),
+			VolumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume),
 			Order = dto.Order,
 			Title = dto.Title,
 			ContentData = new ChapterContentModel {
@@ -103,5 +102,5 @@ public partial class BookMapper {
 	private partial VolumeMetadata ToVolumeMetadata(VolumeMetadataDto dto);
 
 	// Helper for parsing string IDs to Guid
-	private static Guid ParseStringToGuid(string prefixedId) => DomainCommon.PrefixedId.ToGuid(prefixedId);
+	private static Guid ParseStringToGuid(string prefixedId) => DomainCommon.PrefixedId.ToGuid(prefixedId, DomainCommon.EntityPrefix.Series);
 }

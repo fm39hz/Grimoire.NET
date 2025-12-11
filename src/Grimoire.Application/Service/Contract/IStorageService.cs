@@ -3,7 +3,10 @@ namespace Grimoire.Application.Service.Contract;
 using Domain.Entity.Book;
 
 public interface IStorageService {
-	Task<Stream?> GetFileStreamAsync(Guid assetId);
-	Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType, string originalFileName, AssetRefType refType);
-	Task DeleteFileAsync(Guid assetId);
+	public Task<Stream?> GetFileStreamAsync(Guid assetId);
+
+	public Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType, string originalFileName,
+		AssetRefType refType);
+
+	public Task DeleteFileAsync(Guid assetId);
 }
