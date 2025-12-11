@@ -7,7 +7,6 @@ using Domain.Entity.Book.Segment;
 using Dto.Book;
 using Dto.Book.Metadata;
 using Riok.Mapperly.Abstractions;
-using DomainCommon = Domain.Common;
 
 public partial class BookMapper {
 #pragma warning disable RMG012
@@ -19,14 +18,14 @@ public partial class BookMapper {
 	public partial SeriesModel CreateSeries(CreateSeriesRequestDto dto);
 #pragma warning restore RMG012
 
-	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
-	[MapperIgnoreTarget(nameof(BaseModel.Id))]
-	[MapProperty(nameof(CreateVolumeRequestDto.SeriesId), nameof(VolumeModel.SeriesId),
-		Use = nameof(ParseStringToGuid))]
-	public partial VolumeModel CreateVolume(CreateVolumeRequestDto dto);
+	public VolumeModel CreateVolume(CreateVolumeRequestDto dto, Guid seriesId) => new() {
+		SeriesId = seriesId,
+		Order = dto.Order,
+		Title = dto.Title,
+		Metadata = dto.Metadata != null? ToVolumeMetadata(dto.Metadata) : null
+	};
 
-	public ChapterModel CreateChapter(CreateChapterRequestDto dto) {
+	public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId) {
 		var idMap = new Dictionary<string, Guid>();
 		var cleanFootnotes = new List<FootnoteSegmentModel>();
 
@@ -68,7 +67,7 @@ public partial class BookMapper {
 		var chapterId = Guid.CreateVersion7();
 		return new ChapterModel {
 			Id = chapterId,
-			VolumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume),
+			VolumeId = volumeId,
 			Order = dto.Order,
 			Title = dto.Title,
 			ContentData = new ChapterContentModel {
@@ -92,15 +91,10 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
-	[MapperIgnoreTarget(nameof(SeriesModel.GlossaryTerms))]
-	[MapperIgnoreTarget(nameof(SeriesModel.SourceMaterials))]
 	public partial void UpdateSeries(UpdateSeriesRequestDto dto, [MappingTarget] SeriesModel model);
 #pragma warning restore RMG012
 
 	private partial SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto);
 
 	private partial VolumeMetadata ToVolumeMetadata(VolumeMetadataDto dto);
-
-	// Helper for parsing string IDs to Guid
-	private static Guid ParseStringToGuid(string prefixedId) => DomainCommon.PrefixedId.ToGuid(prefixedId, DomainCommon.EntityPrefix.Series);
 }

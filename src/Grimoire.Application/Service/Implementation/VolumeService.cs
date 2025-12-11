@@ -30,7 +30,7 @@ public sealed class VolumeService(
 			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
 		}
 
-		var volume = mapper.CreateVolume(dto);
+		var volume = mapper.CreateVolume(dto, seriesId);
 		return await repository.Create(volume);
 	}
 

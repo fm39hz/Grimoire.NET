@@ -14,5 +14,5 @@ public interface IIngestionStrategy {
 	/// <summary>
 	///     Executes the ingestion strategy
 	/// </summary>
-	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto);
+	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId);
 }

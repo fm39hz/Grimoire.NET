@@ -39,7 +39,7 @@ public sealed class ChapterService(
 
 			// Use strategy pattern to handle different ingestion types
 			var strategy = strategyFactory.GetStrategy(dto);
-			var result = await strategy.ExecuteAsync(dto);
+			var result = await strategy.ExecuteAsync(dto, volumeId);
 
 			// Save SourceMaterial if present (from RawMarkdown ingestion)
 			if (result.Source is not null) {

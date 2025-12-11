@@ -5,7 +5,6 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
-using DomainCommon = Domain.Common;
 
 /// <summary>
 ///     Strategy for ingesting raw Markdown content
@@ -22,12 +21,11 @@ public class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : 
 		return !HtmlTagRegex.IsMatch(dto.RawContent);
 	}
 
-	public async Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto) {
+	public async Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId) {
 		if (!CanHandle(dto)) {
 			throw new InvalidOperationException("This strategy cannot handle the provided DTO");
 		}
 
-		var volumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume);
 		var chapterId = Guid.CreateVersion7();
 		var sourceId = Guid.CreateVersion7();
 
