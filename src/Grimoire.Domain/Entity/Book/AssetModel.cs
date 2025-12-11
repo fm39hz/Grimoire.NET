@@ -25,7 +25,7 @@ public record AssetModel : BaseModel {
 	public required string FileHash { get; init; }
 
 	/// <summary>
-	///     Type of reference: "Cover" or "Content"
+	///     Type of reference: Cover or Content
 	/// </summary>
-	public required string RefType { get; init; }
+	public required AssetRefType RefType { get; init; }
 }

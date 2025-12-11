@@ -13,16 +13,13 @@ public sealed class SeriesService(
 	ISeriesRepository repository,
 	IVolumeRepository volumeRepository,
 	IBookMapper mapper)
-	: ISeriesService {
+	: CrudServiceBase<SeriesModel>, ISeriesService {
 	public async Task<SeriesModel?> FindOne(Guid id) => await repository.FindOne(id);
 
 	public async Task<IEnumerable<SeriesModel>> FindAll() => await repository.FindAll();
 
-	public async Task<PagedResult<SeriesModel>> FindAll(PaginationRequest request) {
-		var items = await repository.FindAll(request.PageIndex, request.PageSize);
-		var totalCount = await repository.CountAll();
-		return new PagedResult<SeriesModel>(items.ToList(), totalCount, request.PageIndex, request.PageSize);
-	}
+	public async Task<PagedResult<SeriesModel>> FindAll(PaginationRequest request) =>
+		await GetPagedResultAsync(repository, request);
 
 	public async Task<SeriesModel> Create(CreateSeriesRequestDto dto) {
 		var series = mapper.CreateSeries(dto);
@@ -41,9 +38,9 @@ public sealed class SeriesService(
 	public async Task<IEnumerable<VolumeModel>> FindAllVolumes(Guid seriesId) =>
 		await volumeRepository.FindBySeriesId(seriesId);
 
-	public async Task<PagedResult<VolumeModel>> FindAllVolumes(Guid seriesId, PaginationRequest pagination) {
-		var items = await volumeRepository.FindBySeriesId(seriesId, pagination.PageIndex, pagination.PageSize);
-		var totalCount = await volumeRepository.CountBySeriesId(seriesId);
-		return new PagedResult<VolumeModel>(items.ToList(), totalCount, pagination.PageIndex, pagination.PageSize);
-	}
+	public async Task<PagedResult<VolumeModel>> FindAllVolumes(Guid seriesId, PaginationRequest pagination) =>
+		await GetPagedResultAsync(
+			() => volumeRepository.FindBySeriesId(seriesId, pagination.PageIndex, pagination.PageSize),
+			() => volumeRepository.CountBySeriesId(seriesId),
+			pagination);
 }

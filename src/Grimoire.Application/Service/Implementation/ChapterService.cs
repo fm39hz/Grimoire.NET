@@ -15,16 +15,13 @@ public sealed class ChapterService(
 	IVolumeRepository volumeRepository,
 	ISourceMaterialRepository sourceRepository,
 	IBookMapper mapper,
-	IngestionStrategyFactory strategyFactory) : IChapterService {
+	IngestionStrategyFactory strategyFactory) : CrudServiceBase<ChapterModel>, IChapterService {
 	public async Task<ChapterModel?> FindOne(Guid id) => await chapterRepository.FindOne(id);
 
 	public async Task<IEnumerable<ChapterModel>> FindAll() => await chapterRepository.FindAll();
 
-	public async Task<PagedResult<ChapterModel>> FindAll(PaginationRequest request) {
-		var items = await chapterRepository.FindAll(request.PageIndex, request.PageSize);
-		var totalCount = await chapterRepository.CountAll();
-		return new PagedResult<ChapterModel>(items.ToList(), totalCount, request.PageIndex, request.PageSize);
-	}
+	public async Task<PagedResult<ChapterModel>> FindAll(PaginationRequest request) =>
+		await GetPagedResultAsync(chapterRepository, request);
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {
 		// Validate that the Volume exists
