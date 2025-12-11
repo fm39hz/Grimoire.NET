@@ -4,6 +4,6 @@ using Domain.Entity.Book;
 
 public interface IStorageService {
 	Task<Stream?> GetFileStreamAsync(Guid assetId);
-	Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType, string originalFileName, string refType);
+	Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType, string originalFileName, AssetRefType refType);
 	Task DeleteFileAsync(Guid assetId);
 }

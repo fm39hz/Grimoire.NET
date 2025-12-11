@@ -5,6 +5,7 @@ using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
+using Domain.Entity.Book;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -18,10 +19,14 @@ public class FileController(IStorageService storageService, IBookMapper mapper) 
 			return BadRequest("File is empty.");
 		}
 
+		if (!Enum.TryParse<AssetRefType>(refType, true, out var assetRefType)) {
+			return BadRequest($"Invalid refType. Must be 'Cover' or 'Content'.");
+		}
+
 		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
 		await using var stream = file.OpenReadStream();
 		var asset = await storageService.UploadAssetAsync(guid, stream, file.ContentType, file.FileName,
-			refType);
+			assetRefType);
 		return Ok(mapper.ToAssetDto(asset));
 	}
 

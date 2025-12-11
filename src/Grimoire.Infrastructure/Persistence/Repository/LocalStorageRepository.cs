@@ -19,7 +19,7 @@ public partial class LocalStorageRepository(
 		: _config.BasePath;
 
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType,
-		string originalFileName, string refType) {
+		string originalFileName, AssetRefType refType) {
 		var hash = await ComputeHashAsync(content);
 
 		var existingAsset = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash);

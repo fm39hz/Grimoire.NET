@@ -4,7 +4,7 @@ using Entity.Book;
 
 public interface IStorageRepository {
 	public Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType, string originalFileName,
-		string refType);
+		AssetRefType refType);
 
 	public Task<byte[]> GetFileAsync(Guid assetId);
 	public Task<Stream?> GetFileStreamAsync(Guid assetId);
