@@ -1,7 +1,7 @@
-namespace Grimoire.Application.Common;
+namespace Grimoire.Domain.Common;
 
 /// <summary>
-///     Entity ID prefixes for API presentation
+///     Entity ID prefixes for external representation
 /// </summary>
 public static class EntityPrefix {
 	public const string Series = "ser";

@@ -1,7 +1,8 @@
-namespace Grimoire.Application.Common;
+namespace Grimoire.Domain.Common;
 
 /// <summary>
-///     Helper for converting between Guid and prefixed ID strings at API boundary
+///     Helper for converting between Guid and prefixed ID strings.
+///     This is a domain concept for entity identification.
 /// </summary>
 public static class PrefixedId {
 	private const char SEPARATOR = '_';

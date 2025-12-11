@@ -2,6 +2,7 @@ namespace Grimoire.Application.Service.Implementation;
 
 using Common;
 using Contract;
+using DomainCommon = Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
@@ -15,7 +16,8 @@ public sealed class ChapterService(
 	IVolumeRepository volumeRepository,
 	ISourceMaterialRepository sourceRepository,
 	IBookMapper mapper,
-	IngestionStrategyFactory strategyFactory) : CrudServiceBase<ChapterModel>, IChapterService {
+	IngestionStrategyFactory strategyFactory,
+	IUnitOfWork unitOfWork) : CrudServiceBase<ChapterModel>, IChapterService {
 	public async Task<ChapterModel?> FindOne(Guid id) => await chapterRepository.FindOne(id);
 
 	public async Task<IEnumerable<ChapterModel>> FindAll() => await chapterRepository.FindAll();
@@ -24,29 +26,42 @@ public sealed class ChapterService(
 		await GetPagedResultAsync(chapterRepository, request);
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {
-		// Validate that the Volume exists
-		var volumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
-		var volume = await volumeRepository.FindOne(volumeId);
-		if (volume == null) {
-			throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+		// Begin transaction for multi-step operation
+		await unitOfWork.BeginTransactionAsync();
+
+		try {
+			// Validate that the Volume exists
+			var volumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume);
+			var volume = await volumeRepository.FindOne(volumeId);
+			if (volume == null) {
+				throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+			}
+
+			// Use strategy pattern to handle different ingestion types
+			var strategy = strategyFactory.GetStrategy(dto);
+			var result = await strategy.ExecuteAsync(dto);
+
+			// Save SourceMaterial if present (from RawMarkdown ingestion)
+			if (result.Source is not null) {
+				await sourceRepository.Create(result.Source);
+			}
+
+			// Set navigation property to ensure EF Core saves both Chapter and Content
+			result.Chapter.ContentData = result.Content;
+
+			// Save chapter with content
+			var chapter = await chapterRepository.Create(result.Chapter);
+
+			// Commit transaction
+			await unitOfWork.CommitTransactionAsync();
+
+			return chapter;
 		}
-
-		// Use strategy pattern to handle different ingestion types
-		var strategy = strategyFactory.GetStrategy(dto);
-		var result = await strategy.ExecuteAsync(dto);
-
-		// Save SourceMaterial if present (from RawMarkdown ingestion)
-		if (result.Source is not null) {
-			await sourceRepository.Create(result.Source);
+		catch {
+			// Rollback transaction on any error
+			await unitOfWork.RollbackTransactionAsync();
+			throw;
 		}
-
-		// Set navigation property to ensure EF Core saves both Chapter and Content
-		result.Chapter.ContentData = result.Content;
-
-		// Save chapter with content
-		var chapter = await chapterRepository.Create(result.Chapter);
-
-		return chapter;
 	}
 
 	public async Task<ChapterModel> CreateFromImportAsync(CreateChapterRequestDto dto) => await Create(dto);

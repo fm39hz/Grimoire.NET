@@ -2,6 +2,7 @@ namespace Grimoire.Application.Service.Implementation;
 
 using Common;
 using Contract;
+using DomainCommon = Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
@@ -23,7 +24,7 @@ public sealed class VolumeService(
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
 		// Validate that the Series exists
-		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
+		var seriesId = DomainCommon.PrefixedId.ToGuid(dto.SeriesId, DomainCommon.EntityPrefix.Series);
 		var series = await seriesRepository.FindOne(seriesId);
 		if (series == null) {
 			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");

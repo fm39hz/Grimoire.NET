@@ -2,6 +2,7 @@ namespace Grimoire.Application.Service.Strategy;
 
 using System.Text.RegularExpressions;
 using Common;
+using DomainCommon = Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
@@ -27,7 +28,7 @@ public class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : 
 			throw new InvalidOperationException("This strategy cannot handle the provided DTO");
 		}
 
-		var volumeId = PrefixedId.ToGuid(dto.VolumeId);
+		var volumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId);
 		var chapterId = Guid.CreateVersion7();
 		var sourceId = Guid.CreateVersion7();
 

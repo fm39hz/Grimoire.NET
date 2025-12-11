@@ -10,6 +10,9 @@ using Persistence.Repository;
 
 public static class DependencyInjection {
 	public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration) {
+		// Register Unit of Work
+		services.AddScoped<IUnitOfWork, UnitOfWork>();
+
 		// Register repositories
 		services.AddScoped<ISeriesRepository, SeriesRepository>();
 		services.AddScoped<IVolumeRepository, VolumeRepository>();

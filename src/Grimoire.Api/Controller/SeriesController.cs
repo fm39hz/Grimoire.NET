@@ -5,7 +5,7 @@ using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
-using Domain.Common;
+using DomainCommon = Domain.Common;
 using Dto;
 using EntityFramework.Exceptions.Common;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +17,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
 	public async Task<IResult> FindOne(string id) {
-		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var guid = DomainCommon.PrefixedId.ToGuid(id, DomainCommon.EntityPrefix.Series);
 		var series = await service.FindOne(guid);
 		return series is null? Results.NotFound() : Results.Ok(mapper.ToSeriesDto(series));
 	}
@@ -58,7 +58,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	public async Task<IResult> Update(string id, [FromBody] UpdateSeriesRequestDto dto) {
-		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var guid = DomainCommon.PrefixedId.ToGuid(id, DomainCommon.EntityPrefix.Series);
 		var updatedSeries = await service.Update(guid, dto);
 		return Results.Ok(mapper.ToSeriesDto(updatedSeries));
 	}
@@ -66,7 +66,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
 	public async Task<IResult> Delete(string id) {
-		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var guid = DomainCommon.PrefixedId.ToGuid(id, DomainCommon.EntityPrefix.Series);
 		var result = await service.Delete(guid);
 		return Results.Ok(result);
 	}
@@ -74,7 +74,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	[HttpGet("{id}/volumes")]
 	[ProducesResponseType(typeof(IEnumerable<VolumeResponseDto>), 200)]
 	public async Task<IResult> GetVolumes(string id, [FromQuery] PaginationRequestDto? pagination) {
-		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var guid = DomainCommon.PrefixedId.ToGuid(id, DomainCommon.EntityPrefix.Series);
 		if (pagination == null) {
 			var series = await service.FindAllVolumes(guid);
 			var dto = series.Select(mapper.ToVolumeDto);

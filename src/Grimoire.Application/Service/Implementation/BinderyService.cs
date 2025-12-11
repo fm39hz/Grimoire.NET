@@ -2,6 +2,7 @@ namespace Grimoire.Application.Service.Implementation;
 
 using Common;
 using Contract;
+using DomainCommon = Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
@@ -31,7 +32,7 @@ public sealed class BinderyService(
 		var volumes = new List<VolumeModel>();
 		foreach (var volumeId in volumeIds) {
 			try {
-				var guid = PrefixedId.ToGuid(volumeId, EntityPrefix.Volume);
+				var guid = DomainCommon.PrefixedId.ToGuid(volumeId, DomainCommon.EntityPrefix.Volume);
 				var volume = await volumeRepository.FindOne(guid);
 				if (volume != null && volume.SeriesId == seriesId) {
 					volumes.Add(volume);
