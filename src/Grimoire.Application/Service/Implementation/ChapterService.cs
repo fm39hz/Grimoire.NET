@@ -32,10 +32,7 @@ public sealed class ChapterService(
 		try {
 			// Validate that the Volume exists
 			var volumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume);
-			var volume = await volumeRepository.FindOne(volumeId);
-			if (volume == null) {
-				throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
-			}
+			var volume = await volumeRepository.FindOne(volumeId) ?? throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
 
 			// Use strategy pattern to handle different ingestion types
 			var strategy = strategyFactory.GetStrategy(dto);
@@ -106,7 +103,7 @@ public sealed class ChapterService(
 			// First chapter: update the original chapter with segments before first split
 			var firstSplitIndex = dto.SplitPoints[0].SegmentIndex;
 			originalChapter.ContentData.Segments = segments.Take(firstSplitIndex).ToList();
-			
+
 			// Extract footnotes referenced by segments in the original chapter
 			var firstChapterFootnoteIds = GetReferencedFootnoteIds(originalChapter.ContentData.Segments);
 			originalChapter.ContentData.Footnotes = footnotes
@@ -165,7 +162,7 @@ public sealed class ChapterService(
 	/// </summary>
 	private static HashSet<string> GetReferencedFootnoteIds(List<SegmentModel> segments) {
 		var footnoteIds = new HashSet<string>();
-		
+
 		foreach (var segment in segments) {
 			// Check if segment is a text segment with footnote references
 			if (segment is Domain.Entity.Book.Segment.TextSegmentModel textSegment) {

@@ -21,11 +21,9 @@ public static class PrefixedId {
 		}
 
 		var parts = prefixedId.Split(SEPARATOR, 2);
-		if (parts.Length != 2) {
-			throw new FormatException($"Invalid prefixed ID format: {prefixedId}");
-		}
-
-		return !Guid.TryParse(parts[1], out var guid)
+		return parts.Length != 2
+			? throw new FormatException($"Invalid prefixed ID format: {prefixedId}")
+			: !Guid.TryParse(parts[1], out var guid)
 			? throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}")
 			: guid;
 	}
@@ -44,13 +42,11 @@ public static class PrefixedId {
 		}
 
 		var actualPrefix = parts[0];
-		if (actualPrefix != expectedPrefix) {
-			throw new ArgumentException(
+		return actualPrefix != expectedPrefix
+			? throw new ArgumentException(
 				$"Invalid ID prefix. Expected '{expectedPrefix}{SEPARATOR}' but got '{actualPrefix}{SEPARATOR}'",
-				nameof(prefixedId));
-		}
-
-		return !Guid.TryParse(parts[1], out var guid)
+				nameof(prefixedId))
+			: !Guid.TryParse(parts[1], out var guid)
 			? throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}")
 			: guid;
 	}
@@ -78,11 +74,7 @@ public static class PrefixedId {
 		}
 
 		var parts = prefixedId.Split(SEPARATOR, 2);
-		if (parts.Length != 2) {
-			return false;
-		}
-
-		return parts[0] == expectedPrefix && Guid.TryParse(parts[1], out id);
+		return parts.Length == 2 && parts[0] == expectedPrefix && Guid.TryParse(parts[1], out id);
 	}
 
 	/// <summary>
@@ -94,6 +86,6 @@ public static class PrefixedId {
 		}
 
 		var separatorIndex = prefixedId.IndexOf(SEPARATOR);
-		return separatorIndex <= 0? null : prefixedId[..separatorIndex];
+		return separatorIndex <= 0 ? null : prefixedId[..separatorIndex];
 	}
 }

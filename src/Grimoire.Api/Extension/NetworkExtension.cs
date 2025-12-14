@@ -19,13 +19,9 @@ public static class NetworkExtension {
 				);
 			opt.CustomSchemaIds(type => type.FullName);
 		});
-		builder.Services.AddCors(options => {
-			options.AddPolicy("AllowAll", policy => {
-				policy.AllowAnyOrigin()
+		builder.Services.AddCors(options => options.AddPolicy("AllowAll", policy => policy.AllowAnyOrigin()
 					.AllowAnyHeader()
-					.AllowAnyMethod();
-			});
-		});
+					.AllowAnyMethod()));
 		return service;
 	}
 }

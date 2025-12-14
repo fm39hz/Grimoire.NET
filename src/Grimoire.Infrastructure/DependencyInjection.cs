@@ -21,7 +21,7 @@ public static class DependencyInjection {
 		services.AddScoped<ISourceMaterialRepository, SourceMaterialRepository>();
 
 		// Register storage configuration
-		var storageSection = configuration.GetSection(StorageConfiguration.SectionName);
+		var storageSection = configuration.GetSection(StorageConfiguration.SECTION_NAME);
 		var storageConfig = new StorageConfiguration();
 		storageSection.Bind(storageConfig);
 

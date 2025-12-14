@@ -26,10 +26,8 @@ public sealed class BinderyController(IBinderyService binderyService) : Controll
 		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
 		var result = await binderyService.ExportSeriesAsync(guid, request);
 
-		if (!result.Success) {
-			return Results.BadRequest(new { error = result.ErrorMessage });
-		}
-
-		return Results.File(result.ContentStream, result.ContentType, result.FileName);
+		return !result.Success
+			? Results.BadRequest(new { error = result.ErrorMessage })
+			: Results.File(result.ContentStream, result.ContentType, result.FileName);
 	}
 }

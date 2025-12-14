@@ -9,7 +9,7 @@ public static class StorageExtension {
 	[UsedImplicitly]
 	public static IServiceCollection AddStorage(this IServiceCollection services, WebApplicationBuilder builder) {
 		services.Configure<StorageConfiguration>(
-			builder.Configuration.GetSection(StorageConfiguration.SectionName));
+			builder.Configuration.GetSection(StorageConfiguration.SECTION_NAME));
 
 		var storageType = builder.Configuration.GetValue<string>("Storage:Type");
 
@@ -19,6 +19,8 @@ public static class StorageExtension {
 				throw new NotImplementedException("S3 storage is not implemented yet.");
 			case "LocalStorage":
 				services.AddScoped<IStorageRepository, LocalStorageRepository>();
+				break;
+			default:
 				break;
 		}
 

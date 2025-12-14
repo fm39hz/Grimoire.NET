@@ -31,6 +31,13 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 		return result.Entity;
 	}
 
+	public async Task<IEnumerable<T>> CreateBulk(IEnumerable<T> entities) {
+		var entityList = entities.ToList();
+		await Entities.AddRangeAsync(entityList);
+		await context.SaveChangesAsync();
+		return entityList;
+	}
+
 	public async Task<T> Update(T entity) {
 		// Mark entity as updated (sets UpdatedAt timestamp)
 		entity.MarkAsUpdated();

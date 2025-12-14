@@ -388,3 +388,10 @@ dotnet_diagnostic.RCS1161.severity = none
 # Allow unconstrained type parameter to be checked for null.
 dotnet_diagnostic.RCS1165.severity = none
 # Allow keyword-based names so that parameter names like `@event` can be used.
+
+# IDE0305: Simplify collection initialization
+dotnet_diagnostic.IDE0305.severity = none
+
+# IDE0305: Simplify collection initialization
+dotnet_style_prefer_collection_expression = never
+

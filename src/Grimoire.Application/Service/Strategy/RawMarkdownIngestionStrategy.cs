@@ -9,8 +9,9 @@ using Dto.Book;
 /// <summary>
 ///     Strategy for ingesting raw Markdown content
 /// </summary>
-public class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : IIngestionStrategy {
-	private static Regex HtmlTagRegex { get; } = new("<[^>]+>");
+public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : IIngestionStrategy {
+	[GeneratedRegex("<[^>]+>")]
+	private static partial Regex HtmlTagRegex { get; }
 
 	public bool CanHandle(CreateChapterRequestDto dto) {
 		if (string.IsNullOrWhiteSpace(dto.RawContent)) {
@@ -30,10 +31,7 @@ public class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : 
 		var sourceId = Guid.CreateVersion7();
 
 		// Fetch the volume to get SeriesId
-		var volume = await volumeRepository.FindOne(volumeId);
-		if (volume == null) {
-			throw new InvalidOperationException($"Volume with ID {dto.VolumeId} not found");
-		}
+		var volume = await volumeRepository.FindOne(volumeId) ?? throw new InvalidOperationException($"Volume with ID {dto.VolumeId} not found");
 
 		// Parse RawContent into segments (simple split by newline)
 		var lines = dto.RawContent!.Split('\n', StringSplitOptions.RemoveEmptyEntries);

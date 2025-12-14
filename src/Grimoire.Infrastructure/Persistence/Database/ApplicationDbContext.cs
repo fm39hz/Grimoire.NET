@@ -57,9 +57,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.IsRequired();
 
 			entity.HasIndex(e => new { e.SeriesId, e.Order });
-			entity.OwnsOne(s => s.Metadata, metaBuilder => {
-				metaBuilder.ToJson();
-			});
+			entity.OwnsOne(s => s.Metadata, metaBuilder => metaBuilder.ToJson());
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {

@@ -75,11 +75,7 @@ public class ImageSegmentRenderer : ISegmentRenderer {
 			return $"images/{mappedFileName}";
 		}
 
-		if (Guid.TryParse(image.AssetKey, out var assetId)) {
-			return $"images/img_{assetId}.jpg";
-		}
-
-		return $"images/{image.AssetKey}";
+		return Guid.TryParse(image.AssetKey, out var assetId) ? $"images/img_{assetId}.jpg" : $"images/{image.AssetKey}";
 	}
 }
 
@@ -90,10 +86,6 @@ public class DividerSegmentRenderer : ISegmentRenderer {
 	public bool CanRender(SegmentModel segment) => segment is DividerSegmentModel;
 
 	public string Render(SegmentModel segment, SegmentRenderContext context) {
-		if (segment is not DividerSegmentModel divider) {
-			return string.Empty;
-		}
-
-		return $"<p>{HttpUtility.HtmlEncode(divider.Style)}</p>\n";
+		return segment is not DividerSegmentModel divider ? string.Empty : $"<p>{HttpUtility.HtmlEncode(divider.Style)}</p>\n";
 	}
 }

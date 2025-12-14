@@ -20,12 +20,8 @@ public class IngestionStrategyFactory {
 	public IIngestionStrategy GetStrategy(CreateChapterRequestDto dto) {
 		ArgumentNullException.ThrowIfNull(dto);
 
-		var strategy = _strategies.FirstOrDefault(s => s.CanHandle(dto));
-
-		if (strategy is null) {
-			throw new InvalidOperationException(
+		var strategy = _strategies.FirstOrDefault(s => s.CanHandle(dto)) ?? throw new InvalidOperationException(
 				"No ingestion strategy found that can handle the provided DTO");
-		}
 
 		return strategy;
 	}

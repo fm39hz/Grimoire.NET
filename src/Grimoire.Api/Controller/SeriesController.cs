@@ -19,7 +19,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	public async Task<IResult> FindOne(string id) {
 		var guid = DomainCommon.PrefixedId.ToGuid(id, DomainCommon.EntityPrefix.Series);
 		var series = await service.FindOne(guid);
-		return series is null? Results.NotFound() : Results.Ok(mapper.ToSeriesDto(series));
+		return series is null ? Results.NotFound() : Results.Ok(mapper.ToSeriesDto(series));
 	}
 
 	[HttpGet]
@@ -33,7 +33,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 
 		var pagedSeries = await service.FindAll(pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<SeriesResponseDto>(
-			pagedSeries.Items.Select(mapper.ToSeriesDto).ToList(),
+			[.. pagedSeries.Items.Select(mapper.ToSeriesDto)],
 			pagedSeries.TotalCount,
 			pagedSeries.PageIndex,
 			pagedSeries.PageSize
@@ -83,11 +83,38 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 
 		var pagedVolumes = await service.FindAllVolumes(guid, pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<VolumeResponseDto>(
-			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),
+			[.. pagedVolumes.Items.Select(mapper.ToVolumeDto)],
 			pagedVolumes.TotalCount,
 			pagedVolumes.PageIndex,
 			pagedVolumes.PageSize
 			);
 		return Results.Ok(pagedDto);
 	}
+
+	// [HttpPost("import/epub")]
+	// [Consumes("multipart/form-data")]
+	// [ProducesResponseType(typeof(SeriesResponseDto), 201)]
+	// [ProducesResponseType(400)]
+	// [ProducesResponseType(500)]
+	// public async Task<IResult> ImportEpub(
+	// 	IFormFile file,
+	// 	[FromQuery] string? existingSeriesId) {
+	// 	if (file == null || file.Length == 0) {
+	// 		return Results.BadRequest("EPUB file is required");
+	// 	}
+	//
+	// 	if (!file.FileName.EndsWith(".epub", StringComparison.OrdinalIgnoreCase)) {
+	// 		return Results.BadRequest("File must be an EPUB file (.epub)");
+	// 	}
+	//
+	// 	// Build options - auto-detect based on existingSeriesId
+	// 	var importOptions = new ImportEpubRequestDto {
+	// 		ExistingSeriesId = existingSeriesId
+	// 	};
+	//
+	// 	await using var stream = file.OpenReadStream();
+	// 	var series = await service.ImportFromEpubAsync(stream, importOptions);
+	// 	var responseDto = mapper.ToSeriesDto(series);
+	// 	return Results.Created($"{responseDto.Id}", responseDto);
+	// }
 }
