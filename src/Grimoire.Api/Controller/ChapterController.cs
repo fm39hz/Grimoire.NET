@@ -63,4 +63,15 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 		var result = await service.Delete(guid);
 		return Results.Ok(result);
 	}
+
+	[HttpPost("{id}/split")]
+	[ProducesResponseType(typeof(IEnumerable<ChapterResponseDto>), 201)]
+	[ProducesResponseType(404)]
+	[ProducesResponseType(400)]
+	public async Task<IResult> Split(string id, [FromBody] SplitChapterRequestDto dto) {
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
+		var resultChapters = await service.SplitAsync(guid, dto);
+		var responseDtos = resultChapters.Select(mapper.ToChapterDto);
+		return Results.Created($"/api/v1/chapter", responseDtos);
+	}
 }

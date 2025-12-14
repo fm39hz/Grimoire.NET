@@ -5,4 +5,5 @@ using Dto.Book;
 
 public interface IChapterService : ICrudService<ChapterModel, CreateChapterRequestDto, UpdateChapterRequestDto> {
 	public Task<ChapterModel> CreateFromImportAsync(CreateChapterRequestDto dto);
+	public Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto);
 }
