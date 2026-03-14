@@ -28,8 +28,8 @@ public record BinderyRequestDto {
 				Type = "IntroPage", Options = new Dictionary<string, object> { { "splitDescription", false } }
 			},
 			new ExportSectionDto { Type = "Description" },
-			new ExportSectionDto { Type = "Content" },
-			new ExportSectionDto { Type = "TOC" }
+			new ExportSectionDto { Type = "TOC" },
+			new ExportSectionDto { Type = "Content" }
 		]
 	};
 }

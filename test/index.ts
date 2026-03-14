@@ -178,8 +178,8 @@ async function importBook(bookFolder) {
 				responseType: "arraybuffer",
 			},
 		);
-		fs.writeFileSync(path.join(__dirname, "test.epub"), binderyRes.data);
-		console.log("   EPUB saved to test/test.epub");
+		fs.writeFileSync(path.join(__dirname, `${bundleFolder}.epub`), binderyRes.data);
+		console.log(`   EPUB saved to ${bundleFolder}.epub`);
 
 		console.log(`✅ Success: ${data.title}`);
 	} catch (e) {

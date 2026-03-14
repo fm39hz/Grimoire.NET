@@ -163,7 +163,11 @@ public class HtmlRenderer {
 		html.AppendLine($"<h2>{EpubConstants.LocalizedText.TableOfContents}</h2>");
 		html.AppendLine("<ol>");
 
+		// Filter out self-reference (nav.xhtml) to avoid circular TOC entry
 		foreach (var nav in navPoints) {
+			if (nav.ContentSrc == "nav.xhtml") {
+				continue;
+			}
 			html.AppendLine(RenderNavPoint(nav));
 		}
 

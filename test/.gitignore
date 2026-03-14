@@ -1,6 +1,7 @@
 # dependencies (bun install)
 node_modules
 dist_grimoire
+.backup
 
 # output
 out

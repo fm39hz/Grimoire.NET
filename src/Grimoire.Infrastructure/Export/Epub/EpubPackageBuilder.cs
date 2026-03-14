@@ -38,6 +38,28 @@ public class EpubPackageBuilder {
 
 	public List<NavPoint> GetNavPoints() => _navPoints;
 
+	/// <summary>
+	///     Flattens the NavPoint tree into a linear list of ContentSrc paths in reading order
+	/// </summary>
+	private List<string> FlattenNavPoints() {
+		var result = new List<string>();
+
+		void Flatten(NavPoint nav) {
+			result.Add(nav.ContentSrc);
+			if (nav.Children != null) {
+				foreach (var child in nav.Children) {
+					Flatten(child);
+				}
+			}
+		}
+
+		foreach (var nav in _navPoints) {
+			Flatten(nav);
+		}
+
+		return result;
+	}
+
 	public void AddCss(string content) => AddResource(EpubResource.FromText(EpubConstants.Paths.StyleCssFile, content));
 
 	public async Task<Stream> BuildAsync() {
@@ -142,11 +164,15 @@ public class EpubPackageBuilder {
 		sb.AppendLine("    <item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/>");
 		sb.AppendLine("    <item id=\"css\" href=\"style.css\" media-type=\"text/css\"/>");
 
-		// Add HTML files
+		// Add HTML files - order follows NavPoints (authoritative reading order)
 		var fileIndex = 1;
-		var htmlFiles = _resources.Keys
-			.Where(k => k.StartsWith(EpubConstants.Paths.OebpsPrefix) && k.EndsWith(".xhtml"))
-			.OrderBy(k => k)
+		var navOrder = FlattenNavPoints();
+		var navFile = EpubConstants.Paths.NavFile;
+		
+		var htmlFiles = navOrder
+			.Select(contentSrc => $"{EpubConstants.Paths.OebpsPrefix}{contentSrc}")
+			.Where(path => _resources.ContainsKey(path))
+			.Where(path => path != navFile) // Exclude nav.xhtml - already in manifest with id="nav"
 			.ToList();
 
 		foreach (var path in htmlFiles) {
@@ -183,11 +209,21 @@ public class EpubPackageBuilder {
 
 		sb.AppendLine("  </manifest>");
 
-		// Spine
+		// Spine - follows NavPoints order (authoritative reading sequence)
 		sb.AppendLine("  <spine toc=\"ncx\">");
 		fileIndex = 1;
-		foreach (var _ in htmlFiles) {
-			sb.AppendLine($"    <itemref idref=\"file{fileIndex++}\"/>");
+		
+		foreach (var contentSrc in navOrder) {
+			var fullPath = $"{EpubConstants.Paths.OebpsPrefix}{contentSrc}";
+			
+			// Skip if resource doesn't exist
+			if (!_resources.ContainsKey(fullPath)) {
+				continue;
+			}
+			
+			// Use special id for nav.xhtml
+			var itemRef = contentSrc == "nav.xhtml" ? "nav" : $"file{fileIndex++}";
+			sb.AppendLine($"    <itemref idref=\"{itemRef}\"/>");
 		}
 
 		sb.AppendLine("  </spine>");
@@ -209,6 +245,10 @@ public class EpubPackageBuilder {
 
 		var playOrder = 1;
 		foreach (var nav in _navPoints) {
+			// Skip nav.xhtml to avoid self-reference in NCX TOC
+			if (nav.ContentSrc == "nav.xhtml") {
+				continue;
+			}
 			sb.AppendLine(RenderNavPointNcx(nav, ref playOrder));
 		}
 

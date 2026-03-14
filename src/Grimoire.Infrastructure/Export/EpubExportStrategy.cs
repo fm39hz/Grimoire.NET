@@ -233,38 +233,58 @@ public class EpubExportStrategy(
 			[EpubConstants.SectionTypes.TableOfContents] = new TocSectionProcessor()
 		};
 
-		// Determine which sections to process
-		var introSection = sections.FirstOrDefault(s => IsSectionType(s, EpubConstants.SectionTypes.IntroPage, EpubConstants.SectionTypes.Intro));
-		var descriptionSection = sections.FirstOrDefault(s => IsSectionType(s, EpubConstants.SectionTypes.Description));
-		var contentSection = sections.FirstOrDefault(s => IsSectionType(s, EpubConstants.SectionTypes.Content, EpubConstants.SectionTypes.Chapters));
-		var tocSection = sections.FirstOrDefault(s => IsSectionType(s, EpubConstants.SectionTypes.Toc, EpubConstants.SectionTypes.TableOfContents));
+		// Two-pass approach to honor user-defined section order while handling TOC dependency
+		
+		// First pass: Process all sections in user-defined order
+		// TOC sections add placeholder NavPoints but defer HTML rendering until all NavPoints collected
+		var tocSectionsToRender = new List<ExportSectionDto>();
+		
+		for (var i = 0; i < sections.Count; i++) {
+			var section = sections[i];
+			var sectionType = section.Type.ToLowerInvariant();
 
-		// Check if intro includes description (to avoid duplicate)
-		var introIncludesDescription = !ExportUtilities.IsSplitDescriptionEnabled(introSection);
+			// Check if this is a TOC section (add placeholder NavPoint, defer rendering)
+			if (IsSectionType(section, EpubConstants.SectionTypes.Toc, EpubConstants.SectionTypes.TableOfContents)) {
+				// Add placeholder NavPoint to mark TOC position in reading order
+				context.PackageBuilder.AddNavPoint(new NavPoint {
+					Title = EpubConstants.LocalizedText.TableOfContents,
+					ContentSrc = "nav.xhtml"
+				});
+				tocSectionsToRender.Add(section);
+				continue;
+			}
 
-		// Process independent sections in parallel
-		var independentTasks = new List<Task>();
+			// Check if intro includes description (to avoid duplicate description section)
+			if (IsSectionType(section, EpubConstants.SectionTypes.Description)) {
+				var introSection = sections.FirstOrDefault(s => 
+					IsSectionType(s, EpubConstants.SectionTypes.IntroPage, EpubConstants.SectionTypes.Intro));
+				var introIncludesDescription = !ExportUtilities.IsSplitDescriptionEnabled(introSection);
+				
+				if (introIncludesDescription) {
+					logger.LogInformation("Skipping separate description section (included in intro)");
+					continue;
+				}
+			}
 
-		if (introSection != null) {
-			independentTasks.Add(processors[introSection.Type.ToLowerInvariant()].ProcessAsync(introSection, context));
+			// Get processor for this section type
+			if (!processors.TryGetValue(sectionType, out var processor)) {
+				logger.LogWarning("Unknown section type: {SectionType}", section.Type);
+				continue;
+			}
+
+			// Process section
+			await processor.ProcessAsync(section, context);
 		}
 
-		if (descriptionSection != null && !introIncludesDescription) {
-			independentTasks.Add(processors[EpubConstants.SectionTypes.Description].ProcessAsync(descriptionSection, context));
-		}
-
-		if (independentTasks.Count > 0) {
-			await Task.WhenAll(independentTasks);
-		}
-
-		// Process content section sequentially (order matters for chapters)
-		if (contentSection != null) {
-			await processors[contentSection.Type.ToLowerInvariant()].ProcessAsync(contentSection, context);
-		}
-
-		// Process TOC last (depends on all nav points being added)
-		if (tocSection != null) {
-			await processors[tocSection.Type.ToLowerInvariant()].ProcessAsync(tocSection, context);
+		// Second pass: Render TOC HTML now that all NavPoints are collected
+		foreach (var tocSection in tocSectionsToRender) {
+			var navHtml = context.Renderer.RenderToc(context.PackageBuilder.GetNavPoints());
+			
+			if (tocSection.CustomCss != null) {
+				navHtml = HtmlHelper.InjectCustomCss(navHtml, tocSection.CustomCss);
+			}
+			
+			context.PackageBuilder.AddHtmlFile(EpubConstants.Paths.NavFile, navHtml);
 		}
 	}
 

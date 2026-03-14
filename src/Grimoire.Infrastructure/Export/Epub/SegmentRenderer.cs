@@ -29,7 +29,7 @@ public class TextSegmentRenderer : ISegmentRenderer {
 				context.FootnoteMap != null &&
 				context.FootnoteMap.TryGetValue(run.FootnoteId, out var number)) {
 				sb.Append(
-					$" <a class=\"footnote-link\" epub:type=\"noteref\" href=\"#{run.FootnoteId}\">({number})</a>");
+					$"<a class=\"footnote-link\" epub:type=\"noteref\" href=\"#{run.FootnoteId}\">({number})</a>");
 			}
 		}
 
@@ -70,11 +70,10 @@ public class ImageSegmentRenderer : ISegmentRenderer {
 		return sb.ToString();
 	}
 
-	private static string ResolveImageSource(ImageSegmentModel image, Dictionary<string, string>? imageFileMap) {
-		return imageFileMap != null && imageFileMap.TryGetValue(image.AssetKey, out var mappedFileName)
+	private static string ResolveImageSource(ImageSegmentModel image, Dictionary<string, string>? imageFileMap) =>
+		imageFileMap != null && imageFileMap.TryGetValue(image.AssetKey, out var mappedFileName)
 			? $"images/{mappedFileName}"
 			: Guid.TryParse(image.AssetKey, out var assetId) ? $"images/img_{assetId}.jpg" : $"images/{image.AssetKey}";
-	}
 }
 
 /// <summary>
