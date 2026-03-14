@@ -71,11 +71,9 @@ public class ImageSegmentRenderer : ISegmentRenderer {
 	}
 
 	private static string ResolveImageSource(ImageSegmentModel image, Dictionary<string, string>? imageFileMap) {
-		if (imageFileMap != null && imageFileMap.TryGetValue(image.AssetKey, out var mappedFileName)) {
-			return $"images/{mappedFileName}";
-		}
-
-		return Guid.TryParse(image.AssetKey, out var assetId) ? $"images/img_{assetId}.jpg" : $"images/{image.AssetKey}";
+		return imageFileMap != null && imageFileMap.TryGetValue(image.AssetKey, out var mappedFileName)
+			? $"images/{mappedFileName}"
+			: Guid.TryParse(image.AssetKey, out var assetId) ? $"images/img_{assetId}.jpg" : $"images/{image.AssetKey}";
 	}
 }
 
@@ -85,7 +83,5 @@ public class ImageSegmentRenderer : ISegmentRenderer {
 public class DividerSegmentRenderer : ISegmentRenderer {
 	public bool CanRender(SegmentModel segment) => segment is DividerSegmentModel;
 
-	public string Render(SegmentModel segment, SegmentRenderContext context) {
-		return segment is not DividerSegmentModel divider ? string.Empty : $"<p>{HttpUtility.HtmlEncode(divider.Style)}</p>\n";
-	}
+	public string Render(SegmentModel segment, SegmentRenderContext context) => segment is not DividerSegmentModel divider ? string.Empty : $"<p>{HttpUtility.HtmlEncode(divider.Style)}</p>\n";
 }

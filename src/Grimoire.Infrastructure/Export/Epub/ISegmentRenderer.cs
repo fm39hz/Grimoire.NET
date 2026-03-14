@@ -16,11 +16,3 @@ public interface ISegmentRenderer {
 	/// </summary>
 	public string Render(SegmentModel segment, SegmentRenderContext context);
 }
-
-/// <summary>
-///     Context information for segment rendering
-/// </summary>
-public class SegmentRenderContext {
-	public Dictionary<string, string>? ImageFileMap { get; init; }
-	public Dictionary<string, int>? FootnoteMap { get; init; }
-}

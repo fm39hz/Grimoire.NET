@@ -2,6 +2,7 @@ namespace Grimoire.Infrastructure.Export.Epub;
 
 using System.Text;
 using System.Web;
+using Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 
@@ -22,7 +23,7 @@ public class HtmlRenderer {
 	/// <summary>
 	///     Renders a chapter to XHTML
 	/// </summary>
-	public string RenderChapter(ChapterViewModel chapter) {
+	public string RenderChapter(ChapterPageViewModel chapter) {
 		var html = new StringBuilder();
 		var footnoteMap = BuildFootnoteMap(chapter.Segments);
 
@@ -48,7 +49,7 @@ public class HtmlRenderer {
 		return html.ToString();
 	}
 
-	private Dictionary<string, int> BuildFootnoteMap(List<SegmentModel> segments) {
+	private static Dictionary<string, int> BuildFootnoteMap(List<SegmentModel> segments) {
 		var footnoteMap = new Dictionary<string, int>();
 		var footnoteCounter = 1;
 
@@ -70,7 +71,7 @@ public class HtmlRenderer {
 		return renderer?.Render(segment, context) ?? string.Empty;
 	}
 
-	private void RenderFootnotes(StringBuilder html, List<FootnoteSegmentModel>? footnotes,
+	private static void RenderFootnotes(StringBuilder html, List<FootnoteSegmentModel>? footnotes,
 		Dictionary<string, int> footnoteMap) {
 		if (footnotes == null || footnotes.Count == 0) {
 			return;
@@ -83,7 +84,7 @@ public class HtmlRenderer {
 			}
 
 			html.AppendLine($"<aside class=\"footnote-content\" epub:type=\"footnote\" id=\"{footnoteIdStr}\">");
-			html.AppendLine("<div class=\"note-header\">Ghi chú:</div>");
+			// html.AppendLine($"<div class=\"note-header\">{EpubConstants.LocalizedText.Footnote}</div>");
 
 			var context = new SegmentRenderContext { ImageFileMap = null, FootnoteMap = null };
 			foreach (var textSeg in footnote.Segments) {
@@ -98,17 +99,17 @@ public class HtmlRenderer {
 	/// <summary>
 	///     Renders the intro/title page
 	/// </summary>
-	public string RenderIntro(IntroViewModel intro) {
+	public string RenderIntro(IntroPageViewModel intro) {
 		var html = new StringBuilder();
 
 		AppendXmlHeader(html);
-		AppendHtmlHead(html, "Giới thiệu");
+		AppendHtmlHead(html, EpubConstants.LocalizedText.Introduction);
 		html.AppendLine("<body>");
 		html.AppendLine("<div class=\"title-page\">");
-		html.AppendLine($"<div class=\"book-title\">{HttpUtility.HtmlEncode(intro.BookTitle)}</div>");
+		html.AppendLine($"<div class=\"book-title\">{HttpUtility.HtmlEncode(intro.Title)}</div>");
 
 		if (!string.IsNullOrEmpty(intro.Author)) {
-			html.AppendLine($"<div class=\"book-author\">Tác giả: {HttpUtility.HtmlEncode(intro.Author)}</div>");
+			html.AppendLine($"<div class=\"book-author\">{EpubConstants.LocalizedText.Author}{HttpUtility.HtmlEncode(intro.Author)}</div>");
 		}
 
 		if (!string.IsNullOrEmpty(intro.CoverLocalPath)) {
@@ -130,7 +131,7 @@ public class HtmlRenderer {
 
 		if (intro.Description != null && intro.Description.Count > 0) {
 			html.AppendLine("<div class=\"front-matter\">");
-			html.AppendLine("<div class=\"section-title\">Tóm tắt</div>");
+			html.AppendLine($"<div class=\"section-title\">{EpubConstants.LocalizedText.Summary}</div>");
 			html.AppendLine("<div class=\"description text-justify\">");
 
 			var context = new SegmentRenderContext { ImageFileMap = null, FootnoteMap = null };
@@ -156,10 +157,10 @@ public class HtmlRenderer {
 		var html = new StringBuilder();
 
 		AppendXmlHeader(html);
-		AppendHtmlHead(html, "Mục lục");
+		AppendHtmlHead(html, EpubConstants.LocalizedText.TableOfContents);
 		html.AppendLine("<body>");
 		html.AppendLine("<nav epub:type=\"toc\" id=\"toc\" role=\"doc-toc\">");
-		html.AppendLine("<h2>Mục lục</h2>");
+		html.AppendLine($"<h2>{EpubConstants.LocalizedText.TableOfContents}</h2>");
 		html.AppendLine("<ol>");
 
 		foreach (var nav in navPoints) {

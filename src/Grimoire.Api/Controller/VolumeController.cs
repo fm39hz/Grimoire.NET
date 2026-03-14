@@ -18,7 +18,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	public async Task<IResult> FindOne(string id) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		var volume = await service.FindOne(guid);
-		return volume is null? Results.NotFound() : Results.Ok(mapper.ToVolumeDto(volume));
+		return volume is null ? Results.NotFound() : Results.Ok(mapper.ToVolumeDto(volume));
 	}
 
 	[HttpGet]

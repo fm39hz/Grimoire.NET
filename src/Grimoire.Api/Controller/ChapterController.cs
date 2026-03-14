@@ -18,7 +18,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	public async Task<IResult> FindOne(string id) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var chapter = await service.FindOne(guid);
-		return chapter is null? Results.NotFound() : Results.Ok(mapper.ToChapterDto(chapter));
+		return chapter is null ? Results.NotFound() : Results.Ok(mapper.ToChapterDto(chapter));
 	}
 
 	[HttpGet]

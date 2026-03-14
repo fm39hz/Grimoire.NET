@@ -67,7 +67,10 @@ public class HtmlExportStrategy(
 			var fileName = $"{ExportUtilities.SanitizeFileName(series.Title)}.html";
 
 			return new ExportResult {
-				ContentStream = memoryStream, FileName = fileName, ContentType = "text/html", Success = true
+				ContentStream = memoryStream,
+				FileName = fileName,
+				ContentType = "text/html",
+				Success = true
 			};
 		}
 		catch (Exception ex) {
@@ -102,10 +105,12 @@ public class HtmlExportStrategy(
 			case "description":
 				await ProcessDescriptionSection(section, series, html);
 				break;
+			default:
+				break;
 		}
 	}
 
-	private Task ProcessIntroSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
+	private static Task ProcessIntroSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 
 		html.AppendLine("<div class='section intro' id='intro'>");
@@ -141,7 +146,7 @@ public class HtmlExportStrategy(
 		return Task.CompletedTask;
 	}
 
-	private Task ProcessDescriptionSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
+	private static Task ProcessDescriptionSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 		if (splitDescription || series.Metadata?.Description == null || series.Metadata.Description.Count == 0) {
 			return Task.CompletedTask;
@@ -165,7 +170,7 @@ public class HtmlExportStrategy(
 		return Task.CompletedTask;
 	}
 
-	private Task ProcessTocSection(ExportSectionDto? section, List<VolumeModel> volumeList, StringBuilder html) {
+	private static Task ProcessTocSection(ExportSectionDto? section, List<VolumeModel> volumeList, StringBuilder html) {
 		html.AppendLine("<div class='section toc' id='toc'>");
 
 		if (section?.CustomCss != null) {

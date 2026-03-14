@@ -27,7 +27,10 @@ public class PdfExportStrategy : IExportStrategy {
 			var fileName = $"{SanitizeFileName(series.Title)}.pdf";
 
 			return new ExportResult {
-				ContentStream = memoryStream, FileName = fileName, ContentType = "application/pdf", Success = true
+				ContentStream = memoryStream,
+				FileName = fileName,
+				ContentType = "application/pdf",
+				Success = true
 			};
 		}
 		catch (Exception ex) {
