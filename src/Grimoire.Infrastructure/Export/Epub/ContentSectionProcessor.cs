@@ -17,11 +17,11 @@ public class ContentSectionProcessor(
 			var chapters = await volumeService.FindAllChapters(volume.Id);
 			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
 
-			var volumeNav = new NavPoint {
-				Title = volume.Title,
-				ContentSrc = $"chapter_{chapterIndex:D3}.xhtml",
-				Children = []
-			};
+		var volumeNav = new NavPoint {
+			Title = volume.Title,
+			ContentSrc = string.Empty,
+			Children = []
+		};
 
 			foreach (var chapter in orderedChapters) {
 				var chapterWithContent = await chapterService.FindOne(chapter.Id);

@@ -45,7 +45,9 @@ public class EpubPackageBuilder {
 		var result = new List<string>();
 
 		void Flatten(NavPoint nav) {
-			result.Add(nav.ContentSrc);
+			if (!string.IsNullOrEmpty(nav.ContentSrc)) {
+				result.Add(nav.ContentSrc);
+			}
 			if (nav.Children != null) {
 				foreach (var child in nav.Children) {
 					Flatten(child);
