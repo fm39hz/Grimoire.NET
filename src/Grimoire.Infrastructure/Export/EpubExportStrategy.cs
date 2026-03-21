@@ -126,10 +126,11 @@ public class EpubExportStrategy(
 
 		logger.LogInformation("Starting bulk image processing for series: {SeriesId}", seriesId);
 
-		// Collect all chapters from all volumes
-		var allChapters = new List<(ChapterModel chapter, string chapterName)>();
+		// Collect all chapters from all volumes with volume info
+		var allChapters = new List<(ChapterModel chapter, string volumeName, string chapterName)>();
 
 		foreach (var volume in volumes) {
+			var sanitizedVolumeName = SanitizeFileName(volume.Title);
 			var chapters = await volumeService.FindAllChapters(volume.Id);
 			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
 
@@ -137,7 +138,7 @@ public class EpubExportStrategy(
 				var chapterWithContent = await chapterService.FindOne(chapter.Id);
 				if (chapterWithContent?.ContentData != null) {
 					var sanitizedChapterName = SanitizeFileName(chapterWithContent.Title);
-					allChapters.Add((chapterWithContent, sanitizedChapterName));
+					allChapters.Add((chapterWithContent, sanitizedVolumeName, sanitizedChapterName));
 				}
 			}
 		}
@@ -149,7 +150,7 @@ public class EpubExportStrategy(
 		var assetToPath = new Dictionary<Guid, string>();
 		var totalImages = 0;
 
-		foreach (var (chapter, chapterName) in allChapters) {
+		foreach (var (chapter, volumeName, chapterName) in allChapters) {
 			var imageSegments = chapter.ContentData!.Segments
 				.OfType<ImageSegmentModel>()
 				.ToList();
@@ -180,8 +181,8 @@ public class EpubExportStrategy(
 					extension = EpubConstants.Defaults.ImageExtension;
 				}
 
-				var imageFileName = $"{chapterName}_img{imageIndex:D3}{extension}";
-				var relativePath = $"{chapterName}/{imageFileName}";
+				var imageFileName = $"{volumeName}_{chapterName}_img{imageIndex:D3}{extension}";
+				var relativePath = $"{volumeName}/{chapterName}/{imageFileName}";
 
 				// Add image stream provider (lazy loading)
 				var capturedAssetId = assetId;
@@ -234,11 +235,11 @@ public class EpubExportStrategy(
 		};
 
 		// Two-pass approach to honor user-defined section order while handling TOC dependency
-		
+
 		// First pass: Process all sections in user-defined order
 		// TOC sections add placeholder NavPoints but defer HTML rendering until all NavPoints collected
 		var tocSectionsToRender = new List<ExportSectionDto>();
-		
+
 		for (var i = 0; i < sections.Count; i++) {
 			var section = sections[i];
 			var sectionType = section.Type.ToLowerInvariant();
@@ -256,10 +257,10 @@ public class EpubExportStrategy(
 
 			// Check if intro includes description (to avoid duplicate description section)
 			if (IsSectionType(section, EpubConstants.SectionTypes.Description)) {
-				var introSection = sections.FirstOrDefault(s => 
+				var introSection = sections.FirstOrDefault(s =>
 					IsSectionType(s, EpubConstants.SectionTypes.IntroPage, EpubConstants.SectionTypes.Intro));
 				var introIncludesDescription = !ExportUtilities.IsSplitDescriptionEnabled(introSection);
-				
+
 				if (introIncludesDescription) {
 					logger.LogInformation("Skipping separate description section (included in intro)");
 					continue;
@@ -279,11 +280,11 @@ public class EpubExportStrategy(
 		// Second pass: Render TOC HTML now that all NavPoints are collected
 		foreach (var tocSection in tocSectionsToRender) {
 			var navHtml = context.Renderer.RenderToc(context.PackageBuilder.GetNavPoints());
-			
+
 			if (tocSection.CustomCss != null) {
 				navHtml = HtmlHelper.InjectCustomCss(navHtml, tocSection.CustomCss);
 			}
-			
+
 			context.PackageBuilder.AddHtmlFile(EpubConstants.Paths.NavFile, navHtml);
 		}
 	}
