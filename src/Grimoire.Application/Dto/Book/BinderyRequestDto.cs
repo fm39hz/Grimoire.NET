@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Dto.Book;
 
+using Export;
 using Service.Strategy;
 
 public record BinderyRequestDto {
@@ -25,11 +26,11 @@ public record BinderyRequestDto {
 	public ExportStructureDto Structure { get; init; } = new() {
 		Sections = [
 			new ExportSectionDto {
-				Type = "IntroPage", Options = new Dictionary<string, object> { { "splitDescription", false } }
+				Type = BookSection.IntroPage, Options = new Dictionary<string, object> { { "splitDescription", false } }
 			},
-			new ExportSectionDto { Type = "Description" },
-			new ExportSectionDto { Type = "TOC" },
-			new ExportSectionDto { Type = "Content" }
+			new ExportSectionDto { Type = BookSection.Description },
+			new ExportSectionDto { Type = BookSection.Toc },
+			new ExportSectionDto { Type = BookSection.Content }
 		]
 	};
 }

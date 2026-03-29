@@ -50,26 +50,29 @@ public class Program {
 			return string.IsNullOrEmpty(path)
 				? LogEventLevel.Information
 				: path.StartsWith("/openapi")
-				? ex != null || httpContext.Response.StatusCode >= 500
-					? LogEventLevel.Error
-					: LogEventLevel.Verbose
-				: ex != null || httpContext.Response.StatusCode >= 500
-				? LogEventLevel.Error
-				: LogEventLevel.Information;
+					? ex != null || httpContext.Response.StatusCode >= 500
+						? LogEventLevel.Error
+						: LogEventLevel.Verbose
+					: ex != null || httpContext.Response.StatusCode >= 500
+						? LogEventLevel.Error
+						: LogEventLevel.Information;
 		});
 		await app.RunAsync();
 	}
 
 	private static WebApplication Build(WebApplicationBuilder builder) {
 		builder.Services.AddEndpointsApiExplorer();
-		builder.Services.AddControllers(options => options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer()))).AddJsonOptions(options => {
-			options.JsonSerializerOptions.PropertyNamingPolicy = JsonConfiguration.JsonOptions.PropertyNamingPolicy;
-			options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
-			options.JsonSerializerOptions.ReferenceHandler = JsonConfiguration.JsonOptions.ReferenceHandler;
-			options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
-			options.JsonSerializerOptions.AllowOutOfOrderMetadataProperties =
-				JsonConfiguration.JsonOptions.AllowOutOfOrderMetadataProperties;
-		});
+		builder.Services
+			.AddControllers(options =>
+				options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer())))
+			.AddJsonOptions(options => {
+				options.JsonSerializerOptions.PropertyNamingPolicy = JsonConfiguration.JsonOptions.PropertyNamingPolicy;
+				options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
+				options.JsonSerializerOptions.ReferenceHandler = JsonConfiguration.JsonOptions.ReferenceHandler;
+				options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
+				options.JsonSerializerOptions.AllowOutOfOrderMetadataProperties =
+					JsonConfiguration.JsonOptions.AllowOutOfOrderMetadataProperties;
+			});
 		builder.Services.AddMvc();
 		builder.Services.AddValidation();
 		builder.Services.AddServices(builder);

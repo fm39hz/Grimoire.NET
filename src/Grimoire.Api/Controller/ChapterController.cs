@@ -72,6 +72,6 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var resultChapters = await service.SplitAsync(guid, dto);
 		var responseDtos = resultChapters.Select(mapper.ToChapterDto);
-		return Results.Created($"/api/v1/chapter", responseDtos);
+		return Results.Created("/api/v1/chapter", responseDtos);
 	}
 }

@@ -48,9 +48,9 @@ public partial class BookMapper {
 			foreach (var segment in dto.Content) {
 				if (segment is TextSegmentModel textSeg) {
 					var updatedRuns = textSeg.Runs.Select(run => !string.IsNullOrEmpty(run.FootnoteId) &&
-							idMap.TryGetValue(run.FootnoteId, out var systemId)
-							? (run with { FootnoteId = systemId.ToString() })
-							: run).ToList();
+																idMap.TryGetValue(run.FootnoteId, out var systemId)
+						? run with { FootnoteId = systemId.ToString() }
+						: run).ToList();
 
 					cleanContent.Add(textSeg with { Runs = updatedRuns });
 				}

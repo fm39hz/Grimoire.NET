@@ -1,5 +1,6 @@
 namespace Grimoire.Application;
 
+using Export;
 using Mapper;
 using Microsoft.Extensions.DependencyInjection;
 using Service.Contract;
@@ -18,6 +19,9 @@ public static class DependencyInjection {
 
 		// Register mappers
 		services.AddScoped<IBookMapper, BookMapper>();
+
+		// Register export orchestrator
+		services.AddScoped<BookExportOrchestrator>();
 
 		// Register ingestion strategies in priority order
 		services.AddScoped<IIngestionStrategy, PreProcessedIngestionStrategy>();

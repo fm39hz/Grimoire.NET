@@ -16,4 +16,10 @@ public class AssetRepository(ApplicationDbContext dbContext)
 		await Entities
 			.AsNoTracking()
 			.FirstOrDefaultAsync(a => a.SeriesId == seriesId && a.FileHash == fileHash);
+
+	public async Task<IReadOnlyDictionary<Guid, AssetModel>> FindByIdsAsync(IEnumerable<Guid> assetIds) =>
+		await Entities
+			.AsNoTracking()
+			.Where(a => assetIds.Contains(a.Id))
+			.ToDictionaryAsync(a => a.Id, a => a);
 }

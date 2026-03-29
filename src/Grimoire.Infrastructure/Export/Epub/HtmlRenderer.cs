@@ -109,7 +109,8 @@ public class HtmlRenderer {
 		html.AppendLine($"<div class=\"book-title\">{HttpUtility.HtmlEncode(intro.Title)}</div>");
 
 		if (!string.IsNullOrEmpty(intro.Author)) {
-			html.AppendLine($"<div class=\"book-author\">{EpubConstants.LocalizedText.Author}{HttpUtility.HtmlEncode(intro.Author)}</div>");
+			html.AppendLine(
+				$"<div class=\"book-author\">{EpubConstants.LocalizedText.Author}{HttpUtility.HtmlEncode(intro.Author)}</div>");
 		}
 
 		if (!string.IsNullOrEmpty(intro.CoverLocalPath)) {
@@ -151,6 +152,55 @@ public class HtmlRenderer {
 	}
 
 	/// <summary>
+	///     Renders a volume page
+	/// </summary>
+	public string RenderVolume(VolumePageViewModel volume) {
+		var html = new StringBuilder();
+
+		AppendXmlHeader(html);
+		AppendHtmlHead(html, volume.Title);
+		html.AppendLine("<body>");
+		html.AppendLine("<div class=\"volume-page\">");
+		html.AppendLine($"<h1 class=\"volume-title\">{HttpUtility.HtmlEncode(volume.Title)}</h1>");
+
+		// Render cover image if available
+		if (!string.IsNullOrEmpty(volume.CoverImagePath)) {
+			html.AppendLine("<div class=\"volume-cover\">");
+			html.AppendLine(
+				$"<img src=\"{volume.CoverImagePath}\" alt=\"{HttpUtility.HtmlEncode(volume.Title)} Cover\" />");
+			html.AppendLine("</div>");
+		}
+
+		// Render metadata section if any metadata exists
+		var hasMetadata = volume.PublicationDate.HasValue || !string.IsNullOrEmpty(volume.Isbn);
+		if (hasMetadata) {
+			html.AppendLine("<div class=\"volume-metadata\">");
+
+			if (volume.PublicationDate.HasValue) {
+				html.AppendLine("<div class=\"metadata-item\">");
+				html.AppendLine($"<span class=\"metadata-label\">{EpubConstants.LocalizedText.PublicationDate}</span>");
+				html.AppendLine($"<span class=\"metadata-value\">{volume.PublicationDate.Value:dd/MM/yyyy}</span>");
+				html.AppendLine("</div>");
+			}
+
+			if (!string.IsNullOrEmpty(volume.Isbn)) {
+				html.AppendLine("<div class=\"metadata-item\">");
+				html.AppendLine("<span class=\"metadata-label\">ISBN: </span>");
+				html.AppendLine($"<span class=\"metadata-value\">{HttpUtility.HtmlEncode(volume.Isbn)}</span>");
+				html.AppendLine("</div>");
+			}
+
+			html.AppendLine("</div>");
+		}
+
+		html.AppendLine("</div>");
+		html.AppendLine("</body>");
+		html.AppendLine("</html>");
+
+		return html.ToString();
+	}
+
+	/// <summary>
 	///     Renders table of contents navigation
 	/// </summary>
 	public string RenderToc(List<NavPoint> navPoints) {
@@ -168,6 +218,7 @@ public class HtmlRenderer {
 			if (nav.ContentSrc == "nav.xhtml") {
 				continue;
 			}
+
 			html.AppendLine(RenderNavPoint(nav));
 		}
 

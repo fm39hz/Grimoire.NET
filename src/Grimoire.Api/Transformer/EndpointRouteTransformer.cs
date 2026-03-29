@@ -4,9 +4,6 @@ using System.Text.RegularExpressions;
 using Humanizer;
 
 public partial class EndpointRouteTransformer : IOutboundParameterTransformer {
-	[GeneratedRegex("([a-z])([A-Z])")]
-	private static partial Regex ToKebabCaseRegex();
-
 	public string? TransformOutbound(object? value) {
 		if (value == null) {
 			return null;
@@ -17,4 +14,7 @@ public partial class EndpointRouteTransformer : IOutboundParameterTransformer {
 		var kebabCase = ToKebabCaseRegex().Replace(pluralized, "$1-$2");
 		return kebabCase.ToLowerInvariant();
 	}
+
+	[GeneratedRegex("([a-z])([A-Z])")]
+	private static partial Regex ToKebabCaseRegex();
 }

@@ -2,36 +2,29 @@ namespace Grimoire.Infrastructure.Export;
 
 using System.Text;
 using Application.Dto.Book;
-using Application.Service.Contract;
+using Application.Export;
 using Application.Service.Strategy;
 using Common;
-using Domain.Entity.Book;
 
 /// <summary>
 ///     Strategy for exporting series to HTML format
 /// </summary>
-public class HtmlExportStrategy(
-	IVolumeService volumeService,
-	IChapterService chapterService) : IExportStrategy {
+public class HtmlExportStrategy : IExportStrategy {
 	public ExportFormat Format => ExportFormat.Html;
 
-	public async Task<ExportResult> ExportAsync(
-		SeriesModel series,
-		IEnumerable<VolumeModel> volumes,
-		BinderyRequestDto request) {
+	public async Task<ExportResult> ExportAsync(BookExportContext context) {
 		try {
-			var volumeList = volumes.ToList();
 			var html = new StringBuilder();
 
 			html.AppendLine("<!DOCTYPE html>");
 			html.AppendLine("<html>");
 			html.AppendLine("<head>");
-			html.AppendLine($"<title>{series.Title}</title>");
+			html.AppendLine($"<title>{context.Series.Title}</title>");
 
 			// Add CSS
-			if (request.Structure?.GlobalCss != null) {
+			if (context.Structure.GlobalCss != null) {
 				html.AppendLine("<style>");
-				html.AppendLine(request.Structure.GlobalCss);
+				html.AppendLine(context.Structure.GlobalCss);
 				html.AppendLine("</style>");
 			}
 			else {
@@ -49,10 +42,9 @@ public class HtmlExportStrategy(
 			html.AppendLine("</head>");
 			html.AppendLine("<body>");
 
-			// Process structure sections (sequential - appending to single StringBuilder)
-			// Note: Cannot parallelize as all sections write to the same StringBuilder
-			foreach (var section in request.Structure.Sections) {
-				await ProcessSection(section, series, volumeList, html);
+			// Process structure sections
+			foreach (var section in context.Structure.Sections) {
+				ProcessSection(section, context, html);
 			}
 
 			html.AppendLine("</body>");
@@ -64,53 +56,43 @@ public class HtmlExportStrategy(
 			await writer.FlushAsync();
 			memoryStream.Position = 0;
 
-			var fileName = $"{ExportUtilities.SanitizeFileName(series.Title)}.html";
+			var fileName = $"{ExportUtilities.SanitizeFileName(context.Series.Title)}.html";
 
-			return new ExportResult {
-				ContentStream = memoryStream,
-				FileName = fileName,
-				ContentType = "text/html",
-				Success = true
-			};
+			return ExportResult.Ok(memoryStream, fileName, "text/html");
 		}
 		catch (Exception ex) {
-			return new ExportResult {
-				ContentStream = Stream.Null,
-				FileName = string.Empty,
-				ContentType = string.Empty,
-				Success = false,
-				ErrorMessage = ex.Message
-			};
+			return ExportResult.Fail(ex.Message);
 		}
 	}
 
-	private async Task ProcessSection(ExportSectionDto section, SeriesModel series,
-		List<VolumeModel> volumeList, StringBuilder html) {
-		switch (section.Type.ToLowerInvariant()) {
-			case "intropage":
-			case "intro":
-				await ProcessIntroSection(section, series, html);
+	private static void ProcessSection(ExportSectionDto section, BookExportContext context, StringBuilder html) {
+		switch (section.Type) {
+			case BookSection.IntroPage:
+			case BookSection.Intro:
+				ProcessIntroSection(section, context.Series, html);
 				break;
 
-			case "toc":
-			case "tableofcontents":
-				await ProcessTocSection(section, volumeList, html);
+			case BookSection.Toc:
+			case BookSection.TableOfContents:
+				ProcessTocSection(section, context.Volumes, html);
 				break;
 
-			case "content":
-			case "chapters":
-				await ProcessContentSection(section, volumeList, html);
+			case BookSection.Content:
+			case BookSection.Chapters:
+				ProcessContentSection(section, context, html);
 				break;
 
-			case "description":
-				await ProcessDescriptionSection(section, series, html);
+			case BookSection.Description:
+				ProcessDescriptionSection(section, context.Series, html);
+				break;
+			case BookSection.Unknown:
 				break;
 			default:
 				break;
 		}
 	}
 
-	private static Task ProcessIntroSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
+	private static void ProcessIntroSection(ExportSectionDto? section, Domain.Entity.Book.SeriesModel series, StringBuilder html) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 
 		html.AppendLine("<div class='section intro' id='intro'>");
@@ -142,14 +124,12 @@ public class HtmlExportStrategy(
 		}
 
 		html.AppendLine("</div>");
-
-		return Task.CompletedTask;
 	}
 
-	private static Task ProcessDescriptionSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
+	private static void ProcessDescriptionSection(ExportSectionDto? section, Domain.Entity.Book.SeriesModel series, StringBuilder html) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 		if (splitDescription || series.Metadata?.Description == null || series.Metadata.Description.Count == 0) {
-			return Task.CompletedTask;
+			return;
 		}
 
 		html.AppendLine("<div class='section description' id='description'>");
@@ -166,11 +146,9 @@ public class HtmlExportStrategy(
 		}
 
 		html.AppendLine("</div>");
-
-		return Task.CompletedTask;
 	}
 
-	private static Task ProcessTocSection(ExportSectionDto? section, List<VolumeModel> volumeList, StringBuilder html) {
+	private static void ProcessTocSection(ExportSectionDto? section, List<Domain.Entity.Book.VolumeModel> volumeList, StringBuilder html) {
 		html.AppendLine("<div class='section toc' id='toc'>");
 
 		if (section?.CustomCss != null) {
@@ -186,11 +164,9 @@ public class HtmlExportStrategy(
 
 		html.AppendLine("</ul>");
 		html.AppendLine("</div>");
-
-		return Task.CompletedTask;
 	}
 
-	private async Task ProcessContentSection(ExportSectionDto? section, List<VolumeModel> volumeList,
+	private static void ProcessContentSection(ExportSectionDto? section, BookExportContext context,
 		StringBuilder html) {
 		html.AppendLine("<div class='section content' id='content'>");
 
@@ -198,12 +174,13 @@ public class HtmlExportStrategy(
 			html.AppendLine($"<style>{section.CustomCss}</style>");
 		}
 
-		foreach (var volume in volumeList) {
+		foreach (var volume in context.Volumes) {
 			html.AppendLine($"<div class='volume' id='volume-{volume.Id}'>");
 			html.AppendLine($"<h2>{volume.Title}</h2>");
 
-			var chapters = await volumeService.FindAllChapters(volume.Id);
-			var orderedChapters = chapters.OrderBy(c => c.Order).ToList();
+			var orderedChapters = context.ChapterMap.TryGetValue(volume.Id, out var chapters)
+				? chapters
+				: [];
 
 			foreach (var chapter in orderedChapters) {
 				html.AppendLine($"<div class='chapter' id='chapter-{chapter.Id}'>");

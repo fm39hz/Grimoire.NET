@@ -1,0 +1,120 @@
+namespace Grimoire.Application.Export;
+
+using Domain.Common;
+using Domain.Common.Repository;
+using Domain.Entity.Book;
+using Domain.Entity.Book.Segment;
+using Dto.Book;
+using Service.Contract;
+
+/// <summary>
+///     Assembles all data required for any export format.
+///     Format strategies must NOT depend on domain services — they receive a BookExportContext instead.
+/// </summary>
+public class BookExportOrchestrator(
+	IVolumeRepository volumeRepository,
+	IChapterRepository chapterRepository,
+	IAssetRepository assetRepository,
+	IAssetService assetService,
+	IStorageService storageService) {
+
+	public async Task<BookExportContext> BuildContextAsync(
+		SeriesModel series,
+		BinderyRequestDto request) {
+
+		var volumes = await ResolveVolumes(series.Id, request);
+		var chapterMap = await LoadAllChapters(volumes);
+		var (coverAsset, coverStream) = await ResolveCover(series);
+		var imageAssets = await CollectImageAssets(chapterMap);
+
+		return new BookExportContext {
+			Series = series,
+			Volumes = volumes,
+			ChapterMap = chapterMap,
+			CoverAsset = coverAsset,
+			CoverStreamProvider = coverStream,
+			ImageAssets = imageAssets,
+			Structure = request.Structure
+		};
+	}
+
+	private async Task<List<VolumeModel>> ResolveVolumes(Guid seriesId, BinderyRequestDto request) {
+		var allVolumes = await volumeRepository.FindBySeriesId(seriesId);
+		var ordered = allVolumes.OrderBy(v => v.Order).ToList();
+
+		if (request.Mode.Equals("Single", StringComparison.OrdinalIgnoreCase)
+			&& request.TargetVolumeIds is { Count: > 0 }) {
+			var targetSet = request.TargetVolumeIds.ToHashSet();
+			ordered = ordered
+				.Where(v => targetSet.Contains(PrefixedId.ToString(EntityPrefix.Volume, v.Id)))
+				.ToList();
+		}
+
+		return ordered;
+	}
+
+	private async Task<IReadOnlyDictionary<Guid, List<ChapterModel>>> LoadAllChapters(
+		IReadOnlyCollection<VolumeModel> volumes) {
+		if (volumes.Count == 0) {
+			return new Dictionary<Guid, List<ChapterModel>>();
+		}
+
+		var volumeIds = volumes.Select(v => v.Id).ToList();
+		var allChapters = await chapterRepository.FindByVolumeIdsWithContent(volumeIds);
+
+		return allChapters
+			.GroupBy(c => c.VolumeId)
+			.ToDictionary(g => g.Key, g => g.ToList());
+	}
+
+	private async Task<(AssetModel? asset, Func<Task<Stream?>>? streamProvider)> ResolveCover(
+		SeriesModel series) {
+
+		var coverKey = series.Metadata?.CoverImage;
+		if (string.IsNullOrEmpty(coverKey)) {
+			return (null, null);
+		}
+
+		if (!PrefixedId.TryToGuid(coverKey, EntityPrefix.Asset, out var id)) {
+			return (null, null);
+		}
+
+		var asset = await assetService.FindOne(id);
+		if (asset == null) {
+			return (null, null);
+		}
+
+		return (asset, async () => await storageService.GetFileStreamAsync(id));
+	}
+
+	private async Task<IReadOnlyDictionary<string, ResolvedAsset>> CollectImageAssets(
+		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap) {
+		var assetKeyToIdMap = chapterMap.Values
+			.SelectMany(chapters => chapters)
+			.SelectMany(chapter => chapter.ContentData!.Segments.OfType<ImageSegmentModel>())
+			.Select(seg => (seg.AssetKey, PrefixedId.TryToGuid(seg.AssetKey, EntityPrefix.Asset, out var id) ? id : Guid.Empty))
+			.Where(pair => pair.Item2 != Guid.Empty)
+			.DistinctBy(pair => pair.Item2)
+			.ToDictionary(pair => pair.AssetKey, pair => pair.Item2);
+
+		if (assetKeyToIdMap.Count == 0) {
+			return new Dictionary<string, ResolvedAsset>();
+		}
+
+		var assets = await assetRepository.FindByIdsAsync(assetKeyToIdMap.Values);
+
+		var result = new Dictionary<string, ResolvedAsset>();
+		foreach (var entry in assetKeyToIdMap) {
+			if (!assets.TryGetValue(entry.Value, out var asset)) {
+				continue;
+			}
+
+			var capturedId = entry.Value;
+			result[entry.Key] = new ResolvedAsset(
+				asset,
+				async () => await storageService.GetFileStreamAsync(capturedId));
+		}
+
+		return result;
+	}
+}

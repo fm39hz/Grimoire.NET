@@ -6,8 +6,8 @@ using Common;
 /// <summary>
 ///     Processes intro/title page section
 /// </summary>
-public class IntroSectionProcessor : ISectionProcessor {
-	public Task ProcessAsync(ExportSectionDto section, SectionProcessorContext context) {
+public class IntroSectionProcessor : ISectionProcessor<EpubSectionProcessorContext> {
+	public Task ProcessAsync(ExportSectionDto section, EpubSectionProcessorContext context) {
 		var intro = new IntroPageViewModel {
 			Title = context.Series.Title,
 			Author = context.Author,

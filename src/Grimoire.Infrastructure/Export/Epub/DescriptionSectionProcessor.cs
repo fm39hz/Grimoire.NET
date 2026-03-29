@@ -6,8 +6,8 @@ using Common;
 /// <summary>
 ///     Processes description section (separate from intro)
 /// </summary>
-public class DescriptionSectionProcessor : ISectionProcessor {
-	public Task ProcessAsync(ExportSectionDto section, SectionProcessorContext context) {
+public class DescriptionSectionProcessor : ISectionProcessor<EpubSectionProcessorContext> {
+	public Task ProcessAsync(ExportSectionDto section, EpubSectionProcessorContext context) {
 		if (context.Series.Metadata?.Description == null || context.Series.Metadata.Description.Count == 0) {
 			return Task.CompletedTask;
 		}

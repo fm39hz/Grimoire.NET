@@ -81,7 +81,9 @@ public partial class LocalStorageRepository(
 		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
 
-		return !File.Exists(filePath) ? null : (Stream)new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+		return !File.Exists(filePath)
+			? null
+			: (Stream)new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
 	}
 
 	public async Task DeleteFileAsync(Guid assetId) {

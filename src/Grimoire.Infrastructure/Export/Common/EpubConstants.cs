@@ -33,6 +33,7 @@ public static class EpubConstants {
 		public const string TableOfContents = "Mục lục";
 		public const string Footnote = "Ghi chú:";
 		public const string Author = "Tác giả: ";
+		public const string PublicationDate = "Ngày xuất bản: ";
 	}
 
 	/// <summary>

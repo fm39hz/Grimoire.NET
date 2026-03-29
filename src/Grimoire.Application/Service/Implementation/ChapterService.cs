@@ -4,6 +4,7 @@ using Common;
 using Contract;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
+using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
@@ -32,7 +33,8 @@ public sealed class ChapterService(
 		try {
 			// Validate that the Volume exists
 			var volumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume);
-			var volume = await volumeRepository.FindOne(volumeId) ?? throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+			var volume = await volumeRepository.FindOne(volumeId) ??
+						throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
 
 			// Use strategy pattern to handle different ingestion types
 			var strategy = strategyFactory.GetStrategy(dto);
@@ -158,14 +160,14 @@ public sealed class ChapterService(
 	}
 
 	/// <summary>
-	/// Extracts all footnote IDs referenced in the given segments
+	///     Extracts all footnote IDs referenced in the given segments
 	/// </summary>
 	private static HashSet<string> GetReferencedFootnoteIds(List<SegmentModel> segments) {
 		var footnoteIds = new HashSet<string>();
 
 		foreach (var segment in segments) {
 			// Check if segment is a text segment with footnote references
-			if (segment is Domain.Entity.Book.Segment.TextSegmentModel textSegment) {
+			if (segment is TextSegmentModel textSegment) {
 				// Check each text run for footnote references
 				foreach (var run in textSegment.Runs) {
 					if (!string.IsNullOrEmpty(run.FootnoteId)) {

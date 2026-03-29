@@ -1,5 +1,7 @@
 namespace Grimoire.Application.Dto.Book;
 
+using Grimoire.Application.Export;
+
 /// <summary>
 ///     Defines a section in the export structure
 /// </summary>
@@ -7,7 +9,7 @@ public record ExportSectionDto {
 	/// <summary>
 	///     Type of section (e.g., "IntroPage", "TOC", "Content", "Description")
 	/// </summary>
-	public required string Type { get; init; }
+	public BookSection Type { get; init; }
 
 	/// <summary>
 	///     Custom CSS to apply to this section

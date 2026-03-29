@@ -4,7 +4,7 @@ namespace Grimoire.Infrastructure.Export.Epub;
 ///     Provides the CSS stylesheet for EPUB styling
 /// </summary>
 public static class EpubStylesheet {
-	public const string DefaultCss = @"
+	public const string DEFAULT_CSS = @"
 @namespace epub ""http://www.idpf.org/2007/ops"";
 
 body {

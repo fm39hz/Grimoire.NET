@@ -22,6 +22,16 @@ public class IntroPageViewModel : PageViewModel {
 }
 
 /// <summary>
+///     View model for volume page rendering
+/// </summary>
+public class VolumePageViewModel : PageViewModel {
+	public required string FileName { get; init; }
+	public string? CoverImagePath { get; init; }
+	public DateTime? PublicationDate { get; init; }
+	public string? Isbn { get; init; }
+}
+
+/// <summary>
 ///     View model for chapter rendering in EPUB
 /// </summary>
 public class ChapterPageViewModel : PageViewModel {

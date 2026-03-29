@@ -24,8 +24,8 @@ public static class PrefixedId {
 		return parts.Length != 2
 			? throw new FormatException($"Invalid prefixed ID format: {prefixedId}")
 			: !Guid.TryParse(parts[1], out var guid)
-			? throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}")
-			: guid;
+				? throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}")
+				: guid;
 	}
 
 	/// <summary>
@@ -47,8 +47,8 @@ public static class PrefixedId {
 				$"Invalid ID prefix. Expected '{expectedPrefix}{SEPARATOR}' but got '{actualPrefix}{SEPARATOR}'",
 				nameof(prefixedId))
 			: !Guid.TryParse(parts[1], out var guid)
-			? throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}")
-			: guid;
+				? throw new FormatException($"Invalid GUID in prefixed ID: {prefixedId}")
+				: guid;
 	}
 
 	/// <summary>

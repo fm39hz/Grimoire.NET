@@ -24,6 +24,7 @@ public class SplitChapterRequestDtoValidator : AbstractValidator<SplitChapterReq
 				return false;
 			}
 		}
+
 		return true;
 	}
 }

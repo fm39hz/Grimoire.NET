@@ -9,19 +9,21 @@ using Common;
 ///     Builds EPUB package from HTML content
 /// </summary>
 public class EpubPackageBuilder {
-	private readonly Dictionary<string, EpubResource> _resources = new();
 	private readonly List<NavPoint> _navPoints = [];
+	private readonly Dictionary<string, EpubResource> _resources = new();
 	private string? _author;
 	private string? _coverImagePath;
 	private string? _description;
 	private string? _language = EpubConstants.Defaults.Language;
 	private string? _title;
+	private List<string>? _tags;
 
-	public void SetMetadata(string title, string? author = null, string? language = null, string? description = null) {
+	public void SetMetadata(string title, string? author = null, string? language = null, string? description = null, List<string>? tags = null) {
 		_title = title;
 		_author = author;
 		_language = language ?? EpubConstants.Defaults.Language;
 		_description = description;
+		_tags = tags;
 	}
 
 	public void SetCoverImage(string relativePath) => _coverImagePath = relativePath;
@@ -32,7 +34,8 @@ public class EpubPackageBuilder {
 
 	public void AddImageFile(string path, byte[] content) => AddResource(EpubResource.FromBytes(path, content));
 
-	public void AddImageFileStream(string path, Func<Task<Stream?>> streamProvider) => AddResource(EpubResource.FromStream(path, streamProvider));
+	public void AddImageFileStream(string path, Func<Task<Stream?>> streamProvider) =>
+		AddResource(EpubResource.FromStream(path, streamProvider));
 
 	public void AddNavPoint(NavPoint navPoint) => _navPoints.Add(navPoint);
 
@@ -44,19 +47,20 @@ public class EpubPackageBuilder {
 	private List<string> FlattenNavPoints() {
 		var result = new List<string>();
 
-		void Flatten(NavPoint nav) {
+		void flatten(NavPoint nav) {
 			if (!string.IsNullOrEmpty(nav.ContentSrc)) {
 				result.Add(nav.ContentSrc);
 			}
+
 			if (nav.Children != null) {
 				foreach (var child in nav.Children) {
-					Flatten(child);
+					flatten(child);
 				}
 			}
 		}
 
 		foreach (var nav in _navPoints) {
-			Flatten(nav);
+			flatten(nav);
 		}
 
 		return result;
@@ -97,12 +101,14 @@ public class EpubPackageBuilder {
 				using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8)) {
 					writer.Write(resource.TextContent);
 				}
+
 				break;
 
 			case EpubResourceType.Binary:
 				using (var stream = entry.Open()) {
 					stream.Write(resource.BinaryContent!, 0, resource.BinaryContent!.Length);
 				}
+
 				break;
 
 			case EpubResourceType.Stream:
@@ -116,6 +122,7 @@ public class EpubPackageBuilder {
 						await sourceStream.DisposeAsync();
 					}
 				}
+
 				break;
 			default:
 				break;
@@ -140,13 +147,20 @@ public class EpubPackageBuilder {
 		// Metadata
 		sb.AppendLine("  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">");
 		sb.AppendLine($"    <dc:identifier id=\"uid\">{Guid.NewGuid()}</dc:identifier>");
-		sb.AppendLine($"    <dc:title>{HttpUtility.HtmlEncode(_title ?? EpubConstants.Defaults.UntitledBook)}</dc:title>");
+		sb.AppendLine(
+			$"    <dc:title>{HttpUtility.HtmlEncode(_title ?? EpubConstants.Defaults.UntitledBook)}</dc:title>");
 		if (!string.IsNullOrEmpty(_author)) {
 			sb.AppendLine($"    <dc:creator>{HttpUtility.HtmlEncode(_author)}</dc:creator>");
 		}
 
 		if (!string.IsNullOrEmpty(_description)) {
 			sb.AppendLine($"    <dc:description>{HttpUtility.HtmlEncode(_description)}</dc:description>");
+		}
+
+		if (_tags is { Count: > 0 }) {
+			foreach (var tag in _tags) {
+				sb.AppendLine($"    <dc:subject>{HttpUtility.HtmlEncode(tag)}</dc:subject>");
+			}
 		}
 
 		sb.AppendLine($"    <dc:language>{_language}</dc:language>");
@@ -170,10 +184,10 @@ public class EpubPackageBuilder {
 		var fileIndex = 1;
 		var navOrder = FlattenNavPoints();
 		var navFile = EpubConstants.Paths.NavFile;
-		
+
 		var htmlFiles = navOrder
 			.Select(contentSrc => $"{EpubConstants.Paths.OebpsPrefix}{contentSrc}")
-			.Where(path => _resources.ContainsKey(path))
+			.Where(_resources.ContainsKey)
 			.Where(path => path != navFile) // Exclude nav.xhtml - already in manifest with id="nav"
 			.ToList();
 
@@ -214,15 +228,15 @@ public class EpubPackageBuilder {
 		// Spine - follows NavPoints order (authoritative reading sequence)
 		sb.AppendLine("  <spine toc=\"ncx\">");
 		fileIndex = 1;
-		
+
 		foreach (var contentSrc in navOrder) {
 			var fullPath = $"{EpubConstants.Paths.OebpsPrefix}{contentSrc}";
-			
+
 			// Skip if resource doesn't exist
 			if (!_resources.ContainsKey(fullPath)) {
 				continue;
 			}
-			
+
 			// Use special id for nav.xhtml
 			var itemRef = contentSrc == "nav.xhtml" ? "nav" : $"file{fileIndex++}";
 			sb.AppendLine($"    <itemref idref=\"{itemRef}\"/>");
@@ -242,7 +256,8 @@ public class EpubPackageBuilder {
 		sb.AppendLine($"    <meta name=\"dtb:uid\" content=\"{Guid.NewGuid()}\"/>");
 		sb.AppendLine("    <meta name=\"dtb:depth\" content=\"2\"/>");
 		sb.AppendLine("  </head>");
-		sb.AppendLine($"  <docTitle><text>{HttpUtility.HtmlEncode(_title ?? EpubConstants.Defaults.UntitledBook)}</text></docTitle>");
+		sb.AppendLine(
+			$"  <docTitle><text>{HttpUtility.HtmlEncode(_title ?? EpubConstants.Defaults.UntitledBook)}</text></docTitle>");
 		sb.AppendLine("  <navMap>");
 
 		var playOrder = 1;
@@ -251,6 +266,7 @@ public class EpubPackageBuilder {
 			if (nav.ContentSrc == "nav.xhtml") {
 				continue;
 			}
+
 			sb.AppendLine(RenderNavPointNcx(nav, ref playOrder));
 		}
 

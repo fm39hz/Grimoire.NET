@@ -40,4 +40,14 @@ public sealed class ChapterRepository(ApplicationDbContext context)
 			.AsNoTracking()
 			.Where(c => c.VolumeId == volumeId)
 			.CountAsync();
+
+	public async Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds) =>
+		await Entities
+			.AsNoTracking()
+			.AsSplitQuery()
+			.Include(c => c.ContentData)
+			.Where(c => volumeIds.Contains(c.VolumeId))
+			.OrderBy(c => c.VolumeId)
+			.ThenBy(c => c.Order)
+			.ToListAsync();
 }
