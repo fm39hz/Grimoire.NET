@@ -58,6 +58,11 @@ public class ImageSegmentRenderer : ISegmentRenderer {
 		}
 
 		var imageSrc = ResolveImageSource(imageSegment, context.ImageFileMap);
+
+		if (string.IsNullOrEmpty(imageSrc)) {
+			return string.Empty;
+		}
+
 		var sb = new StringBuilder();
 
 		sb.Append("<p><img alt=\"");
@@ -70,12 +75,10 @@ public class ImageSegmentRenderer : ISegmentRenderer {
 		return sb.ToString();
 	}
 
-	private static string ResolveImageSource(ImageSegmentModel image, Dictionary<string, string>? imageFileMap) =>
+	private static string? ResolveImageSource(ImageSegmentModel image, Dictionary<string, string>? imageFileMap) =>
 		imageFileMap != null && imageFileMap.TryGetValue(image.AssetKey, out var mappedFileName)
 			? $"images/{mappedFileName}"
-			: Guid.TryParse(image.AssetKey, out var assetId)
-				? $"images/img_{assetId}.jpg"
-				: $"images/{image.AssetKey}";
+			: null;
 }
 
 /// <summary>

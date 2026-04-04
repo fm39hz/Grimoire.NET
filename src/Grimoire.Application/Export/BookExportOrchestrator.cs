@@ -84,6 +84,17 @@ public class BookExportOrchestrator(
 			return (null, null);
 		}
 
+		try {
+			var testStream = await storageService.GetFileStreamAsync(id);
+			if (testStream == null) {
+				return (null, null);
+			}
+			await testStream.DisposeAsync();
+		}
+		catch {
+			return (null, null);
+		}
+
 		return (asset, async () => await storageService.GetFileStreamAsync(id));
 	}
 
@@ -110,6 +121,19 @@ public class BookExportOrchestrator(
 			}
 
 			var capturedId = entry.Value;
+
+			// Validate that image file exists and can be opened
+			try {
+				var testStream = await storageService.GetFileStreamAsync(capturedId);
+				if (testStream == null) {
+					continue;
+				}
+				await testStream.DisposeAsync();
+			}
+			catch {
+				continue;
+			}
+
 			result[entry.Key] = new ResolvedAsset(
 				asset,
 				async () => await storageService.GetFileStreamAsync(capturedId));
