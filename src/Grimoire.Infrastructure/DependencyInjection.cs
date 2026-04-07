@@ -45,6 +45,7 @@ public static class DependencyInjection {
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
 		services.AddScoped<IExportStrategy, PdfExportStrategy>();
 		services.AddScoped<IExportStrategy, HtmlExportStrategy>();
+		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
 
 		// Register section processor factories
 		services.AddScoped<ISectionProcessorFactory<EpubSectionProcessorContext>>(sp =>

@@ -8,6 +8,7 @@ using Constant;
 using Domain.Common;
 using Dto;
 using Microsoft.AspNetCore.Mvc;
+using static Application.Common.SegmentMarkdownConverter;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -15,10 +16,22 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id) {
+	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false, [FromQuery] bool? markdown = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var chapter = await service.FindOne(guid);
-		return chapter is null ? Results.NotFound() : Results.Ok(mapper.ToChapterDto(chapter));
+		if (chapter is null) {
+			return Results.NotFound();
+		}
+
+		var dto = mapper.ToChapterDto(chapter);
+		if (timestamp != true) {
+			dto.CreatedAt = null;
+			dto.UpdatedAt = null;
+		}
+		if (markdown == true) {
+			dto.Markdown = ConvertToMarkdown(dto.Content, dto.Footnotes);
+		}
+		return Results.Ok(dto);
 	}
 
 	[HttpGet]

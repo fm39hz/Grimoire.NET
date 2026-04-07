@@ -15,10 +15,19 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(VolumeResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id) {
+	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		var volume = await service.FindOne(guid);
-		return volume is null ? Results.NotFound() : Results.Ok(mapper.ToVolumeDto(volume));
+		if (volume is null) {
+			return Results.NotFound();
+		}
+
+		var dto = mapper.ToVolumeDto(volume);
+		if (timestamp != true) {
+			dto.CreatedAt = null;
+			dto.UpdatedAt = null;
+		}
+		return Results.Ok(dto);
 	}
 
 	[HttpGet]

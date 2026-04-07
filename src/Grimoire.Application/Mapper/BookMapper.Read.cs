@@ -22,7 +22,9 @@ public partial class BookMapper {
 			Title = model.Title,
 			Order = (int)model.Order,
 			Content = model.ContentData?.Segments.Select(MapSegment).ToList() ?? [],
-			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? []
+			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? [],
+			CreatedAt = model.CreatedAt,
+			UpdatedAt = model.UpdatedAt
 		};
 
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]

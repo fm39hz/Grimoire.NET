@@ -1,6 +1,7 @@
 namespace Grimoire.Application.Dto.Book;
 
 using Segment;
+using System.Text.Json.Serialization;
 
 public class ChapterResponseDto {
 	public string VolumeId { get; init; } = string.Empty;
@@ -9,4 +10,14 @@ public class ChapterResponseDto {
 	public List<SegmentDto> Content { get; init; } = [];
 	public List<FootnoteSegmentDto> Footnotes { get; init; } = [];
 	public string Id { get; init; } = string.Empty;
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public DateTime? CreatedAt { get; set; }
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public DateTime? UpdatedAt { get; set; }
+	/// <summary>
+	///     Markdown representation of the chapter content.
+	///     Only populated when ?markdown=true query parameter is used.
+	/// </summary>
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public string? Markdown { get; set; }
 }
