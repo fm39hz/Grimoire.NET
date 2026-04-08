@@ -174,8 +174,7 @@ public class MarkdownExportStrategy : IExportStrategy {
 	/// <summary>
 	///     Generates a URL-safe anchor from a title (for internal linking in TOC)
 	/// </summary>
-	private static string GenerateAnchor(string title) {
-		return title
+	private static string GenerateAnchor(string title) => title
 			.ToLowerInvariant()
 			.Replace(" ", "-")
 			.Replace("'", "")
@@ -184,5 +183,4 @@ public class MarkdownExportStrategy : IExportStrategy {
 			.Replace(",", "")
 			.Replace("!", "")
 			.Replace("?", "");
-	}
 }

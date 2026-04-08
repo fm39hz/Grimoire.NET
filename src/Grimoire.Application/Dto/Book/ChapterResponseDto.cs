@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Segment;
 using System.Text.Json.Serialization;
+using Segment;
 
 public class ChapterResponseDto {
 	public string VolumeId { get; init; } = string.Empty;

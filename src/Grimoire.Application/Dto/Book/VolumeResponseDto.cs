@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Domain.Entity.Book.Metadata;
 using System.Text.Json.Serialization;
+using Domain.Entity.Book.Metadata;
 
 public class VolumeResponseDto {
 	public string SeriesId { get; init; } = string.Empty;

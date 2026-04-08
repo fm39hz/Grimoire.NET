@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Metadata;
 using System.Text.Json.Serialization;
+using Metadata;
 
 public class SeriesResponseDto {
 	public string Title { get; init; } = string.Empty;
