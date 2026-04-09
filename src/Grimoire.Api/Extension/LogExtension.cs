@@ -22,7 +22,7 @@ public static class LogExtension {
 			.Enrich.FromLogContext()
 			.Enrich.WithExceptionDetails()
 			.WriteTo.Async(a => a.Console(
-				outputTemplate: template, theme: SystemConsoleTheme.Colored)));
+				outputTemplate: template, theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true)));
 		return services;
 	}
 }

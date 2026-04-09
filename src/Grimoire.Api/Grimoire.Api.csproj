@@ -32,6 +32,7 @@
 		<PackageReference Include="Serilog.Enrichers.AspNetCore"/>
 		<PackageReference Include="Serilog.Exceptions"/>
 		<PackageReference Include="Serilog.Sinks.Async"/>
+		<PackageReference Include="Serilog.Enrichers.Thread"/>
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations"/>
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerGen"/>
 		<PackageReference Include="Swashbuckle.AspNetCore.SwaggerUI"/>
