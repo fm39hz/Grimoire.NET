@@ -166,20 +166,20 @@ async function importBook(bookFolder) {
 			}
 			console.log(" [Done]");
 		}
-
-		console.log("   Generating EPUB...");
-		const binderyRes = await api.post(
-			`/binderies?seriesId=${seriesId}`,
-			{
-				format: 0,
-				mode: "Anthology",
-			},
-			{
-				responseType: "arraybuffer",
-			},
-		);
-		fs.writeFileSync(path.join(__dirname, `${bundleFolder}.epub`), binderyRes.data);
-		console.log(`   EPUB saved to ${bundleFolder}.epub`);
+		//
+		// console.log("   Generating EPUB...");
+		// const binderyRes = await api.post(
+		// 	`/binderies?seriesId=${seriesId}`,
+		// 	{
+		// 		format: 0,
+		// 		mode: "Anthology",
+		// 	},
+		// 	{
+		// 		responseType: "arraybuffer",
+		// 	},
+		// );
+		// fs.writeFileSync(path.join(__dirname, `${bundleFolder}.epub`), binderyRes.data);
+		// console.log(`   EPUB saved to ${bundleFolder}.epub`);
 
 		console.log(`✅ Success: ${data.title}`);
 	} catch (e) {
