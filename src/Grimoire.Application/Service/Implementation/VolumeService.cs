@@ -1,14 +1,13 @@
 namespace Grimoire.Application.Service.Implementation;
 
-using Common;
 using Contract;
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
 using Mapper;
-using DomainCommon = Domain.Common;
 
 public sealed class VolumeService(
 	IVolumeRepository repository,
@@ -22,9 +21,11 @@ public sealed class VolumeService(
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
 		// Validate that the Series exists
-		var seriesId = DomainCommon.PrefixedId.ToGuid(dto.SeriesId, DomainCommon.EntityPrefix.Series);
-		var series = await seriesRepository.FindOne(seriesId) ??
-					throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
+		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
+		var series = await seriesRepository.FindOne(seriesId);
+		if (series == null) {
+			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
+		}
 
 		var volume = mapper.CreateVolume(dto, seriesId);
 		return await repository.Create(volume);
@@ -43,7 +44,8 @@ public sealed class VolumeService(
 	public async Task<IEnumerable<ChapterModel>> FindAllChapters(Guid volumeId) =>
 		await chapterRepository.FindByVolumeId(volumeId);
 
-	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId, PaginationRequest pagination) =>
+	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId,
+		PaginationRequest pagination) =>
 		await GetPagedResultAsync(
 			() => chapterRepository.FindByVolumeId(volumeId, pagination.PageIndex, pagination.PageSize),
 			() => chapterRepository.CountByVolumeId(volumeId),

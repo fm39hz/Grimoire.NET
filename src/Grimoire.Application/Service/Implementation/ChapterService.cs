@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Service.Implementation;
 
-using Common;
 using Contract;
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
@@ -10,7 +10,6 @@ using Dto.Book;
 using Dto.Common;
 using Mapper;
 using Strategy;
-using DomainCommon = Domain.Common;
 
 public sealed class ChapterService(
 	IChapterRepository chapterRepository,
@@ -25,14 +24,16 @@ public sealed class ChapterService(
 		await GetPagedResultAsync(chapterRepository, request);
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto) {
-		// Begin transaction for multi-step operation
+		// Begin transaction for multistep operation
 		await unitOfWork.BeginTransactionAsync();
 
 		try {
 			// Validate that the Volume exists
-			var volumeId = DomainCommon.PrefixedId.ToGuid(dto.VolumeId, DomainCommon.EntityPrefix.Volume);
-			var volume = await volumeRepository.FindOne(volumeId) ??
-						throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+			var volumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
+			var volume = await volumeRepository.FindOne(volumeId);
+			if (volume is null) {
+				throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+			}
 
 			// Use strategy pattern to handle different ingestion types
 			var strategy = strategyFactory.GetStrategy(dto);
@@ -73,7 +74,7 @@ public sealed class ChapterService(
 	public async Task<int> Delete(Guid id) => await chapterRepository.Delete(id);
 
 	public async Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto) {
-		// Begin transaction for multi-step operation
+		// Begin transaction for multistep operation
 		await unitOfWork.BeginTransactionAsync();
 
 		try {
@@ -89,11 +90,9 @@ public sealed class ChapterService(
 			var footnotes = originalChapter.ContentData.Footnotes;
 
 			// Validate all split points are within bounds
-			foreach (var splitPoint in dto.SplitPoints) {
-				if (splitPoint.SegmentIndex >= segments.Count) {
-					throw new InvalidOperationException(
-						$"SegmentIndex {splitPoint.SegmentIndex} is out of bounds (max: {segments.Count - 1})");
-				}
+			foreach (var splitPoint in dto.SplitPoints.Where(splitPoint => splitPoint.SegmentIndex >= segments.Count)) {
+				throw new InvalidOperationException(
+					$"SegmentIndex {splitPoint.SegmentIndex} is out of bounds (max: {segments.Count - 1})");
 			}
 
 			var resultChapters = new List<ChapterModel>();
@@ -143,13 +142,11 @@ public sealed class ChapterService(
 				currentIndex = nextIndex;
 			}
 
-			// Commit transaction
 			await unitOfWork.CommitTransactionAsync();
 
 			return resultChapters;
 		}
 		catch {
-			// Rollback transaction on any error
 			await unitOfWork.RollbackTransactionAsync();
 			throw;
 		}
@@ -163,12 +160,14 @@ public sealed class ChapterService(
 
 		foreach (var segment in segments) {
 			// Check if segment is a text segment with footnote references
-			if (segment is TextSegmentModel textSegment) {
-				// Check each text run for footnote references
-				foreach (var run in textSegment.Runs) {
-					if (!string.IsNullOrEmpty(run.FootnoteId)) {
-						footnoteIds.Add(run.FootnoteId);
-					}
+			if (segment is not TextSegmentModel textSegment) {
+				continue;
+			}
+
+			// Check each text run for footnote references
+			foreach (var run in textSegment.Runs) {
+				if (!string.IsNullOrEmpty(run.FootnoteId)) {
+					footnoteIds.Add(run.FootnoteId);
 				}
 			}
 		}

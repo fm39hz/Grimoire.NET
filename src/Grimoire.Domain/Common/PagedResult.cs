@@ -1,4 +1,4 @@
-namespace Grimoire.Application.Common;
+namespace Grimoire.Domain.Common;
 
 public class PagedResult<T>(List<T> items, int totalCount, int pageIndex, int pageSize) {
 	public List<T> Items { get; init; } = items;
