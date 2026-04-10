@@ -8,8 +8,10 @@ using Dto.Book.Segment;
 using Riok.Mapperly.Abstractions;
 
 public partial class BookMapper {
+#pragma warning disable RMG012
 	[MapProperty(nameof(SeriesModel.Id), nameof(SeriesResponseDto.Id), Use = nameof(MapSeriesId))]
 	public partial SeriesResponseDto ToSeriesDto(SeriesModel model);
+#pragma warning restore RMG012
 
 	[MapProperty(nameof(VolumeModel.Id), nameof(VolumeResponseDto.Id), Use = nameof(MapVolumeId))]
 	[MapProperty(nameof(VolumeModel.SeriesId), nameof(VolumeResponseDto.SeriesId), Use = nameof(MapSeriesId))]

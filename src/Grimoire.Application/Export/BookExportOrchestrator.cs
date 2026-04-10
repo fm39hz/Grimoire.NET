@@ -51,8 +51,7 @@ public class BookExportOrchestrator(
 		return ordered;
 	}
 
-	private async Task<IReadOnlyDictionary<Guid, List<ChapterModel>>> LoadAllChapters(
-		IReadOnlyCollection<VolumeModel> volumes) {
+	private async Task<IReadOnlyDictionary<Guid, List<ChapterModel>>> LoadAllChapters(List<VolumeModel> volumes) {
 		if (volumes.Count == 0) {
 			return new Dictionary<Guid, List<ChapterModel>>();
 		}
