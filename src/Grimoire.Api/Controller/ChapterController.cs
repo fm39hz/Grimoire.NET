@@ -39,13 +39,7 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<ChapterListResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination) {
-		if (pagination == null) {
-			var chapters = await service.FindAll();
-			var dto = chapters.Select(mapper.ToChapterListDto);
-			return Results.Ok(dto);
-		}
-
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination) {
 		var pagedChapters = await service.FindAll(pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<ChapterListResponseDto>(
 			pagedChapters.Items.Select(mapper.ToChapterListDto).ToList(),

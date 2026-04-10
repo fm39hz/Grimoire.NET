@@ -40,21 +40,8 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<SeriesResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination,
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination,
 		[FromQuery] bool? markdown = false) {
-		if (pagination == null) {
-			var series = await service.FindAll();
-			var dtos = series.Select(s => {
-				var dto = mapper.ToSeriesDto(s);
-				if (markdown == true) {
-					dto.Markdown = ConvertTextSegmentsToMarkdown(dto.Metadata.Description);
-				}
-
-				return dto;
-			});
-			return Results.Ok(dtos);
-		}
-
 		var pagedSeries = await service.FindAll(pagination.ToApplicationDto());
 		var items = pagedSeries.Items.Select(s => {
 			var dto = mapper.ToSeriesDto(s);

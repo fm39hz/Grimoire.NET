@@ -20,12 +20,6 @@ public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
 	public Task<TModel?> FindOne(Guid id);
 
 	/// <summary>
-	///     Find all entity in database
-	/// </summary>
-	/// <returns>All matched model</returns>
-	public Task<IEnumerable<TModel>> FindAll();
-
-	/// <summary>
 	///     Find all entity in database with pagination
 	/// </summary>
 	/// <param name="request">Pagination parameters</param>

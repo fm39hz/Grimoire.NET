@@ -17,8 +17,6 @@ public sealed class VolumeService(
 	IBookMapper mapper) : CrudServiceBase<VolumeModel>, IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id) => await repository.FindOne(id);
 
-	public async Task<IEnumerable<VolumeModel>> FindAll() => await repository.FindAll();
-
 	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request) =>
 		await GetPagedResultAsync(repository, request);
 

@@ -16,8 +16,6 @@ public sealed class SeriesService(
 	: CrudServiceBase<SeriesModel>, ISeriesService {
 	public async Task<SeriesModel?> FindOne(Guid id) => await repository.FindOne(id);
 
-	public async Task<IEnumerable<SeriesModel>> FindAll() => await repository.FindAll();
-
 	public async Task<PagedResult<SeriesModel>> FindAll(PaginationRequest request) =>
 		await GetPagedResultAsync(repository, request);
 

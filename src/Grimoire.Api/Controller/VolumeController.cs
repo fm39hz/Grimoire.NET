@@ -33,13 +33,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<VolumeResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination) {
-		if (pagination == null) {
-			var volumes = await service.FindAll();
-			var dto = volumes.Select(mapper.ToVolumeDto);
-			return Results.Ok(dto);
-		}
-
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination) {
 		var pagedVolumes = await service.FindAll(pagination.ToApplicationDto());
 		var pagedDto = new PagedResult<VolumeResponseDto>(
 			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),

@@ -10,9 +10,6 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	public virtual async Task<T?> FindOne(Guid id) =>
 		await Entities.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == id);
 
-	public virtual async Task<IEnumerable<T>> FindAll() =>
-		await Entities.AsNoTracking().ToListAsync();
-
 	public virtual async Task<IEnumerable<T>> FindAll(int pageIndex, int pageSize) {
 		var items = await Entities.AsNoTracking()
 			.OrderBy(e => e.Id)

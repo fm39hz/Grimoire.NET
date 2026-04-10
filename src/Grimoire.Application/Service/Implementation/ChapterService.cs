@@ -21,8 +21,6 @@ public sealed class ChapterService(
 	IUnitOfWork unitOfWork) : CrudServiceBase<ChapterModel>, IChapterService {
 	public async Task<ChapterModel?> FindOne(Guid id) => await chapterRepository.FindOne(id);
 
-	public async Task<IEnumerable<ChapterModel>> FindAll() => await chapterRepository.FindAll();
-
 	public async Task<PagedResult<ChapterModel>> FindAll(PaginationRequest request) =>
 		await GetPagedResultAsync(chapterRepository, request);
 
