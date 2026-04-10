@@ -1,7 +1,7 @@
 namespace Grimoire.Infrastructure.Export.Epub;
 
 using Application.Dto.Book;
-using Grimoire.Infrastructure.Export.Common;
+using Common;
 
 /// <summary>
 ///     Processes table of contents section

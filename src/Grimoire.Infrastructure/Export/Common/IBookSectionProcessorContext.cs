@@ -1,6 +1,6 @@
 namespace Grimoire.Infrastructure.Export.Common;
 
-using Grimoire.Domain.Entity.Book;
+using Domain.Entity.Book;
 
 /// <summary>
 ///     Common context interface for section processing across all export formats

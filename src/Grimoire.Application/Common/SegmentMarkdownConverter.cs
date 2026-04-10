@@ -134,21 +134,23 @@ public static class SegmentMarkdownConverter {
 
 		for (var i = 0; i < footnotes.Count; i++) {
 			var footnoteId = footnotes[i].Id;
-			var key = footnoteId.StartsWith("seg_") ? footnoteId[4..] : footnoteId;
+			var key = footnoteId.StartsWith("seg_")? footnoteId[4..] : footnoteId;
 			map[key] = i + 1;
 		}
 
 		return map;
 	}
 
-	private static string ConvertSegmentDtoToMarkdown(SegmentDto segment, Dictionary<string, int> footnoteMap) => segment switch {
-		TextSegmentDto textSegment => ConvertTextSegmentDtoToMarkdown(textSegment, footnoteMap),
-		ImageSegmentDto imageSegment => ConvertImageSegmentDtoToMarkdown(imageSegment),
-		DividerSegmentDto dividerSegment => ConvertDividerSegmentDtoToMarkdown(dividerSegment),
-		_ => string.Empty
-	};
+	private static string ConvertSegmentDtoToMarkdown(SegmentDto segment, Dictionary<string, int> footnoteMap) =>
+		segment switch {
+			TextSegmentDto textSegment => ConvertTextSegmentDtoToMarkdown(textSegment, footnoteMap),
+			ImageSegmentDto imageSegment => ConvertImageSegmentDtoToMarkdown(imageSegment),
+			DividerSegmentDto dividerSegment => ConvertDividerSegmentDtoToMarkdown(dividerSegment),
+			_ => string.Empty
+		};
 
-	private static string ConvertTextSegmentDtoToMarkdown(TextSegmentDto segment, Dictionary<string, int>? footnoteMap = null) {
+	private static string ConvertTextSegmentDtoToMarkdown(TextSegmentDto segment,
+		Dictionary<string, int>? footnoteMap = null) {
 		if (segment.Runs.Count == 0) {
 			return string.Empty;
 		}
@@ -160,8 +162,8 @@ public static class SegmentMarkdownConverter {
 
 			// Check if this run has a footnote reference
 			var hasFootnote = !string.IsNullOrEmpty(run.FootnoteId) &&
-							  footnoteMap is not null &&
-							  footnoteMap.TryGetValue(run.FootnoteId, out var footnoteIndex);
+							footnoteMap is not null &&
+							footnoteMap.TryGetValue(run.FootnoteId, out var footnoteIndex);
 
 			// If the run is just a footnote marker (empty text with footnoteId), output only the reference
 			if (string.IsNullOrEmpty(text) && hasFootnote) {
@@ -198,12 +200,13 @@ public static class SegmentMarkdownConverter {
 
 	private static string ConvertDividerSegmentDtoToMarkdown(DividerSegmentDto segment) => segment.Style;
 
-	private static void AppendFootnoteDefinitionsFromDto(StringBuilder sb, List<FootnoteSegmentDto> footnotes, Dictionary<string, int> footnoteMap) {
+	private static void AppendFootnoteDefinitionsFromDto(StringBuilder sb, List<FootnoteSegmentDto> footnotes,
+		Dictionary<string, int> footnoteMap) {
 		sb.AppendLine(); // Extra blank line before footnotes
 
 		foreach (var footnote in footnotes) {
 			var footnoteId = footnote.Id;
-			var key = footnoteId.StartsWith("seg_") ? footnoteId[4..] : footnoteId;
+			var key = footnoteId.StartsWith("seg_")? footnoteId[4..] : footnoteId;
 			if (!footnoteMap.TryGetValue(key, out var index)) {
 				continue;
 			}
@@ -246,14 +249,16 @@ public static class SegmentMarkdownConverter {
 		return map;
 	}
 
-	private static string ConvertSegmentModelToMarkdown(SegmentModel segment, Dictionary<string, int> footnoteMap) => segment switch {
-		TextSegmentModel textSegment => ConvertTextSegmentModelToMarkdown(textSegment, footnoteMap),
-		ImageSegmentModel imageSegment => ConvertImageSegmentModelToMarkdown(imageSegment),
-		DividerSegmentModel dividerSegment => ConvertDividerSegmentModelToMarkdown(dividerSegment),
-		_ => string.Empty
-	};
+	private static string ConvertSegmentModelToMarkdown(SegmentModel segment, Dictionary<string, int> footnoteMap) =>
+		segment switch {
+			TextSegmentModel textSegment => ConvertTextSegmentModelToMarkdown(textSegment, footnoteMap),
+			ImageSegmentModel imageSegment => ConvertImageSegmentModelToMarkdown(imageSegment),
+			DividerSegmentModel dividerSegment => ConvertDividerSegmentModelToMarkdown(dividerSegment),
+			_ => string.Empty
+		};
 
-	private static string ConvertTextSegmentModelToMarkdown(TextSegmentModel segment, Dictionary<string, int>? footnoteMap = null) {
+	private static string ConvertTextSegmentModelToMarkdown(TextSegmentModel segment,
+		Dictionary<string, int>? footnoteMap = null) {
 		if (segment.Runs.Count == 0) {
 			return string.Empty;
 		}
@@ -265,8 +270,8 @@ public static class SegmentMarkdownConverter {
 
 			// Check if this run has a footnote reference
 			var hasFootnote = !string.IsNullOrEmpty(run.FootnoteId) &&
-							  footnoteMap is not null &&
-							  footnoteMap.TryGetValue(run.FootnoteId, out var footnoteIndex);
+							footnoteMap is not null &&
+							footnoteMap.TryGetValue(run.FootnoteId, out var footnoteIndex);
 
 			// If the run is just a footnote marker (empty text with footnoteId), output only the reference
 			if (string.IsNullOrEmpty(text) && hasFootnote) {
@@ -303,7 +308,8 @@ public static class SegmentMarkdownConverter {
 
 	private static string ConvertDividerSegmentModelToMarkdown(DividerSegmentModel segment) => segment.Style;
 
-	private static void AppendFootnoteDefinitionsFromModel(StringBuilder sb, List<FootnoteSegmentModel> footnotes, Dictionary<string, int> footnoteMap) {
+	private static void AppendFootnoteDefinitionsFromModel(StringBuilder sb, List<FootnoteSegmentModel> footnotes,
+		Dictionary<string, int> footnoteMap) {
 		sb.AppendLine(); // Extra blank line before footnotes
 
 		foreach (var footnote in footnotes) {

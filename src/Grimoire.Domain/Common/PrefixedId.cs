@@ -86,6 +86,6 @@ public static class PrefixedId {
 		}
 
 		var separatorIndex = prefixedId.IndexOf(SEPARATOR);
-		return separatorIndex <= 0 ? null : prefixedId[..separatorIndex];
+		return separatorIndex <= 0? null : prefixedId[..separatorIndex];
 	}
 }

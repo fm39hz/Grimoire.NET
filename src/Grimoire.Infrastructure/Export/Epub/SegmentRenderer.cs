@@ -88,5 +88,5 @@ public class DividerSegmentRenderer : ISegmentRenderer {
 	public bool CanRender(SegmentModel segment) => segment is DividerSegmentModel;
 
 	public string Render(SegmentModel segment, SegmentRenderContext context) =>
-		segment is not DividerSegmentModel divider ? string.Empty : $"<p>{HttpUtility.HtmlEncode(divider.Style)}</p>\n";
+		segment is not DividerSegmentModel divider? string.Empty : $"<p>{HttpUtility.HtmlEncode(divider.Style)}</p>\n";
 }

@@ -12,8 +12,9 @@ using Microsoft.Extensions.Logging;
 /// <summary>
 ///     Strategy for exporting series to EPUB format
 /// </summary>
-public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProcessorFactory<EpubSectionProcessorContext> sectionProcessorFactory) : IExportStrategy {
-
+public partial class EpubExportStrategy(
+	ILogger<EpubExportStrategy> logger,
+	ISectionProcessorFactory<EpubSectionProcessorContext> sectionProcessorFactory) : IExportStrategy {
 	public ExportFormat Format => ExportFormat.Epub;
 
 	public async Task<ExportResult> ExportAsync(BookExportContext context) {
@@ -25,7 +26,7 @@ public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProc
 			var author = context.Series.Metadata?.Authors?.FirstOrDefault();
 			var description = ExtractDescription(context.Series.Metadata?.Description);
 			var tags = context.Series.Metadata?.Tags?.ToList();
-			packageBuilder.SetMetadata(context.Series.Title, author, description: description, tags: tags);
+			packageBuilder.SetMetadata(context.Series.Title, author, description : description, tags : tags);
 
 			// CSS
 			packageBuilder.AddCss(context.Structure.GlobalCss ?? EpubStylesheet.DEFAULT_CSS);
@@ -45,7 +46,7 @@ public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProc
 			return ExportResult.Ok(stream, fileName, "application/epub+zip");
 		}
 		catch (Exception ex) {
-			logger.LogError(ex, "Failed to export series {SeriesId} to EPUB", context.Series.Id);
+			LogFailedToExportSeriesIdToEpub(context.Series.Id, ex);
 			return ExportResult.Fail(ex.Message);
 		}
 	}
@@ -70,7 +71,6 @@ public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProc
 	private static Dictionary<string, string> RegisterImages(
 		BookExportContext context,
 		EpubPackageBuilder packageBuilder) {
-
 		var imageFileMap = new Dictionary<string, string>();
 		var index = 1;
 
@@ -79,7 +79,9 @@ public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProc
 				.DefaultIfNullOrEmpty(EpubConstants.Defaults.ImageExtension);
 			var relativePath = $"img{index:D3}{ext}";
 
-			packageBuilder.AddImageFileStream($"{EpubConstants.Paths.OebpsPrefix}{EpubConstants.Paths.ImagesFolder}{relativePath}", resolved.StreamProvider);
+			packageBuilder.AddImageFileStream(
+				$"{EpubConstants.Paths.OebpsPrefix}{EpubConstants.Paths.ImagesFolder}{relativePath}",
+				resolved.StreamProvider);
 
 			imageFileMap[assetKey] = relativePath;
 			index++;
@@ -108,32 +110,32 @@ public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProc
 
 		var tocSectionsToRender = new List<ExportSectionDto>();
 
-		for (var i = 0; i < context.Structure.Sections.Count; i++) {
-			var section = context.Structure.Sections[i];
+		foreach (var section in context.Structure.Sections) {
 			var sectionType = section.Type;
 
-			if (sectionType is BookSection.Toc or BookSection.TableOfContents) {
-				processorContext.PackageBuilder.AddNavPoint(new NavPoint {
-					Title = EpubConstants.LocalizedText.TableOfContents,
-					ContentSrc = "nav.xhtml"
-				});
-				tocSectionsToRender.Add(section);
-				continue;
-			}
-
-			if (sectionType is BookSection.Description) {
-				var introSection = context.Structure.Sections.FirstOrDefault(s =>
-					s.Type is BookSection.IntroPage or BookSection.Intro);
-				var introIncludesDescription = !ExportUtilities.IsSplitDescriptionEnabled(introSection);
-
-				if (introIncludesDescription) {
-					logger.LogInformation("Skipping separate description section (included in intro)");
+			switch (sectionType) {
+				case BookSection.Toc or BookSection.TableOfContents:
+					processorContext.PackageBuilder.AddNavPoint(new NavPoint {
+						Title = EpubConstants.LocalizedText.TableOfContents, ContentSrc = "nav.xhtml"
+					});
+					tocSectionsToRender.Add(section);
 					continue;
+				case BookSection.Description: {
+					var introSection = context.Structure.Sections.FirstOrDefault(s =>
+						s.Type is BookSection.IntroPage or BookSection.Intro);
+					var introIncludesDescription = !ExportUtilities.IsSplitDescriptionEnabled(introSection);
+
+					if (introIncludesDescription) {
+						LogSkippingSeparateDescriptionSectionIncludedInIntro();
+						continue;
+					}
+
+					break;
 				}
 			}
 
-			if (sectionProcessorFactory.GetProcessor(sectionType) is not ISectionProcessor<EpubSectionProcessorContext> processor) {
-				logger.LogWarning("Unknown section type: {SectionType}", section.Type);
+			if (sectionProcessorFactory.GetProcessor(sectionType) is not { } processor) {
+				LogUnknownSectionType(section.Type);
 				continue;
 			}
 
@@ -152,5 +154,16 @@ public class EpubExportStrategy(ILogger<EpubExportStrategy> logger, ISectionProc
 	}
 
 	private static string? ExtractDescription(List<TextSegmentModel>? segments) =>
-		segments == null || segments.Count == 0 ? null : string.Join(" ", segments.SelectMany(d => d.Runs.Select(r => r.Text)));
+		segments == null || segments.Count == 0
+			? null
+			: string.Join(" ", segments.SelectMany(d => d.Runs.Select(r => r.Text)));
+
+	[LoggerMessage(LogLevel.Error, "Failed to export series {SeriesId} to EPUB")]
+	partial void LogFailedToExportSeriesIdToEpub(Guid seriesId, Exception exception);
+
+	[LoggerMessage(LogLevel.Information, "Skipping separate description section (included in intro)")]
+	partial void LogSkippingSeparateDescriptionSectionIncludedInIntro();
+
+	[LoggerMessage(LogLevel.Warning, "Unknown section type: {SectionType}")]
+	partial void LogUnknownSectionType(BookSection sectionType);
 }

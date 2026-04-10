@@ -139,12 +139,6 @@ using System.Text;
 ///     For example, '&amp;agrave;' will be replaced by 'a'.
 /// </summary>
 public static class StringExtensions {
-	/// <summary>
-	///     Returns the fallback value if the input string is null or empty
-	/// </summary>
-	public static string DefaultIfNullOrEmpty(this string? value, string fallback) =>
-		string.IsNullOrEmpty(value) ? fallback : value;
-
 	private static readonly Dictionary<char, string> _unicodeToAsciiMap = new() {
 		// A Mappings
 		{ '\u00C0', "A" }, // À  [LATIN CAPITAL LETTER A WITH GRAVE]
@@ -1833,6 +1827,12 @@ public static class StringExtensions {
 		{ '\u2053', "~" }, // ⁓  [SWUNG DASH]
 		{ '\uFF5E', "~" }  // ～  [FULLWIDTH TILDE]
 	};
+
+	/// <summary>
+	///     Returns the fallback value if the input string is null or empty
+	/// </summary>
+	public static string DefaultIfNullOrEmpty(this string? value, string fallback) =>
+		string.IsNullOrEmpty(value)? fallback : value;
 
 	/// <summary>
 	///     Converts characters above ASCII to their ASCII equivalents.  For example,

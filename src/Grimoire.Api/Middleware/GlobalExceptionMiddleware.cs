@@ -23,8 +23,6 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 					case 404:
 						await HandleErrorAsync(context, 404, "Not Found", "Resource not found.");
 						break;
-					default:
-						break;
 				}
 			}
 		}

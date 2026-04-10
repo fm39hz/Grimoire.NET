@@ -5,8 +5,8 @@ using Application.Service.Strategy;
 using Configuration;
 using Domain.Common.Repository;
 using Export;
-using Grimoire.Infrastructure.Export.Common;
-using Grimoire.Infrastructure.Export.Epub;
+using Export.Common;
+using Export.Epub;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Persistence.Repository;
@@ -52,13 +52,20 @@ public static class DependencyInjection {
 			new SectionProcessorFactory<EpubSectionProcessorContext>(sp, ExportFormat.Epub));
 
 		// Register EPUB processors with keyed services
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, IntroSectionProcessor>($"{ExportFormat.Epub}:{BookSection.Intro.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, IntroSectionProcessor>($"{ExportFormat.Epub}:{BookSection.IntroPage.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, DescriptionSectionProcessor>($"{ExportFormat.Epub}:{BookSection.Description.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, ContentSectionProcessor>($"{ExportFormat.Epub}:{BookSection.Content.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, ContentSectionProcessor>($"{ExportFormat.Epub}:{BookSection.Chapters.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, TocSectionProcessor>($"{ExportFormat.Epub}:{BookSection.Toc.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, TocSectionProcessor>($"{ExportFormat.Epub}:{BookSection.TableOfContents.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, IntroSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.Intro.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, IntroSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.IntroPage.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, DescriptionSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.Description.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, ContentSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.Content.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, ContentSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.Chapters.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, TocSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.Toc.ToString().ToLowerInvariant()}");
+		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, TocSectionProcessor>(
+			$"{ExportFormat.Epub}:{BookSection.TableOfContents.ToString().ToLowerInvariant()}");
 
 		return services;
 	}

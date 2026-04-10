@@ -18,9 +18,6 @@ public record PaginationRequestDto {
 	[FromQuery(Name = "sortDescending")] public bool SortDescending { get; init; }
 
 	public PaginationRequest ToApplicationDto() => new() {
-		PageIndex = PageIndex,
-		PageSize = PageSize,
-		SortBy = SortBy,
-		SortDescending = SortDescending
+		PageIndex = PageIndex, PageSize = PageSize, SortBy = SortBy, SortDescending = SortDescending
 	};
 }

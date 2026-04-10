@@ -11,10 +11,7 @@ public class ExportResult {
 	public string? ErrorMessage { get; init; }
 
 	public static ExportResult Ok(Stream stream, string fileName, string contentType) => new() {
-		ContentStream = stream,
-		FileName = fileName,
-		ContentType = contentType,
-		Success = true
+		ContentStream = stream, FileName = fileName, ContentType = contentType, Success = true
 	};
 
 	public static ExportResult Fail(string error) => new() {

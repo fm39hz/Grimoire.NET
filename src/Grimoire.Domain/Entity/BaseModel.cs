@@ -22,5 +22,5 @@ public abstract class BaseModel : IModel {
 	/// <summary>
 	///     Marks the entity as updated with current timestamp
 	/// </summary>
-	public virtual void MarkAsUpdated() => UpdatedAt = DateTime.UtcNow;
+	public void MarkAsUpdated() => UpdatedAt = DateTime.UtcNow;
 }

@@ -4,7 +4,7 @@
 
 - **Build**: `dotnet build` (from solution root or src/Grimoire.Api/)
 - **Run**: `dotnet run --project src/Grimoire.Api/`
-- **Docker**: `docker-compose up --build` (includes PostgreSQL + MinIO)
+- **Docker**: `docker-compose up --build`
 - **Clean**: `dotnet clean`
 
 ## Testing
@@ -79,25 +79,9 @@ No test framework currently configured. Use `dotnet test` when tests are added.
 - **BOILERPLATE**: Mark MovieTheater template code with this comment
 - **Inline**: Use sparingly, prefer self-documenting code
 
-### Security
-
-- **Input validation**: Always validate user input
-- **Authentication**: JWT Bearer tokens
-- **Authorization**: Role-based access control
-- **Secrets**: Never commit sensitive data
-
 ### Performance
 
 - **Async**: Use async for I/O operations
 - **EF Core**: Use AsNoTracking for read-only queries
 - **Pagination**: Implement for large datasets
 - **Caching**: Consider for frequently accessed data
-
-### EPUB Generation
-
-- **RazorLight**: Use for HTML template rendering
-- **EPUB 3.3**: Target format with footnotes and popup support
-- **Templates**: Chapter.cshtml, Intro.cshtml, toc.cshtml
-- **CSS**: Inject styles.css with epub namespace
-- **Hangfire**: Background job processing for binding
-

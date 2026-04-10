@@ -136,9 +136,7 @@ public sealed class ChapterService(
 					Order = originalChapter.Order + (orderIncrement * (i + 1)),
 					Status = originalChapter.Status,
 					ContentData = new ChapterContentModel {
-						Id = Guid.CreateVersion7(),
-						Segments = newChapterSegments,
-						Footnotes = newChapterFootnotes
+						Id = Guid.CreateVersion7(), Segments = newChapterSegments, Footnotes = newChapterFootnotes
 					}
 				};
 

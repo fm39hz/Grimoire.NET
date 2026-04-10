@@ -27,6 +27,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 			dto.CreatedAt = null;
 			dto.UpdatedAt = null;
 		}
+
 		return Results.Ok(dto);
 	}
 

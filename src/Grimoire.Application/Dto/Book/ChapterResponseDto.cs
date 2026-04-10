@@ -10,10 +10,13 @@ public class ChapterResponseDto {
 	public List<SegmentDto> Content { get; init; } = [];
 	public List<FootnoteSegmentDto> Footnotes { get; init; } = [];
 	public string Id { get; init; } = string.Empty;
+
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? CreatedAt { get; set; }
+
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? UpdatedAt { get; set; }
+
 	/// <summary>
 	///     Markdown representation of the chapter content.
 	///     Only populated when ?markdown=true query parameter is used.

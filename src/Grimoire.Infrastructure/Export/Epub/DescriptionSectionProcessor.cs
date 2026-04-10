@@ -28,8 +28,7 @@ public class DescriptionSectionProcessor : ISectionProcessor<EpubSectionProcesso
 
 		context.PackageBuilder.AddHtmlFile("OEBPS/description.xhtml", descHtml);
 		context.PackageBuilder.AddNavPoint(new NavPoint {
-			Title = EpubConstants.LocalizedText.Summary,
-			ContentSrc = "description.xhtml"
+			Title = EpubConstants.LocalizedText.Summary, ContentSrc = "description.xhtml"
 		});
 
 		return Task.CompletedTask;

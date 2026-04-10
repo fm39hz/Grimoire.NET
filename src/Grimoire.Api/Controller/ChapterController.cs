@@ -16,7 +16,8 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false, [FromQuery] bool? markdown = false) {
+	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false,
+		[FromQuery] bool? markdown = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var chapter = await service.FindOne(guid);
 		if (chapter is null) {
@@ -28,9 +29,11 @@ public sealed class ChapterController(IChapterService service, IBookMapper mappe
 			dto.CreatedAt = null;
 			dto.UpdatedAt = null;
 		}
+
 		if (markdown == true) {
 			dto.Markdown = ConvertToMarkdown(dto.Content, dto.Footnotes);
 		}
+
 		return Results.Ok(dto);
 	}
 

@@ -1,7 +1,7 @@
 namespace Grimoire.Infrastructure.Export.Epub;
 
 using Application.Dto.Book;
-using Grimoire.Infrastructure.Export.Common;
+using Common;
 
 /// <summary>
 ///     Processes content/chapters section
@@ -13,7 +13,7 @@ public class ContentSectionProcessor : ISectionProcessor<EpubSectionProcessorCon
 
 		foreach (var volume in context.Volumes) {
 			var orderedChapters = context.ChapterMap.TryGetValue(volume.Id, out var chapters)
-				? chapters  // already ordered and content-loaded
+				? chapters // already ordered and content-loaded
 				: [];
 
 			// Create volume XHTML file
@@ -32,7 +32,7 @@ public class ContentSectionProcessor : ISectionProcessor<EpubSectionProcessorCon
 				FileName = volumeFileName,
 				CoverImagePath = coverImagePath,
 				PublicationDate = volume.Metadata?.PublicationDate,
-				Isbn = !string.IsNullOrEmpty(volume.Metadata?.Isbn) ? volume.Metadata.Isbn : null
+				Isbn = !string.IsNullOrEmpty(volume.Metadata?.Isbn)? volume.Metadata.Isbn : null
 			};
 
 			var volumeHtml = context.Renderer.RenderVolume(volumeViewModel);

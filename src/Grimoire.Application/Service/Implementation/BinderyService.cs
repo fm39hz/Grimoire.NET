@@ -14,9 +14,11 @@ public sealed class BinderyService(
 	)
 	: IBinderyService {
 	public async Task<ExportResult> ExportSeriesAsync(Guid seriesId, BinderyRequestDto request) {
-		var series = await seriesRepository.FindOne(seriesId) ?? throw new EntityNotFoundException($"Series with id {seriesId} not found");
+		var series = await seriesRepository.FindOne(seriesId) ??
+					throw new EntityNotFoundException($"Series with id {seriesId} not found");
 		var context = await orchestrator.BuildContextAsync(series, request);
-		var strategy = exportStrategies.FirstOrDefault(s => s.Format == request.Format) ?? throw new InvalidOperationException($"No export strategy found for format: {request.Format}");
+		var strategy = exportStrategies.FirstOrDefault(s => s.Format == request.Format) ??
+						throw new InvalidOperationException($"No export strategy found for format: {request.Format}");
 
 		return await strategy.ExportAsync(context);
 	}

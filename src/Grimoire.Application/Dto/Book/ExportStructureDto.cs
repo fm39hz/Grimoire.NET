@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Grimoire.Application.Export;
+using Export;
 
 /// <summary>
 ///     Defines a section in the export structure

@@ -9,8 +9,10 @@ public class VolumeResponseDto {
 	public string Title { get; init; } = string.Empty;
 	public VolumeMetadata? Metadata { get; init; }
 	public string Id { get; init; } = string.Empty;
+
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? CreatedAt { get; set; }
+
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? UpdatedAt { get; set; }
 }

@@ -9,4 +9,4 @@ using Domain.Entity.Book;
 public record ResolvedAsset(
 	AssetModel Asset,
 	Func<Task<Stream?>> StreamProvider
-);
+	);

@@ -26,8 +26,7 @@ public class IntroSectionProcessor : ISectionProcessor<EpubSectionProcessorConte
 
 		context.PackageBuilder.AddHtmlFile("OEBPS/intro.xhtml", introHtml);
 		context.PackageBuilder.AddNavPoint(new NavPoint {
-			Title = EpubConstants.LocalizedText.Introduction,
-			ContentSrc = "intro.xhtml"
+			Title = EpubConstants.LocalizedText.Introduction, ContentSrc = "intro.xhtml"
 		});
 
 		return Task.CompletedTask;

@@ -5,9 +5,9 @@ using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
+using Domain.Common;
 using Dto;
 using EntityFramework.Exceptions.Common;
-using Grimoire.Domain.Common;
 using Microsoft.AspNetCore.Mvc;
 using static Application.Common.SegmentMarkdownConverter;
 
@@ -17,7 +17,8 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false, [FromQuery] bool? markdown = false) {
+	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false,
+		[FromQuery] bool? markdown = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
 		var series = await service.FindOne(guid);
 		if (series is null) {
@@ -29,15 +30,18 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 			dto.CreatedAt = null;
 			dto.UpdatedAt = null;
 		}
+
 		if (markdown == true) {
 			dto.Markdown = ConvertTextSegmentsToMarkdown(dto.Metadata.Description);
 		}
+
 		return Results.Ok(dto);
 	}
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<SeriesResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination, [FromQuery] bool? markdown = false) {
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination,
+		[FromQuery] bool? markdown = false) {
 		if (pagination == null) {
 			var series = await service.FindAll();
 			var dtos = series.Select(s => {
@@ -45,6 +49,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 				if (markdown == true) {
 					dto.Markdown = ConvertTextSegmentsToMarkdown(dto.Metadata.Description);
 				}
+
 				return dto;
 			});
 			return Results.Ok(dtos);
@@ -56,6 +61,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 			if (markdown == true) {
 				dto.Markdown = ConvertTextSegmentsToMarkdown(dto.Metadata.Description);
 			}
+
 			return dto;
 		}).ToList();
 		var pagedDto = new PagedResult<SeriesResponseDto>(

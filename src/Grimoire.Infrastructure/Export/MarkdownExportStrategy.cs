@@ -24,7 +24,7 @@ public class MarkdownExportStrategy : IExportStrategy {
 			}
 
 			var memoryStream = new MemoryStream();
-			await using var writer = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen: true);
+			await using var writer = new StreamWriter(memoryStream, Encoding.UTF8, leaveOpen : true);
 			await writer.WriteAsync(markdown.ToString());
 			await writer.FlushAsync();
 			memoryStream.Position = 0;
@@ -88,7 +88,8 @@ public class MarkdownExportStrategy : IExportStrategy {
 		if (!splitDescription && series.Metadata.Description.Count > 0) {
 			markdown.AppendLine("## Description");
 			markdown.AppendLine();
-			var descriptionMarkdown = SegmentMarkdownConverter.ConvertTextSegmentsToMarkdown(series.Metadata.Description);
+			var descriptionMarkdown =
+				SegmentMarkdownConverter.ConvertTextSegmentsToMarkdown(series.Metadata.Description);
 			markdown.AppendLine(descriptionMarkdown);
 			markdown.AppendLine();
 		}
@@ -103,7 +104,8 @@ public class MarkdownExportStrategy : IExportStrategy {
 		markdown.AppendLine();
 	}
 
-	private static void ProcessDescriptionSection(ExportSectionDto? section, SeriesModel series, StringBuilder markdown) {
+	private static void
+		ProcessDescriptionSection(ExportSectionDto? section, SeriesModel series, StringBuilder markdown) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 		if (splitDescription || series.Metadata.Description.Count == 0) {
 			return;
@@ -160,7 +162,7 @@ public class MarkdownExportStrategy : IExportStrategy {
 					var chapterMarkdown = SegmentMarkdownConverter.ConvertToMarkdown(
 						chapter.ContentData.Segments,
 						chapter.ContentData.Footnotes
-					);
+						);
 					markdown.AppendLine(chapterMarkdown);
 				}
 
@@ -175,12 +177,12 @@ public class MarkdownExportStrategy : IExportStrategy {
 	///     Generates a URL-safe anchor from a title (for internal linking in TOC)
 	/// </summary>
 	private static string GenerateAnchor(string title) => title
-			.ToLowerInvariant()
-			.Replace(" ", "-")
-			.Replace("'", "")
-			.Replace("\"", "")
-			.Replace(".", "")
-			.Replace(",", "")
-			.Replace("!", "")
-			.Replace("?", "");
+		.ToLowerInvariant()
+		.Replace(" ", "-")
+		.Replace("'", "")
+		.Replace("\"", "")
+		.Replace(".", "")
+		.Replace(",", "")
+		.Replace("!", "")
+		.Replace("?", "");
 }

@@ -5,6 +5,7 @@ using Application.Dto.Book;
 using Application.Export;
 using Application.Service.Strategy;
 using Common;
+using Domain.Entity.Book;
 
 /// <summary>
 ///     Strategy for exporting series to HTML format
@@ -87,12 +88,10 @@ public class HtmlExportStrategy : IExportStrategy {
 				break;
 			case BookSection.Unknown:
 				break;
-			default:
-				break;
 		}
 	}
 
-	private static void ProcessIntroSection(ExportSectionDto? section, Domain.Entity.Book.SeriesModel series, StringBuilder html) {
+	private static void ProcessIntroSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 
 		html.AppendLine("<div class='section intro' id='intro'>");
@@ -126,7 +125,7 @@ public class HtmlExportStrategy : IExportStrategy {
 		html.AppendLine("</div>");
 	}
 
-	private static void ProcessDescriptionSection(ExportSectionDto? section, Domain.Entity.Book.SeriesModel series, StringBuilder html) {
+	private static void ProcessDescriptionSection(ExportSectionDto? section, SeriesModel series, StringBuilder html) {
 		var splitDescription = ExportUtilities.IsSplitDescriptionEnabled(section);
 		if (splitDescription || series.Metadata?.Description == null || series.Metadata.Description.Count == 0) {
 			return;
@@ -148,7 +147,7 @@ public class HtmlExportStrategy : IExportStrategy {
 		html.AppendLine("</div>");
 	}
 
-	private static void ProcessTocSection(ExportSectionDto? section, List<Domain.Entity.Book.VolumeModel> volumeList, StringBuilder html) {
+	private static void ProcessTocSection(ExportSectionDto? section, List<VolumeModel> volumeList, StringBuilder html) {
 		html.AppendLine("<div class='section toc' id='toc'>");
 
 		if (section?.CustomCss != null) {

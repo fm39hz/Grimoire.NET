@@ -46,7 +46,7 @@ public partial class LocalStorageRepository(
 		}
 		catch (IOException ex) when (ex.Message.Contains("already exists") || File.Exists(filePath)) {
 			// File was created by another concurrent operation, this is acceptable
-			logger.LogDebug("File already exists at {FilePath}, continuing with asset creation", filePath);
+			LogFileAlreadyExistsAtFilepathContinuingWithAssetCreation(filePath);
 		}
 
 		var newAsset = new AssetModel {
@@ -69,7 +69,7 @@ public partial class LocalStorageRepository(
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
-		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath);
+		return !File.Exists(filePath)? [] : await File.ReadAllBytesAsync(filePath);
 	}
 
 	public async Task<Stream?> GetFileStreamAsync(Guid assetId) {
@@ -115,4 +115,7 @@ public partial class LocalStorageRepository(
 
 	[LoggerMessage(LogLevel.Information, "Deleting file from {filePath}")]
 	private static partial void LogDeletingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
+
+	[LoggerMessage(LogLevel.Debug, "File already exists at {FilePath}, continuing with asset creation")]
+	partial void LogFileAlreadyExistsAtFilepathContinuingWithAssetCreation(string filePath);
 }

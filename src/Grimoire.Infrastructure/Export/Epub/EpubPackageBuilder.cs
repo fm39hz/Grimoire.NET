@@ -15,10 +15,11 @@ public class EpubPackageBuilder {
 	private string? _coverImagePath;
 	private string? _description;
 	private string? _language = EpubConstants.Defaults.Language;
-	private string? _title;
 	private List<string>? _tags;
+	private string? _title;
 
-	public void SetMetadata(string title, string? author = null, string? language = null, string? description = null, List<string>? tags = null) {
+	public void SetMetadata(string title, string? author = null, string? language = null, string? description = null,
+		List<string>? tags = null) {
 		_title = title;
 		_author = author;
 		_language = language ?? EpubConstants.Defaults.Language;
@@ -124,8 +125,6 @@ public class EpubPackageBuilder {
 				}
 
 				break;
-			default:
-				break;
 		}
 	}
 
@@ -217,8 +216,8 @@ public class EpubPackageBuilder {
 
 			// Check if this is the cover image
 			var isCover = !string.IsNullOrEmpty(_coverImagePath) && filename == _coverImagePath;
-			var itemId = isCover ? "cover-image" : $"img{imageIndex++}";
-			var properties = isCover ? " properties=\"cover-image\"" : "";
+			var itemId = isCover? "cover-image" : $"img{imageIndex++}";
+			var properties = isCover? " properties=\"cover-image\"" : "";
 
 			sb.AppendLine($"    <item id=\"{itemId}\" href=\"{filename}\" media-type=\"{mediaType}\"{properties}/>");
 		}
@@ -238,7 +237,7 @@ public class EpubPackageBuilder {
 			}
 
 			// Use special id for nav.xhtml
-			var itemRef = contentSrc == "nav.xhtml" ? "nav" : $"file{fileIndex++}";
+			var itemRef = contentSrc == "nav.xhtml"? "nav" : $"file{fileIndex++}";
 			sb.AppendLine($"    <itemref idref=\"{itemRef}\"/>");
 		}
 

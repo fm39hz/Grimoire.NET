@@ -17,11 +17,9 @@ public class BookExportOrchestrator(
 	IAssetRepository assetRepository,
 	IAssetService assetService,
 	IStorageService storageService) {
-
 	public async Task<BookExportContext> BuildContextAsync(
 		SeriesModel series,
 		BinderyRequestDto request) {
-
 		var volumes = await ResolveVolumes(series.Id, request);
 		var chapterMap = await LoadAllChapters(volumes);
 		var (coverAsset, coverStream) = await ResolveCover(series);
@@ -69,7 +67,6 @@ public class BookExportOrchestrator(
 
 	private async Task<(AssetModel? asset, Func<Task<Stream?>>? streamProvider)> ResolveCover(
 		SeriesModel series) {
-
 		var coverKey = series.Metadata?.CoverImage;
 		if (string.IsNullOrEmpty(coverKey)) {
 			return (null, null);
@@ -89,6 +86,7 @@ public class BookExportOrchestrator(
 			if (testStream == null) {
 				return (null, null);
 			}
+
 			await testStream.DisposeAsync();
 		}
 		catch {
@@ -103,7 +101,8 @@ public class BookExportOrchestrator(
 		var assetKeyToIdMap = chapterMap.Values
 			.SelectMany(chapters => chapters)
 			.SelectMany(chapter => chapter.ContentData!.Segments.OfType<ImageSegmentModel>())
-			.Select(seg => (seg.AssetKey, PrefixedId.TryToGuid(seg.AssetKey, EntityPrefix.Asset, out var id) ? id : Guid.Empty))
+			.Select(seg => (seg.AssetKey,
+				PrefixedId.TryToGuid(seg.AssetKey, EntityPrefix.Asset, out var id)? id : Guid.Empty))
 			.Where(pair => pair.Item2 != Guid.Empty)
 			.DistinctBy(pair => pair.Item2)
 			.ToDictionary(pair => pair.AssetKey, pair => pair.Item2);
@@ -128,6 +127,7 @@ public class BookExportOrchestrator(
 				if (testStream == null) {
 					continue;
 				}
+
 				await testStream.DisposeAsync();
 			}
 			catch {

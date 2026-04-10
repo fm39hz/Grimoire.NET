@@ -1,0 +1,10 @@
+<Solution>
+	<Folder Name="/Solution Items/">
+		<File Path="compose.yaml"/>
+	</Folder>
+	<Folder Name="/src/"/>
+	<Project Path="src/Grimoire.Api/Grimoire.Api.csproj"/>
+	<Project Path="src/Grimoire.Application/Grimoire.Application.csproj"/>
+	<Project Path="src/Grimoire.Domain/Grimoire.Domain.csproj"/>
+	<Project Path="src/Grimoire.Infrastructure/Grimoire.Infrastructure.csproj"/>
+</Solution>
