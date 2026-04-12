@@ -7,9 +7,18 @@
 - **Docker**: `docker-compose up --build`
 - **Clean**: `dotnet clean`
 
-## Testing
+## Linting Commands
 
-No test framework currently configured. Use `dotnet test` when tests are added.
+- **Dotnet format**: `dotnet format` (formats all C# code according to .editorconfig)
+- **Lint C# code**: `dotnet format --verify-no-changes` (verifies code formatting compliance)
+
+## Testing Commands
+
+- **Run all tests**: `bun test` (in test/ directory) - uses Bun test runner
+- **Run single test file**: `bun test path/to/your/test-file.test.ts`
+- **Run tests with watch mode**: `bun test --watch` (if supported)
+- **Test framework**: Mocha with Pactum for API testing, Jest available as alternative
+- **Test location**: End-to-end tests in test/ directory using Pactum for API testing
 
 ## Code Style Guidelines
 
@@ -79,9 +88,21 @@ No test framework currently configured. Use `dotnet test` when tests are added.
 - **BOILERPLATE**: Mark MovieTheater template code with this comment
 - **Inline**: Use sparingly, prefer self-documenting code
 
-### Performance
+## Development Best Practices
 
-- **Async**: Use async for I/O operations
-- **EF Core**: Use AsNoTracking for read-only queries
-- **Pagination**: Implement for large datasets
-- **Caching**: Consider for frequently accessed data
+- **Hot reload**: Use `bun --hot` for development when applicable
+- **Type safety**: Leverage TypeScript's strict typing features
+- **Consistent formatting**: Always run `dotnet format` before committing C# code
+- **Async operations**: Prefer async/await for all I/O operations
+- **Configuration**: Use appsettings.json for application configuration
+- **Logging**: Use Serilog for structured logging as configured in the project
+
+## Project Structure
+
+- **src/**: Source code organized in vertical slices
+- **src/Grimoire.Api/**: Main API project with controllers
+- **src/Grimoire.Application/**: Application layer with business logic
+- **src/Grimoire.Domain/**: Domain models and entities
+- **src/Grimoire.Infrastructure/**: Infrastructure implementations
+- **test/**: Integration and end-to-end tests using Bun ecosystem
+
