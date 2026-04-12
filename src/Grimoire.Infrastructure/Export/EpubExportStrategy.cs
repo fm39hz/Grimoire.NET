@@ -3,8 +3,8 @@ namespace Grimoire.Infrastructure.Export;
 using Application.Export;
 using Application.Extensions;
 using Application.Service.Strategy;
-using Common;
 using Epub;
+using Grimoire.Infrastructure.Export.Common;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
@@ -84,19 +84,27 @@ public partial class EpubExportStrategy(
 				}
 
 				case BookSection.Description: {
-						// Separate description page
-						var descriptionHtml = await templateEngine.RenderAsync("epub_intro", new {
-							Title = EpubConstants.LocalizedText.Summary,
-							context.Series.Metadata?.Description,
-							Section = section,
-							ImageFileMap = context.AssetFileMap
-						});
+						// Separate description page - only render if description should NOT appear in intro page
+						var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
+						if (introSection == null || ExportUtilities.IsSplitDescriptionEnabled(introSection)) {
+							// Only render separate description page if splitDescription is enabled or there's no intro page
+							var descriptionHtml = await templateEngine.RenderAsync("epub_intro", new {
+								Title = EpubConstants.LocalizedText.Summary,
+								context.Series.Metadata?.Description,
+								Section = section,
+								ImageFileMap = context.AssetFileMap
+							});
 
-						packageBuilder.AddHtmlFile("OEBPS/description.xhtml", descriptionHtml);
-						packageBuilder.AddNavPoint(new NavPoint {
-							Title = EpubConstants.LocalizedText.Summary,
-							ContentSrc = "description.xhtml"
-						});
+							packageBuilder.AddHtmlFile("OEBPS/description.xhtml", descriptionHtml);
+							packageBuilder.AddNavPoint(new NavPoint {
+								Title = EpubConstants.LocalizedText.Summary,
+								ContentSrc = "description.xhtml"
+							});
+						}
+						else {
+							// Skip separate description section since description is included in intro page
+							LogSkippingSeparateDescriptionSectionIncludedInIntro();
+						}
 						break;
 					}
 
