@@ -25,6 +25,9 @@ public class BookExportOrchestrator(
 		var (coverAsset, coverStream) = await ResolveCover(series);
 		var imageAssets = await CollectImageAssets(chapterMap);
 
+		var assetFileMap = GenerateAssetFileMap(imageAssets);
+		var plainTextDescription = FlattenDescription(series.Metadata?.Description);
+
 		return new BookExportContext {
 			Series = series,
 			Volumes = volumes,
@@ -32,9 +35,35 @@ public class BookExportOrchestrator(
 			CoverAsset = coverAsset,
 			CoverStreamProvider = coverStream,
 			ImageAssets = imageAssets,
+			AssetFileMap = assetFileMap,
+			PlainTextDescription = plainTextDescription,
 			Structure = request.Structure
 		};
 	}
+
+	private static Dictionary<string, string> GenerateAssetFileMap(
+		IReadOnlyDictionary<string, ResolvedAsset> imageAssets) {
+		var assetFileMap = new Dictionary<string, string>();
+		var index = 1;
+
+		foreach (var (assetKey, resolved) in imageAssets) {
+			var ext = Path.GetExtension(resolved.Asset.Path);
+			if (string.IsNullOrEmpty(ext)) {
+				ext = ".jpg";
+			}
+
+			var relativePath = $"img{index:D3}{ext}";
+			assetFileMap[assetKey] = relativePath;
+			index++;
+		}
+
+		return assetFileMap;
+	}
+
+	private static string? FlattenDescription(List<Domain.Entity.Book.Segment.TextSegmentModel>? description) =>
+		description == null || description.Count == 0
+			? null
+			: string.Join(" ", description.SelectMany(d => d.Runs.Select(r => r.Text)));
 
 	private async Task<List<VolumeModel>> ResolveVolumes(Guid seriesId, BinderyRequestDto request) {
 		var allVolumes = await volumeRepository.FindBySeriesId(seriesId);

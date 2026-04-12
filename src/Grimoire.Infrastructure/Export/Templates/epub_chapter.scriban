@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="vi" xml:lang="vi">
+<head>
+    <title>{{ title }}</title>
+    <link href="style.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+    <h2>{{ title }}</h2>
+    <div class="long-text no-select text-justify" id="chapter-content">
+        {{ segments | to_html footnotes image_file_map }}
+    </div>
+</body>
+</html>

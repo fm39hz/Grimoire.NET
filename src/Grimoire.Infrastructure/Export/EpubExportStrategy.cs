@@ -14,31 +14,28 @@ using Microsoft.Extensions.Logging;
 /// </summary>
 public partial class EpubExportStrategy(
 	ILogger<EpubExportStrategy> logger,
-	ISectionProcessorFactory<EpubSectionProcessorContext> sectionProcessorFactory) : IExportStrategy {
+	ITemplateEngine templateEngine,
+	IEpubPackageBuilderFactory packageBuilderFactory) : IExportStrategy {
 	public ExportFormat Format => ExportFormat.Epub;
 
 	public async Task<ExportResult> ExportAsync(BookExportContext context) {
 		try {
-			var packageBuilder = new EpubPackageBuilder();
-			var renderer = new HtmlRenderer();
+			var packageBuilder = packageBuilderFactory.Create();
 
 			// Metadata
 			var author = context.Series.Metadata?.Authors?.FirstOrDefault();
-			var description = ExtractDescription(context.Series.Metadata?.Description);
-			var tags = context.Series.Metadata?.Tags?.ToList();
-			packageBuilder.SetMetadata(context.Series.Title, author, description : description, tags : tags);
+			packageBuilder.SetMetadata(context.Series.Title, author, description : context.PlainTextDescription,
+				tags : context.Series.Metadata?.Tags?.ToList());
 
 			// CSS
 			packageBuilder.AddCss(context.Structure.GlobalCss ?? EpubStylesheet.DEFAULT_CSS);
 
-			// Cover (EPUB-specific: register into package with EPUB paths)
+			// Assets
 			var coverPath = RegisterCover(context, packageBuilder);
+			RegisterImages(context, packageBuilder);
 
-			// Images (EPUB-specific: register into package, build local path map)
-			var imageFileMap = RegisterImages(context, packageBuilder);
-
-			// Sections
-			await ProcessSections(context, packageBuilder, renderer, coverPath, imageFileMap, author);
+			// Generate all section pages
+			await ProcessSections(context, packageBuilder, coverPath, author);
 
 			var stream = await packageBuilder.BuildAsync();
 			var fileName = $"{ExportUtilities.SanitizeFileName(context.Series.Title)}.epub";
@@ -49,6 +46,107 @@ public partial class EpubExportStrategy(
 			LogFailedToExportSeriesIdToEpub(context.Series.Id, ex);
 			return ExportResult.Fail(ex.Message);
 		}
+	}
+
+	private async Task ProcessSections(
+		BookExportContext context,
+		EpubPackageBuilder packageBuilder,
+		string? coverPath,
+		string? author) {
+		var chapterIndex = 1;
+		var volumeIndex = 1;
+
+		foreach (var section in context.Structure.Sections) {
+			switch (section.Type) {
+				case BookSection.IntroPage or BookSection.Intro: {
+					var isSplit = ExportUtilities.IsSplitDescriptionEnabled(section);
+					var introHtml = await templateEngine.RenderAsync("epub_intro", new {
+						Title = context.Series.Title,
+						Author = author,
+						Tags = context.Series.Metadata?.Tags,
+						Description = isSplit ? null : context.Series.Metadata?.Description,
+						CoverLocalPath = coverPath,
+						ImageFileMap = context.AssetFileMap
+					});
+
+					packageBuilder.AddHtmlFile("OEBPS/intro.xhtml", introHtml);
+					packageBuilder.AddNavPoint(new NavPoint {
+						Title = EpubConstants.LocalizedText.Introduction, ContentSrc = "intro.xhtml"
+					});
+					break;
+				}
+
+				case BookSection.Toc or BookSection.TableOfContents: {
+					// TOC is unique as it's built last from all NavPoints, but we add the nav point now
+					packageBuilder.AddNavPoint(new NavPoint {
+						Title = EpubConstants.LocalizedText.TableOfContents, ContentSrc = "nav.xhtml"
+					});
+					break;
+				}
+
+				case BookSection.Description: {
+					// Separate description page
+					var descriptionHtml = await templateEngine.RenderAsync("epub_intro", new {
+						Title = EpubConstants.LocalizedText.Summary,
+						Description = context.Series.Metadata?.Description,
+						ImageFileMap = context.AssetFileMap
+					});
+
+					packageBuilder.AddHtmlFile("OEBPS/description.xhtml", descriptionHtml);
+					packageBuilder.AddNavPoint(new NavPoint {
+						Title = EpubConstants.LocalizedText.Summary, ContentSrc = "description.xhtml"
+					});
+					break;
+				}
+
+				case BookSection.Content or BookSection.Chapters: {
+					foreach (var volume in context.Volumes) {
+						// Volume title page
+						var volumeFileName = $"volume_{volumeIndex:D3}.xhtml";
+						var volumeHtml = await templateEngine.RenderAsync("epub_volume", new {
+							Title = volume.Title,
+							CoverImagePath = (volume.Metadata?.CoverImage != null &&
+											context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage,
+												out var path))
+								? path
+								: null,
+							PublicationDate = volume.Metadata?.PublicationDate,
+							Isbn = volume.Metadata?.Isbn
+						});
+
+						packageBuilder.AddHtmlFile($"OEBPS/{volumeFileName}", volumeHtml);
+						var volumeNav = new NavPoint { Title = volume.Title, ContentSrc = volumeFileName, Children = [] };
+
+						// Chapters within volume
+						if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
+							foreach (var chapter in chapters) {
+								var chapterFileName = $"chapter_{chapterIndex:D3}.xhtml";
+								var chapterHtml = await templateEngine.RenderAsync("epub_chapter", new {
+									Title = chapter.Title,
+									Segments = chapter.ContentData?.Segments,
+									Footnotes = chapter.ContentData?.Footnotes,
+									ImageFileMap = context.AssetFileMap
+								});
+
+								packageBuilder.AddHtmlFile($"OEBPS/{chapterFileName}", chapterHtml);
+								volumeNav.Children.Add(new NavPoint
+									{ Title = chapter.Title, ContentSrc = chapterFileName });
+								chapterIndex++;
+							}
+						}
+
+						packageBuilder.AddNavPoint(volumeNav);
+						volumeIndex++;
+					}
+
+					break;
+				}
+			}
+		}
+
+		// Finalize navigation file (nav.xhtml)
+		var navHtml = await templateEngine.RenderAsync("epub_toc", new { NavPoints = packageBuilder.GetNavPoints() });
+		packageBuilder.AddHtmlFile(EpubConstants.Paths.NavFile, navHtml);
 	}
 
 	private static string? RegisterCover(BookExportContext context, EpubPackageBuilder packageBuilder) {
@@ -68,95 +166,17 @@ public partial class EpubExportStrategy(
 		return localPath;
 	}
 
-	private static Dictionary<string, string> RegisterImages(
+	private static void RegisterImages(
 		BookExportContext context,
 		EpubPackageBuilder packageBuilder) {
-		var imageFileMap = new Dictionary<string, string>();
-		var index = 1;
-
 		foreach (var (assetKey, resolved) in context.ImageAssets) {
-			var ext = Path.GetExtension(resolved.Asset.Path)
-				.DefaultIfNullOrEmpty(EpubConstants.Defaults.ImageExtension);
-			var relativePath = $"img{index:D3}{ext}";
+			var relativePath = context.AssetFileMap[assetKey];
 
 			packageBuilder.AddImageFileStream(
 				$"{EpubConstants.Paths.OebpsPrefix}{EpubConstants.Paths.ImagesFolder}{relativePath}",
 				resolved.StreamProvider);
-
-			imageFileMap[assetKey] = relativePath;
-			index++;
-		}
-
-		return imageFileMap;
-	}
-
-	private async Task ProcessSections(
-		BookExportContext context,
-		EpubPackageBuilder packageBuilder,
-		HtmlRenderer renderer,
-		string? coverPath,
-		Dictionary<string, string> imageFileMap,
-		string? author) {
-		var processorContext = new EpubSectionProcessorContext {
-			Series = context.Series,
-			Volumes = context.Volumes,
-			ChapterMap = context.ChapterMap,
-			PackageBuilder = packageBuilder,
-			Renderer = renderer,
-			CoverLocalPath = coverPath,
-			ImageFileMap = imageFileMap,
-			Author = author
-		};
-
-		var tocSectionsToRender = new List<ExportSectionDto>();
-
-		foreach (var section in context.Structure.Sections) {
-			var sectionType = section.Type;
-
-			switch (sectionType) {
-				case BookSection.Toc or BookSection.TableOfContents:
-					processorContext.PackageBuilder.AddNavPoint(new NavPoint {
-						Title = EpubConstants.LocalizedText.TableOfContents, ContentSrc = "nav.xhtml"
-					});
-					tocSectionsToRender.Add(section);
-					continue;
-				case BookSection.Description: {
-					var introSection = context.Structure.Sections.FirstOrDefault(s =>
-						s.Type is BookSection.IntroPage or BookSection.Intro);
-					var introIncludesDescription = !ExportUtilities.IsSplitDescriptionEnabled(introSection);
-
-					if (introIncludesDescription) {
-						LogSkippingSeparateDescriptionSectionIncludedInIntro();
-						continue;
-					}
-
-					break;
-				}
-			}
-
-			if (sectionProcessorFactory.GetProcessor(sectionType) is not { } processor) {
-				LogUnknownSectionType(section.Type);
-				continue;
-			}
-
-			await processor.ProcessAsync(section, processorContext);
-		}
-
-		foreach (var tocSection in tocSectionsToRender) {
-			var navHtml = processorContext.Renderer.RenderToc(processorContext.PackageBuilder.GetNavPoints());
-
-			if (tocSection.CustomCss != null) {
-				navHtml = HtmlHelper.InjectCustomCss(navHtml, tocSection.CustomCss);
-			}
-
-			processorContext.PackageBuilder.AddHtmlFile(EpubConstants.Paths.NavFile, navHtml);
 		}
 	}
-
-	private static string? ExtractDescription(List<TextSegmentModel>? segments) =>
-		segments == null || segments.Count == 0
-			? null
-			: string.Join(" ", segments.SelectMany(d => d.Runs.Select(r => r.Text)));
 
 	[LoggerMessage(LogLevel.Error, "Failed to export series {SeriesId} to EPUB")]
 	partial void LogFailedToExportSeriesIdToEpub(Guid seriesId, Exception exception);

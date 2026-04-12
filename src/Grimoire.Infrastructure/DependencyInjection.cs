@@ -41,31 +41,18 @@ public static class DependencyInjection {
 				throw new InvalidOperationException($"Unknown storage type: {storageType}");
 		}
 
+		// Register template engine
+		services.AddSingleton<ITemplateEngine, ScribanTemplateEngine>();
+
+		// Register EPUB builders
+		services.AddSingleton<IEpubPackageBuilderFactory, EpubPackageBuilderFactory>();
+		services.AddTransient<EpubPackageBuilder>();
+
 		// Register export strategies
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
 		services.AddScoped<IExportStrategy, PdfExportStrategy>();
 		services.AddScoped<IExportStrategy, HtmlExportStrategy>();
 		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
-
-		// Register section processor factories
-		services.AddScoped<ISectionProcessorFactory<EpubSectionProcessorContext>>(sp =>
-			new SectionProcessorFactory<EpubSectionProcessorContext>(sp, ExportFormat.Epub));
-
-		// Register EPUB processors with keyed services
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, IntroSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.Intro.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, IntroSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.IntroPage.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, DescriptionSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.Description.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, ContentSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.Content.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, ContentSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.Chapters.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, TocSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.Toc.ToString().ToLowerInvariant()}");
-		services.AddKeyedScoped<ISectionProcessor<EpubSectionProcessorContext>, TocSectionProcessor>(
-			$"{ExportFormat.Epub}:{BookSection.TableOfContents.ToString().ToLowerInvariant()}");
 
 		return services;
 	}

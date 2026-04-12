@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="uid">{{ uid }}</dc:identifier>
+    <dc:title>{{ title }}</dc:title>
+    {{ if author }}<dc:creator>{{ author }}</dc:creator>{{ end }}
+    {{ if description }}<dc:description>{{ description }}</dc:description>{{ end }}
+    {{ for tag in tags }}<dc:subject>{{ tag }}</dc:subject>{{ end }}
+    <dc:language>{{ language }}</dc:language>
+    <meta property="dcterms:modified">{{ modified_date }}</meta>
+    {{ if cover_image_path }}<meta name="cover" content="cover-image"/>{{ end }}
+  </metadata>
+
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="css" href="style.css" media-type="text/css"/>
+    {{ for item in manifest_items }}
+    <item id="{{ item.id }}" href="{{ item.href }}" media-type="{{ item.media_type }}"{{ if item.properties }} properties="{{ item.properties }}"{{ end }}/>
+    {{ end }}
+  </manifest>
+
+  <spine toc="ncx">
+    {{ for item in spine_items }}
+    <itemref idref="{{ item.id_ref }}"/>
+    {{ end }}
+  </spine>
+</package>

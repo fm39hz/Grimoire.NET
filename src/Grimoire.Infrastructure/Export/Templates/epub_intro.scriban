@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="vi" xml:lang="vi">
+<head>
+    <title>{{ title }}</title>
+    <link href="style.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div class="title-page">
+    <div class="book-title">{{ title }}</div>
+    {{ if author }}
+    <div class="book-author">Tác giả: {{ author }}</div>
+    {{ end }}
+    {{ if cover_local_path }}
+    <div class="book-cover">
+        <img src="{{ cover_local_path }}" alt="Cover Image" />
+    </div>
+    {{ end }}
+    {{ if tags && tags.size > 0 }}
+    <div class="tags">
+        {{ for tag in tags }}
+        <span class="tag-item">{{ tag }}</span>
+        {{ end }}
+    </div>
+    {{ end }}
+</div>
+
+{{ if description && description.size > 0 }}
+<div class="front-matter">
+    <div class="section-title">Tóm tắt</div>
+    <div class="description text-justify">
+        {{ description | to_html null image_file_map }}
+    </div>
+</div>
+{{ end }}
+</body>
+</html>

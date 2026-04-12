@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head>
+    <meta name="dtb:uid" content="{{ uid }}"/>
+    <meta name="dtb:depth" content="2"/>
+  </head>
+  <docTitle><text>{{ title }}</text></docTitle>
+  <navMap>
+    {{- for nav in nav_points -}}
+    {{- if nav.content_src != "nav.xhtml" -}}
+    <navPoint id="nav{{ nav.play_order }}" playOrder="{{ nav.play_order }}">
+      <navLabel><text>{{ nav.title }}</text></navLabel>
+      <content src="{{ nav.content_src }}"/>
+      {{- if nav.children -}}
+        {{- for child in nav.children -}}
+          <navPoint id="nav{{ child.play_order }}" playOrder="{{ child.play_order }}">
+            <navLabel><text>{{ child.title }}</text></navLabel>
+            <content src="{{ child.content_src }}"/>
+          </navPoint>
+        {{- end -}}
+      {{- end -}}
+    </navPoint>
+    {{- end -}}
+    {{- end -}}
+  </navMap>
+</ncx>

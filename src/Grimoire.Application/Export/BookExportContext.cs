@@ -35,6 +35,16 @@ public class BookExportContext {
 	/// </summary>
 	public required IReadOnlyDictionary<string, ResolvedAsset> ImageAssets { get; init; }
 
+	/// <summary>
+	///     Mapping from original asset key (e.g. "ast_...") to a simplified, format-friendly filename (e.g. "img001.jpg").
+	/// </summary>
+	public required IReadOnlyDictionary<string, string> AssetFileMap { get; init; }
+
+	/// <summary>
+	///     A flattened plain-text version of the series description, useful for document metadata.
+	/// </summary>
+	public string? PlainTextDescription { get; init; }
+
 	/// <summary>Export structure (sections, global CSS) from the original request.</summary>
 	public required ExportStructureDto Structure { get; init; }
 }
