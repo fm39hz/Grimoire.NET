@@ -1,17 +1,18 @@
 namespace Grimoire.Infrastructure;
 
-using Application.Export;
 using Application.Service.Strategy;
 using Configuration;
 using Domain.Common.Repository;
 using Export;
 using Export.Common;
 using Export.Epub;
+using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Persistence.Repository;
 
 public static class DependencyInjection {
+	[UsedImplicitly]
 	public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration) {
 		// Register Unit of Work
 		services.AddScoped<IUnitOfWork, UnitOfWork>();

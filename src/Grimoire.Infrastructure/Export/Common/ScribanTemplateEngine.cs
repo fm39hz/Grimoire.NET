@@ -50,10 +50,8 @@ public class ScribanTemplateEngine : ITemplateEngine {
 		var assembly = typeof(ScribanTemplateEngine).Assembly;
 		var resourceName = $"Grimoire.Infrastructure.Export.Templates.{templateName}.scriban";
 
-		await using var stream = assembly.GetManifestResourceStream(resourceName);
-		if (stream == null) {
-			throw new FileNotFoundException($"Template resource {resourceName} not found.");
-		}
+		await using var stream = assembly.GetManifestResourceStream(resourceName) ??
+								throw new FileNotFoundException($"Template resource {resourceName} not found.");
 
 		using var reader = new StreamReader(stream);
 		return await reader.ReadToEndAsync();

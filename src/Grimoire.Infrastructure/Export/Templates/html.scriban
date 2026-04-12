@@ -29,7 +29,7 @@
                     {{ if series.metadata.authors && series.metadata.authors.size > 0 }}
                         <p><strong>Author:</strong> {{ series.metadata.authors | array.join ", " }}</p>
                     {{ end }}
-                    {{ if !(section | is_split_description_enabled) && series.metadata.description && series.metadata.description.size > 0 }}
+                    {{ if (section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
                         <div class='description'>
                             <h2>Description</h2>
                             {{ series.metadata.description | to_html null asset_file_map }}
@@ -69,7 +69,7 @@
                 </div>
 
             {{ when "Description" }}
-                {{ if !(section | is_split_description_enabled) && series.metadata.description && series.metadata.description.size > 0 }}
+                {{ if !(section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
                     <div class='section description' id='description'>
                         {{ if section.custom_css }}<style>{{ section.custom_css }}</style>{{ end }}
                         <h2>Description</h2>

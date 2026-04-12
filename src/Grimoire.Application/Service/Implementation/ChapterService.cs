@@ -30,10 +30,8 @@ public sealed class ChapterService(
 		try {
 			// Validate that the Volume exists
 			var volumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
-			var volume = await volumeRepository.FindOne(volumeId);
-			if (volume is null) {
-				throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
-			}
+			var volume = await volumeRepository.FindOne(volumeId) ??
+						throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
 
 			// Use strategy pattern to handle different ingestion types
 			var strategy = strategyFactory.GetStrategy(dto);

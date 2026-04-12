@@ -22,10 +22,8 @@ public sealed class VolumeService(
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
 		// Validate that the Series exists
 		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
-		var series = await seriesRepository.FindOne(seriesId);
-		if (series == null) {
-			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
-		}
+		var series = await seriesRepository.FindOne(seriesId) ??
+					throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
 
 		var volume = mapper.CreateVolume(dto, seriesId);
 		return await repository.Create(volume);

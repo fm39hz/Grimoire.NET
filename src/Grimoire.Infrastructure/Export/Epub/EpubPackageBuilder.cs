@@ -2,7 +2,6 @@ namespace Grimoire.Infrastructure.Export.Epub;
 
 using System.IO.Compression;
 using System.Text;
-using System.Web;
 using Common;
 
 /// <summary>
@@ -48,23 +47,25 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 	private List<string> FlattenNavPoints() {
 		var result = new List<string>();
 
-		void flatten(NavPoint nav) {
-			if (!string.IsNullOrEmpty(nav.ContentSrc)) {
-				result.Add(nav.ContentSrc);
-			}
-
-			if (nav.Children != null) {
-				foreach (var child in nav.Children) {
-					flatten(child);
-				}
-			}
-		}
-
 		foreach (var nav in _navPoints) {
 			flatten(nav);
 		}
 
 		return result;
+
+		void flatten(NavPoint nav) {
+			if (!string.IsNullOrEmpty(nav.ContentSrc)) {
+				result.Add(nav.ContentSrc);
+			}
+
+			if (nav.Children == null) {
+				return;
+			}
+
+			foreach (var child in nav.Children) {
+				flatten(child);
+			}
+		}
 	}
 
 	public void AddCss(string content) => AddResource(EpubResource.FromText(EpubConstants.Paths.StyleCssFile, content));
@@ -77,11 +78,11 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 
 		// Create ZIP package
 		var memoryStream = new MemoryStream();
-		using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true)) {
+		await using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true)) {
 			// Add mimetype file (uncompressed, first file)
 			var mimetypeEntry = archive.CreateEntry(EpubConstants.Paths.MimeTypeFile, CompressionLevel.NoCompression);
-			using (var writer = new StreamWriter(mimetypeEntry.Open(), Encoding.ASCII)) {
-				writer.Write("application/epub+zip");
+			await using (var writer = new StreamWriter(await mimetypeEntry.OpenAsync(), Encoding.ASCII)) {
+				await writer.WriteAsync("application/epub+zip");
 			}
 
 			// Add all resources
@@ -99,15 +100,18 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 
 		switch (resource.Type) {
 			case EpubResourceType.Text:
-				using (var writer = new StreamWriter(entry.Open(), Encoding.UTF8)) {
-					writer.Write(resource.TextContent);
+				await using (var writer = new StreamWriter(await entry.OpenAsync(), Encoding.UTF8)) {
+					await writer.WriteAsync(resource.TextContent);
 				}
 
 				break;
 
 			case EpubResourceType.Binary:
-				using (var stream = entry.Open()) {
-					stream.Write(resource.BinaryContent!, 0, resource.BinaryContent!.Length);
+				await using (var stream = await entry.OpenAsync()) {
+#pragma warning disable CA1835
+					await stream.WriteAsync(resource.BinaryContent!, 0, resource.BinaryContent!.Length)
+#pragma warning restore CA1835
+						.ConfigureAwait(false);
 				}
 
 				break;
@@ -116,7 +120,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 				var sourceStream = await resource.StreamProvider!();
 				if (sourceStream != null) {
 					try {
-						using var entryStream = entry.Open();
+						await using var entryStream = await entry.OpenAsync();
 						await sourceStream.CopyToAsync(entryStream);
 					}
 					finally {
@@ -125,6 +129,8 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 				}
 
 				break;
+			default:
+				throw new ArgumentOutOfRangeException(nameof(archive));
 		}
 	}
 
@@ -181,33 +187,34 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 
 			var isCover = !string.IsNullOrEmpty(_coverImagePath) && filename == _coverImagePath;
 			manifestItems.Add(new {
-				Id = isCover ? "cover-image" : $"img{imageIndex++}",
+				Id = isCover? "cover-image" : $"img{imageIndex++}",
 				Href = filename,
 				MediaType = mediaType,
-				Properties = isCover ? "cover-image" : null
+				Properties = isCover? "cover-image" : null
 			});
 		}
 
 		// Prepare spine items
 		var spineItems = new List<object>();
 		fileIndex = 1;
-		foreach (var contentSrc in navOrder) {
-			if (!_resources.ContainsKey($"{EpubConstants.Paths.OebpsPrefix}{contentSrc}")) continue;
-			spineItems.Add(new { IdRef = contentSrc == "nav.xhtml" ? "nav" : $"file{fileIndex++}" });
+		foreach (var contentSrc in navOrder.Where(contentSrc =>
+					_resources.ContainsKey($"{EpubConstants.Paths.OebpsPrefix}{contentSrc}"))) {
+			spineItems.Add(new { IdRef = contentSrc == "nav.xhtml"? "nav" : $"file{fileIndex++}" });
 		}
 
-		var xml = await templateEngine.RenderAsync("epub_content_opf", new {
-			Uid = Guid.NewGuid(),
-			Title = _title ?? EpubConstants.Defaults.UntitledBook,
-			Author = _author,
-			Description = _description,
-			Tags = _tags,
-			Language = _language,
-			ModifiedDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
-			CoverImagePath = _coverImagePath,
-			ManifestItems = manifestItems,
-			SpineItems = spineItems
-		});
+		var xml = await templateEngine.RenderAsync("epub_content_opf",
+			new {
+				Uid = Guid.NewGuid(),
+				Title = _title ?? EpubConstants.Defaults.UntitledBook,
+				Author = _author,
+				Description = _description,
+				Tags = _tags,
+				Language = _language,
+				ModifiedDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+				CoverImagePath = _coverImagePath,
+				ManifestItems = manifestItems,
+				SpineItems = spineItems
+			});
 
 		AddResource(EpubResource.FromText(EpubConstants.Paths.ContentOpfFile, xml));
 	}
@@ -216,31 +223,29 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 		var flatNavPoints = new List<object>();
 		var playOrder = 1;
 
-		void ProcessNavPoint(NavPoint nav, List<object> target) {
-			var current = new {
-				nav.Title,
-				nav.ContentSrc,
-				PlayOrder = playOrder++,
-				Children = new List<object>()
-			};
-			target.Add(current);
-
-			if (nav.Children == null) return;
-			foreach (var child in nav.Children) {
-				ProcessNavPoint(child, (List<object>)current.Children);
-			}
-		}
-
 		foreach (var nav in _navPoints) {
-			ProcessNavPoint(nav, flatNavPoints);
+			processNavPoint(nav, flatNavPoints);
 		}
 
-		var xml = await templateEngine.RenderAsync("epub_toc_ncx", new {
-			Uid = Guid.NewGuid(),
-			Title = _title ?? EpubConstants.Defaults.UntitledBook,
-			NavPoints = flatNavPoints
-		});
+		var xml = await templateEngine.RenderAsync("epub_toc_ncx",
+			new {
+				Uid = Guid.NewGuid(), Title = _title ?? EpubConstants.Defaults.UntitledBook, NavPoints = flatNavPoints
+			});
 
 		AddResource(EpubResource.FromText(EpubConstants.Paths.TocNcxFile, xml));
+		return;
+
+		void processNavPoint(NavPoint nav, List<object> target) {
+			var current = new { nav.Title, nav.ContentSrc, PlayOrder = playOrder++, Children = new List<object>() };
+			target.Add(current);
+
+			if (nav.Children == null) {
+				return;
+			}
+
+			foreach (var child in nav.Children) {
+				processNavPoint(child, current.Children);
+			}
+		}
 	}
 }

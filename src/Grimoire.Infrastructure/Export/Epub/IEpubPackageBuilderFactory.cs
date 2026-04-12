@@ -8,5 +8,5 @@ public interface IEpubPackageBuilderFactory {
 	///     Creates a new instance of EpubPackageBuilder
 	/// </summary>
 	/// <returns>A fresh EpubPackageBuilder instance</returns>
-	EpubPackageBuilder Create();
+	public EpubPackageBuilder Create();
 }

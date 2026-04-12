@@ -3,32 +3,46 @@ namespace Grimoire.Infrastructure.Export.Common;
 using System.Text;
 using System.Web;
 using Application.Common;
+using Application.Dto.Book;
+using Application.Export;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Scriban.Runtime;
 
 public class ScribanExportFunctions : ScriptObject {
 	public static string ToMarkdown(object input, object? footnotes = null, object? assetMap = null) {
-		var segmentList = input as List<SegmentModel>;
 		var footnoteList = footnotes as List<FootnoteSegmentModel>;
-		
-		if (segmentList == null) return string.Empty;
+
+		var segmentList = input switch {
+			List<SegmentModel> segmentListModel => segmentListModel,
+			List<TextSegmentModel> textSegmentList => textSegmentList.Select(x => x as SegmentModel).ToList(),
+			_ => null
+		};
 
 		// Sử dụng pattern matching để xử lý list đặc thù nếu cần
-		return SegmentMarkdownConverter.ConvertToMarkdown(segmentList, footnoteList);
+		return segmentList == null
+			? string.Empty
+			: SegmentMarkdownConverter.ConvertToMarkdown(segmentList, footnoteList);
 	}
 
 	public static string ToHtml(object input, object? footnotes = null, object? assetMap = null) {
 		// Convert input to the expected types
-		var segmentList = input as List<SegmentModel>;
-		if (segmentList == null) return string.Empty;
 
-		var footnoteList = footnotes as List<FootnoteSegmentModel>;
+		var segmentList = input switch {
+			List<SegmentModel> segmentListModel => segmentListModel,
+			List<TextSegmentModel> textSegmentList => textSegmentList.Select(SegmentModel (x) => x).ToList(),
+			_ => null
+		};
+
+		if (segmentList == null) {
+			return string.Empty;
+		}
+
 		var assetDict = ConvertToDictionary(assetMap);
 
 		// Build footnote map to track footnote references in the segments
 		var footnoteMap = BuildFootnoteMap(segmentList);
-		
+
 		var sb = new StringBuilder();
 		foreach (var segment in segmentList) {
 			switch (segment) {
@@ -36,7 +50,9 @@ public class ScribanExportFunctions : ScriptObject {
 					sb.Append($"<p>{RenderTextRuns(ts.Runs, footnoteMap)}</p>");
 					break;
 				case ImageSegmentModel ism:
-					var url = (assetDict?.TryGetValue(ism.AssetKey, out var fileName) == true) ? $"images/{fileName}" : ism.AssetKey;
+					var url = assetDict?.TryGetValue(ism.AssetKey, out var fileName) == true
+						? $"images/{fileName}"
+						: ism.AssetKey;
 					var encodedCaption = HttpUtility.HtmlEncode(ism.Caption ?? string.Empty);
 					sb.Append(
 						$"<figure><img src=\"{HttpUtility.HtmlEncode(url)}\" alt=\"{encodedCaption}\"/><figcaption>{encodedCaption}</figcaption></figure>");
@@ -49,14 +65,11 @@ public class ScribanExportFunctions : ScriptObject {
 					// But if they need to be rendered inline, we can do so here
 					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs, assetDict)}</aside>");
 					break;
-				default:
-					// For unknown segment types, we can ignore or render as plain text
-					break;
 			}
 		}
 
 		// Also render the footnotes at the end if provided
-		if (footnoteList != null && footnoteList.Count > 0) {
+		if (footnotes is List<FootnoteSegmentModel> { Count: > 0 } footnoteList) {
 			sb.Append(RenderFootnotesAtEnd(footnoteList, footnoteMap));
 		}
 
@@ -65,29 +78,37 @@ public class ScribanExportFunctions : ScriptObject {
 
 	// Helper method to convert object to dictionary
 	private static Dictionary<string, string>? ConvertToDictionary(object? obj) {
-		if (obj is Dictionary<string, string> dict) return dict;
-		if (obj is IReadOnlyDictionary<string, string> readOnlyDict) {
-			var newDict = new Dictionary<string, string>();
-			foreach (var kvp in readOnlyDict) {
-				newDict[kvp.Key] = kvp.Value;
+		switch (obj)
+		{
+			case Dictionary<string, string> dict:
+				return dict;
+			case IReadOnlyDictionary<string, string> readOnlyDict:
+			{
+				var newDict = new Dictionary<string, string>();
+				foreach (var kvp in readOnlyDict) {
+					newDict[kvp.Key] = kvp.Value;
+				}
+
+				return newDict;
 			}
-			return newDict;
+			default:
+				return obj as Dictionary<string, string>;
 		}
-		return obj as Dictionary<string, string>;
 	}
 
-		private static string RenderTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null) {
+	private static string RenderTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null) {
 		var sb = new StringBuilder();
 		foreach (var run in runs) {
 			var text = HttpUtility.HtmlEncode(run.Text);
 			text = FormatText(text, run.IsBold, run.IsItalic);
-			
+
 			// Handle footnote references if footnoteMap exists
-			if (!string.IsNullOrEmpty(run.FootnoteId) && footnoteMap != null && 
+			if (!string.IsNullOrEmpty(run.FootnoteId) && footnoteMap != null &&
 				footnoteMap.TryGetValue(run.FootnoteId, out var footnoteNumber)) {
-				text += $"<a class=\"footnote-ref\" epub:type=\"noteref\" href=\"#{run.FootnoteId}\">[{footnoteNumber}]</a>";
+				text +=
+					$"<a class=\"footnote-ref\" epub:type=\"noteref\" href=\"#{run.FootnoteId}\">[{footnoteNumber}]</a>";
 			}
-			
+
 			sb.Append(text);
 		}
 
@@ -99,11 +120,13 @@ public class ScribanExportFunctions : ScriptObject {
 		var footnoteCounter = 1;
 
 		foreach (var segment in segments) {
-			if (segment is TextSegmentModel textSeg) {
-				foreach (var run in textSeg.Runs) {
-					if (!string.IsNullOrEmpty(run.FootnoteId) && !footnoteMap.ContainsKey(run.FootnoteId)) {
-						footnoteMap[run.FootnoteId] = footnoteCounter++;
-					}
+			if (segment is not TextSegmentModel textSeg) {
+				continue;
+			}
+
+			foreach (var run in textSeg.Runs) {
+				if (!string.IsNullOrEmpty(run.FootnoteId) && !footnoteMap.ContainsKey(run.FootnoteId)) {
+					footnoteMap[run.FootnoteId] = footnoteCounter++;
 				}
 			}
 		}
@@ -118,36 +141,40 @@ public class ScribanExportFunctions : ScriptObject {
 		foreach (var textSegment in footnote.Segments) {
 			sb.Append($"<p>{RenderTextRuns(textSegment.Runs)}</p>");
 		}
+
 		return sb.ToString();
 	}
 
-	private static string RenderFootnotesAtEnd(List<FootnoteSegmentModel> footnotes, Dictionary<string, int> footnoteMap) {
+	private static string RenderFootnotesAtEnd(List<FootnoteSegmentModel> footnotes,
+		Dictionary<string, int> footnoteMap) {
 		if (footnotes == null || footnotes.Count == 0) {
 			return string.Empty;
 		}
 
 		var sb = new StringBuilder();
 		sb.AppendLine("<aside class=\"footnotes\" epub:type=\"footnotes\" role=\"doc-endnotes\">");
-		
+
 		foreach (var footnote in footnotes) {
 			var footnoteIdStr = footnote.Id.ToString();
-			if (!footnoteMap.ContainsKey(footnoteIdStr)) continue;
-			
-			var footnoteNumber = footnoteMap[footnoteIdStr];
+			if (!footnoteMap.TryGetValue(footnoteIdStr, out var footnoteNumber)) {
+				continue;
+			}
+
 			sb.AppendLine($"<div id=\"{footnoteIdStr}\" epub:type=\"footnote\">");
 			sb.AppendLine($"<p>[{footnoteNumber}] ");
-			
+
 			// Render the footnote content
 			var contentSb = new StringBuilder();
 			foreach (var textSeg in footnote.Segments) {
 				contentSb.Append(RenderTextRuns(textSeg.Runs));
 			}
+
 			sb.Append(contentSb);
-			
+
 			sb.AppendLine("</p>");
 			sb.AppendLine("</div>");
 		}
-		
+
 		sb.AppendLine("</aside>");
 		return sb.ToString();
 	}
@@ -162,4 +189,14 @@ public class ScribanExportFunctions : ScriptObject {
 
 	public static string GenerateAnchor(string title) =>
 		title?.ToLowerInvariant().Replace(" ", "-") ?? string.Empty;
+
+	public static bool ShouldShowDescriptionInIntro(ExportSectionDto? section) =>
+		!ExportUtilities.IsSplitDescriptionEnabled(section);
+
+	public static bool IsSectionType(ExportSectionDto section, params string[] types) =>
+		types.Contains(section.Type.ToString(), StringComparer.OrdinalIgnoreCase);
+
+	public static bool IsSectionTypeExact(ExportSectionDto section, string targetType) =>
+		Enum.TryParse<BookSection>(targetType, true, out var targetEnum) &&
+		section.Type == targetEnum;
 }

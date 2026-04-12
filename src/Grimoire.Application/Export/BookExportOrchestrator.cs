@@ -60,7 +60,7 @@ public class BookExportOrchestrator(
 		return assetFileMap;
 	}
 
-	private static string? FlattenDescription(List<Domain.Entity.Book.Segment.TextSegmentModel>? description) =>
+	private static string? FlattenDescription(List<TextSegmentModel>? description) =>
 		description == null || description.Count == 0
 			? null
 			: string.Join(" ", description.SelectMany(d => d.Runs.Select(r => r.Text)));

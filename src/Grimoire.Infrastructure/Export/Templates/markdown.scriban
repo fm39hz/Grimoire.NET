@@ -9,7 +9,7 @@
             **Artist:** {{ series.metadata.artists | array.join ", " }}
             {{ end }}
             
-            {{ if !(section | is_split_description_enabled) && series.metadata.description && series.metadata.description.size > 0 }}
+            {{ if (section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
             ### Description
             {{ series.metadata.description | to_markdown null asset_file_map }}
             {{ end }}
@@ -45,7 +45,7 @@
             {{ end }}
 
         {{ when "Description" }}
-            {{ if !(section | is_split_description_enabled) && series.metadata.description && series.metadata.description.size > 0 }}
+            {{ if !(section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
                 ## Description
                 {{ series.metadata.description | to_markdown null asset_file_map }}
                 

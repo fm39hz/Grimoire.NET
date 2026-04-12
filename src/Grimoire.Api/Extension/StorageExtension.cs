@@ -20,6 +20,8 @@ public static class StorageExtension {
 			case "LocalStorage":
 				services.AddScoped<IStorageRepository, LocalStorageRepository>();
 				break;
+			default:
+				break;
 		}
 
 		return services;
