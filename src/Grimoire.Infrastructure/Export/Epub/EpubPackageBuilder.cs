@@ -206,7 +206,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 		// Generate a shared identifier for both content.opf and toc.ncx
 		_sharedIdentifier = Guid.NewGuid();
 
-		var xml = await templateEngine.RenderAsync("epub_content_opf",
+		var xml = templateEngine.Render("epub_content_opf",
 			new {
 				Uid = _sharedIdentifier.Value,
 				Title = _title ?? EpubConstants.Defaults.UntitledBook,
@@ -231,7 +231,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 			processNavPoint(nav, flatNavPoints, ref playOrder);
 		}
 
-		var xml = await templateEngine.RenderAsync("epub_toc_ncx",
+		var xml = templateEngine.Render("epub_toc_ncx",
 			new {
 				Uid = _sharedIdentifier ?? Guid.NewGuid(),
 				Title = _title ?? EpubConstants.Defaults.UntitledBook,

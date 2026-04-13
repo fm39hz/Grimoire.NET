@@ -33,7 +33,7 @@ public partial class EpubExportStrategy(
 			RegisterImages(context, packageBuilder);
 
 			// Generate all section pages
-			await ProcessSections(context, packageBuilder, coverPath, author);
+			ProcessSections(context, packageBuilder, coverPath, author);
 
 			var stream = await packageBuilder.BuildAsync();
 			var fileName = $"{ExportUtilities.SanitizeFileName(context.Series.Title)}.epub";
@@ -46,7 +46,7 @@ public partial class EpubExportStrategy(
 		}
 	}
 
-	private async Task ProcessSections(
+	private void ProcessSections(
 		BookExportContext context,
 		EpubPackageBuilder packageBuilder,
 		string? coverPath,
@@ -57,7 +57,7 @@ public partial class EpubExportStrategy(
 		foreach (var section in context.Structure.Sections) {
 			switch (section.Type) {
 				case BookSection.IntroPage or BookSection.Intro: {
-						var introHtml = await templateEngine.RenderAsync("epub_intro",
+						var introHtml = templateEngine.Render("epub_intro",
 							new {
 								context.Series.Title,
 								Author = author,
@@ -90,7 +90,7 @@ public partial class EpubExportStrategy(
 						var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
 						if (introSection == null || ExportUtilities.IsSplitDescriptionEnabled(introSection)) {
 							// Only render separate description page if splitDescription is enabled or there's no intro page
-							var descriptionHtml = await templateEngine.RenderAsync("epub_intro",
+							var descriptionHtml = templateEngine.Render("epub_intro",
 								new {
 									Title = EpubConstants.LocalizedText.Summary,
 									context.Series.Metadata?.Description,
@@ -116,7 +116,7 @@ public partial class EpubExportStrategy(
 						foreach (var volume in context.Volumes) {
 							// Volume title page
 							var volumeFileName = $"volume_{volumeIndex:D3}.xhtml";
-							var volumeHtml = await templateEngine.RenderAsync("epub_volume", new {
+							var volumeHtml = templateEngine.Render("epub_volume", new {
 								volume.Title,
 								CoverImagePath = volume.Metadata?.CoverImage != null &&
 												context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage,
@@ -138,7 +138,7 @@ public partial class EpubExportStrategy(
 							if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
 								foreach (var chapter in chapters) {
 									var chapterFileName = $"chapter_{chapterIndex:D3}.xhtml";
-									var chapterHtml = await templateEngine.RenderAsync("epub_chapter",
+									var chapterHtml = templateEngine.Render("epub_chapter",
 										new {
 											chapter.Title,
 											chapter.ContentData?.Segments,
@@ -170,7 +170,7 @@ public partial class EpubExportStrategy(
 		}
 
 		// Finalize navigation file (nav.xhtml)
-		var navHtml = await templateEngine.RenderAsync("epub_toc", new { NavPoints = packageBuilder.GetNavPoints() });
+		var navHtml = templateEngine.Render("epub_toc", new { NavPoints = packageBuilder.GetNavPoints() });
 		packageBuilder.AddHtmlFile(EpubConstants.Paths.NavFile, navHtml);
 	}
 

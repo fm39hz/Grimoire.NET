@@ -11,5 +11,5 @@ public interface ITemplateEngine {
 	/// <param name="templateName">Name of the template (without extension)</param>
 	/// <param name="model">Model data</param>
 	/// <returns>Rendered string</returns>
-	public Task<string> RenderAsync<T>(string templateName, T model) where T : class;
+	public string Render<T>(string templateName, T model) where T : class;
 }
