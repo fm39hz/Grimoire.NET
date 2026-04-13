@@ -22,8 +22,8 @@ public partial class EpubExportStrategy(
 
 			// Metadata
 			var author = context.Series.Metadata?.Authors?.FirstOrDefault();
-			packageBuilder.SetMetadata(context.Series.Title, author, description : context.PlainTextDescription,
-				tags : context.Series.Metadata?.Tags?.ToList());
+			packageBuilder.SetMetadata(context.Series.Title, author, description: context.PlainTextDescription,
+				tags: context.Series.Metadata?.Tags?.ToList());
 
 			// CSS
 			packageBuilder.AddCss(context.Structure.GlobalCss ?? EpubStylesheet.DEFAULT_CSS);
@@ -57,106 +57,114 @@ public partial class EpubExportStrategy(
 		foreach (var section in context.Structure.Sections) {
 			switch (section.Type) {
 				case BookSection.IntroPage or BookSection.Intro: {
-					var introHtml = await templateEngine.RenderAsync("epub_intro",
-						new {
-							context.Series.Title,
-							Author = author,
-							context.Series.Metadata?.Tags,
-							context.Series.Metadata?.Description,
-							Section = section,
-							CoverLocalPath = coverPath,
-							ImageFileMap = context.AssetFileMap
-						});
-
-					packageBuilder.AddHtmlFile("OEBPS/intro.xhtml", introHtml);
-					packageBuilder.AddNavPoint(new NavPoint {
-						Title = EpubConstants.LocalizedText.Introduction, ContentSrc = "intro.xhtml"
-					});
-					break;
-				}
-
-				case BookSection.Toc or BookSection.TableOfContents: {
-					// TOC is unique as it's built last from all NavPoints, but we add the nav point now
-					packageBuilder.AddNavPoint(new NavPoint {
-						Title = EpubConstants.LocalizedText.TableOfContents, ContentSrc = "nav.xhtml"
-					});
-					break;
-				}
-
-				case BookSection.Description: {
-					// Separate description page - only render if description should NOT appear in intro page
-					var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
-					if (introSection == null || ExportUtilities.IsSplitDescriptionEnabled(introSection)) {
-						// Only render separate description page if splitDescription is enabled or there's no intro page
-						var descriptionHtml = await templateEngine.RenderAsync("epub_intro",
+						var introHtml = await templateEngine.RenderAsync("epub_intro",
 							new {
-								Title = EpubConstants.LocalizedText.Summary,
+								context.Series.Title,
+								Author = author,
+								context.Series.Metadata?.Tags,
 								context.Series.Metadata?.Description,
 								Section = section,
+								CoverLocalPath = coverPath,
 								ImageFileMap = context.AssetFileMap
 							});
 
-						packageBuilder.AddHtmlFile("OEBPS/description.xhtml", descriptionHtml);
+						packageBuilder.AddHtmlFile("OEBPS/intro.xhtml", introHtml);
 						packageBuilder.AddNavPoint(new NavPoint {
-							Title = EpubConstants.LocalizedText.Summary, ContentSrc = "description.xhtml"
+							Title = EpubConstants.LocalizedText.Introduction,
+							ContentSrc = "intro.xhtml"
 						});
-					}
-					else {
-						// Skip separate description section since description is included in intro page
-						LogSkippingSeparateDescriptionSectionIncludedInIntro();
+						break;
 					}
 
-					break;
-				}
-
-				case BookSection.Content or BookSection.Chapters: {
-					foreach (var volume in context.Volumes) {
-						// Volume title page
-						var volumeFileName = $"volume_{volumeIndex:D3}.xhtml";
-						var volumeHtml = await templateEngine.RenderAsync("epub_volume", new {
-							volume.Title,
-							CoverImagePath = volume.Metadata?.CoverImage != null &&
-											context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage,
-												out var path)
-								? path
-								: null,
-							volume.Metadata?.PublicationDate,
-							volume.Metadata?.Isbn
+				case BookSection.Toc or BookSection.TableOfContents: {
+						// TOC is unique as it's built last from all NavPoints, but we add the nav point now
+						packageBuilder.AddNavPoint(new NavPoint {
+							Title = EpubConstants.LocalizedText.TableOfContents,
+							ContentSrc = "nav.xhtml"
 						});
+						break;
+					}
 
-						packageBuilder.AddHtmlFile($"OEBPS/{volumeFileName}", volumeHtml);
-						var volumeNav = new NavPoint {
-							Title = volume.Title, ContentSrc = volumeFileName, Children = []
-						};
-
-						// Chapters within volume
-						if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
-							foreach (var chapter in chapters) {
-								var chapterFileName = $"chapter_{chapterIndex:D3}.xhtml";
-								var chapterHtml = await templateEngine.RenderAsync("epub_chapter",
-									new {
-										chapter.Title,
-										chapter.ContentData?.Segments,
-										chapter.ContentData?.Footnotes,
-										ImageFileMap = context.AssetFileMap
-									});
-
-								packageBuilder.AddHtmlFile($"OEBPS/{chapterFileName}", chapterHtml);
-								volumeNav.Children.Add(new NavPoint {
-									Title = chapter.Title, ContentSrc = chapterFileName
+				case BookSection.Description: {
+						// Separate description page - only render if description should NOT appear in intro page
+						var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
+						if (introSection == null || ExportUtilities.IsSplitDescriptionEnabled(introSection)) {
+							// Only render separate description page if splitDescription is enabled or there's no intro page
+							var descriptionHtml = await templateEngine.RenderAsync("epub_intro",
+								new {
+									Title = EpubConstants.LocalizedText.Summary,
+									context.Series.Metadata?.Description,
+									Section = section,
+									ImageFileMap = context.AssetFileMap
 								});
-								chapterIndex++;
-							}
+
+							packageBuilder.AddHtmlFile("OEBPS/description.xhtml", descriptionHtml);
+							packageBuilder.AddNavPoint(new NavPoint {
+								Title = EpubConstants.LocalizedText.Summary,
+								ContentSrc = "description.xhtml"
+							});
+						}
+						else {
+							// Skip separate description section since description is included in intro page
+							LogSkippingSeparateDescriptionSectionIncludedInIntro();
 						}
 
-						packageBuilder.AddNavPoint(volumeNav);
-						volumeIndex++;
+						break;
 					}
 
-					break;
-				}
+				case BookSection.Content or BookSection.Chapters: {
+						foreach (var volume in context.Volumes) {
+							// Volume title page
+							var volumeFileName = $"volume_{volumeIndex:D3}.xhtml";
+							var volumeHtml = await templateEngine.RenderAsync("epub_volume", new {
+								volume.Title,
+								CoverImagePath = volume.Metadata?.CoverImage != null &&
+												context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage,
+													out var path)
+									? path
+									: null,
+								volume.Metadata?.PublicationDate,
+								volume.Metadata?.Isbn
+							});
+
+							packageBuilder.AddHtmlFile($"OEBPS/{volumeFileName}", volumeHtml);
+							var volumeNav = new NavPoint {
+								Title = volume.Title,
+								ContentSrc = volumeFileName,
+								Children = []
+							};
+
+							// Chapters within volume
+							if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
+								foreach (var chapter in chapters) {
+									var chapterFileName = $"chapter_{chapterIndex:D3}.xhtml";
+									var chapterHtml = await templateEngine.RenderAsync("epub_chapter",
+										new {
+											chapter.Title,
+											chapter.ContentData?.Segments,
+											chapter.ContentData?.Footnotes,
+											ImageFileMap = context.AssetFileMap
+										});
+
+									packageBuilder.AddHtmlFile($"OEBPS/{chapterFileName}", chapterHtml);
+									volumeNav.Children.Add(new NavPoint {
+										Title = chapter.Title,
+										ContentSrc = chapterFileName
+									});
+									chapterIndex++;
+								}
+							}
+
+							packageBuilder.AddNavPoint(volumeNav);
+							volumeIndex++;
+						}
+
+						break;
+					}
 
 				case BookSection.Unknown:
+					break;
+				default:
 					break;
 			}
 		}

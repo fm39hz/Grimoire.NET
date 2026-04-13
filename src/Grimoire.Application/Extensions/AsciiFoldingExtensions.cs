@@ -1832,7 +1832,7 @@ public static class StringExtensions {
 	///     Returns the fallback value if the input string is null or empty
 	/// </summary>
 	public static string DefaultIfNullOrEmpty(this string? value, string fallback) =>
-		string.IsNullOrEmpty(value)? fallback : value;
+		string.IsNullOrEmpty(value) ? fallback : value;
 
 	/// <summary>
 	///     Converts characters above ASCII to their ASCII equivalents.  For example,

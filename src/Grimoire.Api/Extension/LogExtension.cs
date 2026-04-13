@@ -12,7 +12,7 @@ public static class LogExtension {
 		const string template =
 			"{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}{NewLine}[{Level:u3}] {Message:lj}{NewLine}{Exception}";
 		Log.Logger = new LoggerConfiguration()
-			.WriteTo.Console(outputTemplate : template).CreateBootstrapLogger();
+			.WriteTo.Console(outputTemplate: template).CreateBootstrapLogger();
 
 		builder.Host.UseSerilog((context, provider, configuration) => configuration
 			.ReadFrom.Configuration(context.Configuration)
@@ -22,7 +22,7 @@ public static class LogExtension {
 			.Enrich.FromLogContext()
 			.Enrich.WithExceptionDetails()
 			.WriteTo.Async(a => a.Console(
-				outputTemplate : template, theme : SystemConsoleTheme.Colored, applyThemeToRedirectedOutput : true)));
+				outputTemplate: template, theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true)));
 		return services;
 	}
 }

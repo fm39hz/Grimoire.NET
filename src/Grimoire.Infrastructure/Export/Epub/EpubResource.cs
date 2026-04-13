@@ -14,21 +14,27 @@ public class EpubResource {
 	///     Creates a text resource (HTML, CSS, XML)
 	/// </summary>
 	public static EpubResource FromText(string path, string content) => new() {
-		Path = path, Type = EpubResourceType.Text, TextContent = content
+		Path = path,
+		Type = EpubResourceType.Text,
+		TextContent = content
 	};
 
 	/// <summary>
 	///     Creates a binary resource from byte array
 	/// </summary>
 	public static EpubResource FromBytes(string path, byte[] content) => new() {
-		Path = path, Type = EpubResourceType.Binary, BinaryContent = content
+		Path = path,
+		Type = EpubResourceType.Binary,
+		BinaryContent = content
 	};
 
 	/// <summary>
 	///     Creates a binary resource from stream provider (lazy loading)
 	/// </summary>
 	public static EpubResource FromStream(string path, Func<Task<Stream?>> streamProvider) => new() {
-		Path = path, Type = EpubResourceType.Stream, StreamProvider = streamProvider
+		Path = path,
+		Type = EpubResourceType.Stream,
+		StreamProvider = streamProvider
 	};
 }
 

@@ -188,10 +188,10 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 
 			var isCover = !string.IsNullOrEmpty(_coverImagePath) && filename == _coverImagePath;
 			manifestItems.Add(new {
-				Id = isCover? "cover-image" : $"img{imageIndex++}",
+				Id = isCover ? "cover-image" : $"img{imageIndex++}",
 				Href = filename,
 				MediaType = mediaType,
-				Properties = isCover? "cover-image" : null
+				Properties = isCover ? "cover-image" : null
 			});
 		}
 
@@ -200,12 +200,12 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 		fileIndex = 1;
 		foreach (var contentSrc in navOrder.Where(contentSrc =>
 					_resources.ContainsKey($"{EpubConstants.Paths.OebpsPrefix}{contentSrc}"))) {
-			spineItems.Add(new { IdRef = contentSrc == "nav.xhtml"? "nav" : $"file{fileIndex++}" });
+			spineItems.Add(new { IdRef = contentSrc == "nav.xhtml" ? "nav" : $"file{fileIndex++}" });
 		}
 
 		// Generate a shared identifier for both content.opf and toc.ncx
 		_sharedIdentifier = Guid.NewGuid();
-		
+
 		var xml = await templateEngine.RenderAsync("epub_content_opf",
 			new {
 				Uid = _sharedIdentifier.Value,
@@ -233,8 +233,8 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 
 		var xml = await templateEngine.RenderAsync("epub_toc_ncx",
 			new {
-				Uid = _sharedIdentifier ?? Guid.NewGuid(), 
-				Title = _title ?? EpubConstants.Defaults.UntitledBook, 
+				Uid = _sharedIdentifier ?? Guid.NewGuid(),
+				Title = _title ?? EpubConstants.Defaults.UntitledBook,
 				NavPoints = flatNavPoints
 			});
 
@@ -243,8 +243,8 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 		// Only increase playOrder for actual content files, not for navigation files like nav.xhtml
 		void processNavPoint(NavPoint nav, List<object> target, ref int currentPlayOrder) {
 			// Only assign playOrder if this is an actual content file (not nav.xhtml)
-			int assignedPlayOrder = !string.IsNullOrEmpty(nav.ContentSrc) && nav.ContentSrc != "nav.xhtml" ? currentPlayOrder++ : 0;
-			
+			var assignedPlayOrder = !string.IsNullOrEmpty(nav.ContentSrc) && nav.ContentSrc != "nav.xhtml" ? currentPlayOrder++ : 0;
+
 			var current = new { nav.Title, nav.ContentSrc, PlayOrder = assignedPlayOrder, Children = new List<object>() };
 			target.Add(current);
 

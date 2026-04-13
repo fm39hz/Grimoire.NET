@@ -15,7 +15,7 @@ public class MarkdownExportStrategy(ITemplateEngine templateEngine) : IExportStr
 			var markdown = await templateEngine.RenderAsync("markdown", context);
 
 			var memoryStream = new MemoryStream();
-			await using var writer = new StreamWriter(memoryStream, System.Text.Encoding.UTF8, leaveOpen : true);
+			await using var writer = new StreamWriter(memoryStream, System.Text.Encoding.UTF8, leaveOpen: true);
 			await writer.WriteAsync(markdown);
 			await writer.FlushAsync();
 			memoryStream.Position = 0;

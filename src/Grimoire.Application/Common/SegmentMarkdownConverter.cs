@@ -134,7 +134,7 @@ public static class SegmentMarkdownConverter {
 
 		for (var i = 0; i < footnotes.Count; i++) {
 			var footnoteId = footnotes[i].Id;
-			var key = footnoteId.StartsWith("seg_")? footnoteId[4..] : footnoteId;
+			var key = footnoteId.StartsWith("seg_") ? footnoteId[4..] : footnoteId;
 			map[key] = i + 1;
 		}
 
@@ -206,7 +206,7 @@ public static class SegmentMarkdownConverter {
 
 		foreach (var footnote in footnotes) {
 			var footnoteId = footnote.Id;
-			var key = footnoteId.StartsWith("seg_")? footnoteId[4..] : footnoteId;
+			var key = footnoteId.StartsWith("seg_") ? footnoteId[4..] : footnoteId;
 			if (!footnoteMap.TryGetValue(key, out var index)) {
 				continue;
 			}

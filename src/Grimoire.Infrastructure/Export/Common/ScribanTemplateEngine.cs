@@ -29,7 +29,7 @@ public class ScribanTemplateEngine : ITemplateEngine {
 		var context = new TemplateContext { MemberRenamer = StandardMemberRenamer.Rename };
 
 		var modelObject = new ScriptObject();
-		modelObject.Import(model, renamer : context.MemberRenamer);
+		modelObject.Import(model, renamer: context.MemberRenamer);
 
 		context.PushGlobal(_sharedFunctions);
 		context.PushGlobal(modelObject);

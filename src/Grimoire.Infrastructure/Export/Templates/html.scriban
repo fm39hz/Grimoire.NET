@@ -32,7 +32,7 @@
                     {{ if (section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
                         <div class='description'>
                             <h2>Description</h2>
-                            {{ series.metadata.description | to_html null asset_file_map }}
+{{ series.metadata.description | to_format "html" null asset_file_map }}
                         </div>
                     {{ end }}
                     {{ if series.metadata.tags && series.metadata.tags.size > 0 }}
@@ -61,7 +61,7 @@
                             {{ for chapter in chapters }}
                                 <div class='chapter' id='chapter-{{ chapter.id }}'>
                                     <h3>{{ chapter.title }}</h3>
-                                    {{ chapter.content_data.segments | to_html chapter.content_data.footnotes asset_file_map }}
+                                    {{ chapter.content_data.segments | to_format "html" chapter.content_data.footnotes asset_file_map }}
                                 </div>
                             {{ end }}
                         </div>

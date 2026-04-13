@@ -22,7 +22,7 @@ public partial class BookMapper {
 		SeriesId = seriesId,
 		Order = dto.Order,
 		Title = dto.Title,
-		Metadata = dto.Metadata != null? ToVolumeMetadata(dto.Metadata) : null
+		Metadata = dto.Metadata != null ? ToVolumeMetadata(dto.Metadata) : null
 	};
 
 	public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId) {
@@ -67,7 +67,9 @@ public partial class BookMapper {
 			Order = dto.Order,
 			Title = dto.Title,
 			ContentData = new ChapterContentModel {
-				Id = chapterId, Segments = cleanContent, Footnotes = cleanFootnotes
+				Id = chapterId,
+				Segments = cleanContent,
+				Footnotes = cleanFootnotes
 			}
 		};
 	}

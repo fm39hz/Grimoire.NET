@@ -29,7 +29,7 @@
 <div class="front-matter">
     <div class="section-title">Tóm tắt</div>
     <div class="description text-justify">
-        {{ description | to_html null image_file_map }}
+        {{ description | to_format "html" null image_file_map }}
     </div>
 </div>
 {{ end }}

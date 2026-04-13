@@ -130,7 +130,7 @@ public class BookExportOrchestrator(
 			.SelectMany(chapters => chapters)
 			.SelectMany(chapter => chapter.ContentData!.Segments.OfType<ImageSegmentModel>())
 			.Select(seg => (seg.AssetKey,
-				PrefixedId.TryToGuid(seg.AssetKey, EntityPrefix.Asset, out var id)? id : Guid.Empty))
+				PrefixedId.TryToGuid(seg.AssetKey, EntityPrefix.Asset, out var id) ? id : Guid.Empty))
 			.Where(pair => pair.Item2 != Guid.Empty)
 			.DistinctBy(pair => pair.Item2)
 			.ToDictionary(pair => pair.AssetKey, pair => pair.Item2);

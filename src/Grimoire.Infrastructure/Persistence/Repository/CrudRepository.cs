@@ -3,8 +3,8 @@ namespace Grimoire.Infrastructure.Persistence.Repository;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
-using Persistence.Database;
 using Microsoft.EntityFrameworkCore;
+using Persistence.Database;
 
 public abstract class CrudRepository<T>(ApplicationDbContext context) : IRepository<T> where T : BaseModel, IModel {
 	protected DbSet<T> Entities => context.Set<T>();

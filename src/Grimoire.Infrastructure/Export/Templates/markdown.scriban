@@ -38,7 +38,7 @@
                 {{ chapters = chapter_map[volume.id] }}
                 {{ for chapter in chapters }}
                     ### {{ chapter.title }}
-                    {{ chapter.content_data.segments | to_markdown chapter.content_data.footnotes asset_file_map }}
+                    {{ chapter.content_data.segments | to_format "markdown" chapter.content_data.footnotes asset_file_map }}
                     
                     ---
                 {{ end }}
@@ -47,7 +47,7 @@
         {{ when "Description" }}
             {{ if !(section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
                 ## Description
-                {{ series.metadata.description | to_markdown null asset_file_map }}
+{{ series.metadata.description | to_format "markdown" null asset_file_map }}
                 
                 ---
             {{ end }}

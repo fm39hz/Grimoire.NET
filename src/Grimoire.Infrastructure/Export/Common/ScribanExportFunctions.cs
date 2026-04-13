@@ -10,6 +10,13 @@ using Domain.Entity.Book.Segment;
 using Scriban.Runtime;
 
 public class ScribanExportFunctions : ScriptObject {
+	public static string ToFormat(object input, string format, object? footnotes = null, object? assetMap = null) => format.ToLowerInvariant() switch {
+		"markdown" => ToMarkdown(input, footnotes, assetMap),
+		"html" => ToHtml(input, footnotes, assetMap),
+		"epub" => ToHtml(input, footnotes, assetMap), // EPUB uses HTML content
+		_ => string.Empty
+	};
+
 	public static string ToMarkdown(object input, object? footnotes = null, object? assetMap = null) {
 		var footnoteList = footnotes as List<FootnoteSegmentModel>;
 
@@ -65,6 +72,8 @@ public class ScribanExportFunctions : ScriptObject {
 					// But if they need to be rendered inline, we can do so here
 					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs, assetDict)}</aside>");
 					break;
+				default:
+					break;
 			}
 		}
 
@@ -78,19 +87,17 @@ public class ScribanExportFunctions : ScriptObject {
 
 	// Helper method to convert object to dictionary
 	private static Dictionary<string, string>? ConvertToDictionary(object? obj) {
-		switch (obj)
-		{
+		switch (obj) {
 			case Dictionary<string, string> dict:
 				return dict;
-			case IReadOnlyDictionary<string, string> readOnlyDict:
-			{
-				var newDict = new Dictionary<string, string>();
-				foreach (var kvp in readOnlyDict) {
-					newDict[kvp.Key] = kvp.Value;
-				}
+			case IReadOnlyDictionary<string, string> readOnlyDict: {
+					var newDict = new Dictionary<string, string>();
+					foreach (var kvp in readOnlyDict) {
+						newDict[kvp.Key] = kvp.Value;
+					}
 
-				return newDict;
-			}
+					return newDict;
+				}
 			default:
 				return obj as Dictionary<string, string>;
 		}

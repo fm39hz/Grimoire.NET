@@ -69,7 +69,7 @@ public partial class LocalStorageRepository(
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
-		return !File.Exists(filePath)? [] : await File.ReadAllBytesAsync(filePath);
+		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath);
 	}
 
 	public async Task<Stream?> GetFileStreamAsync(Guid assetId) {
