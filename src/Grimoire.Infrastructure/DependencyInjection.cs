@@ -51,9 +51,9 @@ public static class DependencyInjection {
 
 		// Register export strategies
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
-		services.AddScoped<IExportStrategy, PdfExportStrategy>();
-		services.AddScoped<IExportStrategy, HtmlExportStrategy>();
-		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
+		// services.AddScoped<IExportStrategy, PdfExportStrategy>();
+		// services.AddScoped<IExportStrategy, HtmlExportStrategy>();
+		// services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
 
 		return services;
 	}
