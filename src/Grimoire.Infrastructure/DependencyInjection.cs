@@ -42,14 +42,18 @@ public static class DependencyInjection {
 				throw new InvalidOperationException($"Unknown storage type: {storageType}");
 		}
 
-		// Register template engine
+		// Template engine
 		services.AddSingleton<ITemplateEngine, ScribanTemplateEngine>();
 
-		// Register EPUB builders
-		services.AddSingleton<IPackageBuilderFactory, PackageBuilderFactory>();
-		services.AddTransient<EpubPackageBuilder>();
+		// Package builders
+		services.AddTransient<IPackageBuilderFactory, PackageBuilderFactory>();
+		services.AddScoped<IPackageBuilder, EpubPackageBuilder>();
 
-		// Register export strategies
+
+		// Export strategies
+		services.AddScoped<ISectionRendererFactory, SectionRendererFactory>();
+
+		services.AddScoped<ISectionRenderer, EpubSectionRenderer>();
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
 		// services.AddScoped<IExportStrategy, PdfExportStrategy>();
 		// services.AddScoped<IExportStrategy, HtmlExportStrategy>();
