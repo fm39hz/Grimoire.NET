@@ -46,7 +46,7 @@ public static class DependencyInjection {
 		services.AddSingleton<ITemplateEngine, ScribanTemplateEngine>();
 
 		// Register EPUB builders
-		services.AddSingleton<IEpubPackageBuilderFactory, EpubPackageBuilderFactory>();
+		services.AddSingleton<IPackageBuilderFactory, PackageBuilderFactory>();
 		services.AddTransient<EpubPackageBuilder>();
 
 		// Register export strategies
