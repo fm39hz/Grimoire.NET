@@ -16,6 +16,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 	private string? _language = EpubConstants.Defaults.Language;
 	private List<string>? _tags;
 	private string? _title;
+	private Guid? _sharedIdentifier;
 
 	public void SetMetadata(string title, string? author = null, string? language = null, string? description = null,
 		List<string>? tags = null) {
@@ -202,9 +203,12 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 			spineItems.Add(new { IdRef = contentSrc == "nav.xhtml"? "nav" : $"file{fileIndex++}" });
 		}
 
+		// Generate a shared identifier for both content.opf and toc.ncx
+		_sharedIdentifier = Guid.NewGuid();
+		
 		var xml = await templateEngine.RenderAsync("epub_content_opf",
 			new {
-				Uid = Guid.NewGuid(),
+				Uid = _sharedIdentifier.Value,
 				Title = _title ?? EpubConstants.Defaults.UntitledBook,
 				Author = _author,
 				Description = _description,
@@ -224,19 +228,24 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 		var playOrder = 1;
 
 		foreach (var nav in _navPoints) {
-			processNavPoint(nav, flatNavPoints);
+			processNavPoint(nav, flatNavPoints, ref playOrder);
 		}
 
 		var xml = await templateEngine.RenderAsync("epub_toc_ncx",
 			new {
-				Uid = Guid.NewGuid(), Title = _title ?? EpubConstants.Defaults.UntitledBook, NavPoints = flatNavPoints
+				Uid = _sharedIdentifier ?? Guid.NewGuid(), 
+				Title = _title ?? EpubConstants.Defaults.UntitledBook, 
+				NavPoints = flatNavPoints
 			});
 
 		AddResource(EpubResource.FromText(EpubConstants.Paths.TocNcxFile, xml));
-		return;
 
-		void processNavPoint(NavPoint nav, List<object> target) {
-			var current = new { nav.Title, nav.ContentSrc, PlayOrder = playOrder++, Children = new List<object>() };
+		// Only increase playOrder for actual content files, not for navigation files like nav.xhtml
+		void processNavPoint(NavPoint nav, List<object> target, ref int currentPlayOrder) {
+			// Only assign playOrder if this is an actual content file (not nav.xhtml)
+			int assignedPlayOrder = !string.IsNullOrEmpty(nav.ContentSrc) && nav.ContentSrc != "nav.xhtml" ? currentPlayOrder++ : 0;
+			
+			var current = new { nav.Title, nav.ContentSrc, PlayOrder = assignedPlayOrder, Children = new List<object>() };
 			target.Add(current);
 
 			if (nav.Children == null) {
@@ -244,7 +253,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) {
 			}
 
 			foreach (var child in nav.Children) {
-				processNavPoint(child, current.Children);
+				processNavPoint(child, current.Children, ref currentPlayOrder);
 			}
 		}
 	}

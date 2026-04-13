@@ -152,7 +152,7 @@ public class ScribanExportFunctions : ScriptObject {
 		}
 
 		var sb = new StringBuilder();
-		sb.AppendLine("<aside class=\"footnotes\" epub:type=\"footnotes\" role=\"doc-endnotes\">");
+		sb.AppendLine("<aside class=\"footnotes\" epub:type=\"footnotes\" role=\"doc-footnote\">");
 
 		foreach (var footnote in footnotes) {
 			var footnoteIdStr = footnote.Id.ToString();
