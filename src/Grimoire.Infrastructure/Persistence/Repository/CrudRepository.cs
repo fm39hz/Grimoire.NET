@@ -13,10 +13,9 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 
 	public virtual async Task<PagedResult<T>> FindAll(int pageIndex, int pageSize) {
 		var query = Entities.AsNoTracking().OrderBy(e => e.Id);
-		var countTask = query.CountAsync();
-		var itemsTask = query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
-		await Task.WhenAll(countTask, itemsTask);
-		return new PagedResult<T>(itemsTask.Result, countTask.Result, pageIndex, pageSize);
+		var count = await query.CountAsync();
+		var items = await query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
+		return new PagedResult<T>(items, count, pageIndex, pageSize);
 	}
 
 	public async Task<T> Create(T entity) {
