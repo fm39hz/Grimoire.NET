@@ -25,7 +25,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
     private string? _title;
     private string? _author;
     private string? _description;
-    private string _language = EpubConstants.Defaults.Language;
+    private string _language = EpubConstants.Defaults.LANGUAGE;
     private List<string>? _tags;
     private string? _coverImagePath;
     private Guid? _sharedIdentifier;
@@ -35,14 +35,14 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
     public void SetMetadata(BookPackageMetadata metadata) {
         _title = metadata.Title;
         _author = metadata.Author;
-        _language = metadata.Language ?? EpubConstants.Defaults.Language;
+        _language = metadata.Language ?? EpubConstants.Defaults.LANGUAGE;
         _description = metadata.PlainTextDescription;
         _tags = metadata.Tags?.ToList();
     }
 
     public void AddAsset(string resolvedFileName, Func<Task<Stream?>> streamProvider, AssetRefType refType) {
-        var localPath = $"{EpubConstants.Paths.ImagesFolder}{resolvedFileName}";
-        AddResource(EpubResource.FromStream($"{EpubConstants.Paths.OebpsPrefix}{localPath}", streamProvider));
+        var localPath = $"{EpubConstants.Paths.IMAGES_FOLDER}{resolvedFileName}";
+        AddResource(EpubResource.FromStream($"{EpubConstants.Paths.OEBPS_PREFIX}{localPath}", streamProvider));
 
         if (refType == AssetRefType.Cover) {
             _coverImagePath = localPath;
@@ -59,11 +59,11 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
             return;
         }
 
-        AddResource(EpubResource.FromText($"{EpubConstants.Paths.OebpsPrefix}{fileName}", htmlContent));
+        AddResource(EpubResource.FromText($"{EpubConstants.Paths.OEBPS_PREFIX}{fileName}", htmlContent));
     }
 
     public void AddStylesheet(string css) =>
-        AddResource(EpubResource.FromText(EpubConstants.Paths.StyleCssFile, css));
+        AddResource(EpubResource.FromText(EpubConstants.Paths.STYLE_CSS_FILE, css));
 
     public void SetNavigation(IReadOnlyList<NavEntry> navEntries) {
         _navPoints.Clear();
@@ -80,7 +80,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 
         var memoryStream = new MemoryStream();
         await using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true)) {
-            var mimetypeEntry = archive.CreateEntry(EpubConstants.Paths.MimeTypeFile, CompressionLevel.NoCompression);
+            var mimetypeEntry = archive.CreateEntry(EpubConstants.Paths.MIME_TYPE_FILE, CompressionLevel.NoCompression);
             await using (var writer = new StreamWriter(await mimetypeEntry.OpenAsync(), Encoding.ASCII)) {
                 await writer.WriteAsync("application/epub+zip");
             }
@@ -119,7 +119,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 
     private void GenerateNavXhtml() {
         var html = templateEngine.Render("epub_toc", new { NavPoints = _navPoints });
-        AddResource(EpubResource.FromText(EpubConstants.Paths.NavFile, html));
+        AddResource(EpubResource.FromText(EpubConstants.Paths.NAV_FILE, html));
     }
 
     private void GenerateContainerXml() {
@@ -131,7 +131,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
               </rootfiles>
             </container>
             """;
-        AddResource(EpubResource.FromText(EpubConstants.Paths.ContainerXmlFile, xml));
+        AddResource(EpubResource.FromText(EpubConstants.Paths.CONTAINER_XML_FILE, xml));
     }
 
     private void GenerateContentOpf() {
@@ -141,15 +141,15 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
         var fileIndex = 1;
 
         var htmlFiles = navOrder
-            .Select(src => $"{EpubConstants.Paths.OebpsPrefix}{src}")
+            .Select(src => $"{EpubConstants.Paths.OEBPS_PREFIX}{src}")
             .Where(_resources.ContainsKey)
-            .Where(p => p != EpubConstants.Paths.NavFile)
+            .Where(p => p != EpubConstants.Paths.NAV_FILE)
             .ToList();
 
         foreach (var path in htmlFiles) {
             manifestItems.Add(new {
                 Id = $"file{fileIndex++}",
-                Href = path.Replace(EpubConstants.Paths.OebpsPrefix, ""),
+                Href = path.Replace(EpubConstants.Paths.OEBPS_PREFIX, ""),
                 MediaType = "application/xhtml+xml",
                 Properties = (string?)null
             });
@@ -157,11 +157,11 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 
         var imageIndex = 1;
         var imagePaths = _resources.Keys
-            .Where(k => k.StartsWith($"{EpubConstants.Paths.OebpsPrefix}{EpubConstants.Paths.ImagesFolder}"))
+            .Where(k => k.StartsWith($"{EpubConstants.Paths.OEBPS_PREFIX}{EpubConstants.Paths.IMAGES_FOLDER}"))
             .ToList();
 
         foreach (var path in imagePaths) {
-            var filename = path.Replace(EpubConstants.Paths.OebpsPrefix, "");
+            var filename = path.Replace(EpubConstants.Paths.OEBPS_PREFIX, "");
             var ext = Path.GetExtension(filename).ToLowerInvariant();
             var mediaType = ext switch {
                 ".jpg" or ".jpeg" => "image/jpeg",
@@ -183,7 +183,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
         var spineItems = new List<object>();
         fileIndex = 1;
         foreach (var src in navOrder.Where(src =>
-            _resources.ContainsKey($"{EpubConstants.Paths.OebpsPrefix}{src}"))) {
+            _resources.ContainsKey($"{EpubConstants.Paths.OEBPS_PREFIX}{src}"))) {
             spineItems.Add(new { IdRef = src == "nav.xhtml" ? "nav" : $"file{fileIndex++}" });
         }
 
@@ -191,7 +191,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 
         var xml = templateEngine.Render("epub_content_opf", new {
             Uid = _sharedIdentifier.Value,
-            Title = _title ?? EpubConstants.Defaults.UntitledBook,
+            Title = _title ?? EpubConstants.Defaults.UNTITLED_BOOK,
             Author = _author,
             Description = _description,
             Tags = _tags,
@@ -202,7 +202,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
             SpineItems = spineItems
         });
 
-        AddResource(EpubResource.FromText(EpubConstants.Paths.ContentOpfFile, xml));
+        AddResource(EpubResource.FromText(EpubConstants.Paths.CONTENT_OPF_FILE, xml));
     }
 
     private void GenerateTocNcx() {
@@ -215,11 +215,11 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 
         var xml = templateEngine.Render("epub_toc_ncx", new {
             Uid = _sharedIdentifier ?? Guid.NewGuid(),
-            Title = _title ?? EpubConstants.Defaults.UntitledBook,
+            Title = _title ?? EpubConstants.Defaults.UNTITLED_BOOK,
             NavPoints = flatNavPoints
         });
 
-        AddResource(EpubResource.FromText(EpubConstants.Paths.TocNcxFile, xml));
+        AddResource(EpubResource.FromText(EpubConstants.Paths.TOC_NCX_FILE, xml));
 
         void ProcessNavPoint(NavPoint nav, List<object> target, ref int order) {
             var assignedOrder = !string.IsNullOrEmpty(nav.ContentSrc) && nav.ContentSrc != "nav.xhtml"

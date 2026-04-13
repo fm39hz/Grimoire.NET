@@ -5,57 +5,37 @@ namespace Grimoire.Infrastructure.Export.Common;
 /// </summary>
 public static class EpubConstants {
 	/// <summary>
-	///     Section type identifiers (case-insensitive)
-	/// </summary>
-	public static class SectionTypes {
-		public const string IntroPage = "intropage";
-		public const string Intro = "intro";
-		public const string Description = "description";
-		public const string Toc = "toc";
-		public const string TableOfContents = "tableofcontents";
-		public const string Content = "content";
-		public const string Chapters = "chapters";
-	}
-
-	/// <summary>
-	///     Section option keys
-	/// </summary>
-	public static class SectionOptions {
-		public const string SplitDescription = "splitDescription";
-	}
-
-	/// <summary>
 	///     Localized text content (Vietnamese)
 	/// </summary>
 	public static class LocalizedText {
-		public const string Introduction = "Giới thiệu";
-		public const string Summary = "Tóm tắt";
-		public const string TableOfContents = "Mục lục";
-		public const string Footnote = "Ghi chú:";
-		public const string Author = "Tác giả: ";
-		public const string PublicationDate = "Ngày xuất bản: ";
+		public const string INTRODUCTION = "Giới thiệu";
+		public const string SUMMARY = "Tóm tắt";
+		public const string TABLE_OF_CONTENTS = "Mục lục";
+		public const string FOOTNOTE = "Ghi chú:";
+		public const string AUTHOR = "Tác giả: ";
+		public const string PUBLICATION_DATE = "Ngày xuất bản: ";
 	}
 
 	/// <summary>
 	///     EPUB file paths
 	/// </summary>
 	public static class Paths {
-		public const string OebpsPrefix = "OEBPS/";
-		public const string ImagesFolder = "images/";
-		public const string NavFile = "OEBPS/nav.xhtml";
-		public const string TocNcxFile = "OEBPS/toc.ncx";
-		public const string ContentOpfFile = "OEBPS/content.opf";
-		public const string StyleCssFile = "OEBPS/style.css";
-		public const string ContainerXmlFile = "META-INF/container.xml";
-		public const string MimeTypeFile = "mimetype";
+		public const string OEBPS_PREFIX = "OEBPS/";
+		public const string IMAGES_FOLDER = "images/";
+		public const string NAV_FILE = "OEBPS/nav.xhtml";
+		public const string TOC_NCX_FILE = "OEBPS/toc.ncx";
+		public const string CONTENT_OPF_FILE = "OEBPS/content.opf";
+		public const string STYLE_CSS_FILE = "OEBPS/style.css";
+		public const string CONTAINER_XML_FILE = "META-INF/container.xml";
+		public const string MIME_TYPE_FILE = "mimetype";
 	}
 
 	/// <summary>
 	///     EPUB metadata defaults
 	/// </summary>
 	public static class Defaults {
-		public const string Language = "vi";
-		public const string ImageExtension = ".jpg";
-		public const string UntitledBook = "Untitled";
+		public const string LANGUAGE = "vi";
+		public const string IMAGE_EXTENSION = ".jpg";
+		public const string UNTITLED_BOOK = "Untitled";
 	}
 }
