@@ -5,6 +5,7 @@ using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
+using Grimoire.Domain.Entity;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
@@ -16,6 +17,13 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<GlossaryTerm> GlossaryTerms { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SourceMaterial> SourceMaterials { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
+
+	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
+		foreach (var entry in ChangeTracker.Entries<BaseModel>().Where(e => e.State == EntityState.Modified)) {
+			entry.Entity.MarkAsUpdated();
+		}
+		return await base.SaveChangesAsync(cancellationToken);
+	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);

@@ -3,9 +3,10 @@ namespace Grimoire.Infrastructure.Persistence.Repository;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
+using Persistence.Database;
 using Microsoft.EntityFrameworkCore;
 
-public abstract class CrudRepository<T>(DbContext context) : IRepository<T> where T : BaseModel, IModel {
+public abstract class CrudRepository<T>(ApplicationDbContext context) : IRepository<T> where T : BaseModel, IModel {
 	protected DbSet<T> Entities => context.Set<T>();
 
 	public virtual async Task<T?> FindOne(Guid id) =>
@@ -32,7 +33,6 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	}
 
 	public async Task<T> Update(T entity) {
-		entity.MarkAsUpdated();
 		var result = Entities.Update(entity);
 		await context.SaveChangesAsync();
 		return result.Entity;
@@ -41,14 +41,8 @@ public abstract class CrudRepository<T>(DbContext context) : IRepository<T> wher
 	public async Task<int> Delete(Guid id) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync();
 
 	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities) {
-		var baseModels = entities.ToList();
-
-		foreach (var entity in baseModels) {
-			entity.MarkAsUpdated();
-		}
-
-		Entities.UpdateRange(baseModels);
+		Entities.UpdateRange(entities);
 		await context.SaveChangesAsync();
-		return baseModels;
+		return entities;
 	}
 }
