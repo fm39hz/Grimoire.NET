@@ -13,13 +13,55 @@ public partial class MarkdownSectionRenderer(
 	ILogger<MarkdownSectionRenderer> logger) : ISectionRenderer {
 	public ExportFormat Format => ExportFormat.Markdown;
 
+	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null, IReadOnlyDictionary<string, string>? assetMap = null) {
+		var segmentList = segments.ToList();
+		if (segmentList.Count == 0) {
+			return string.Empty;
+		}
+
+		var footnoteMap = BuildFootnoteMap(footnotes);
+		var sb = new StringBuilder();
+
+		foreach (var segment in segmentList) {
+			var markdown = ConvertSegmentToMarkdown(segment, footnoteMap);
+			if (!string.IsNullOrWhiteSpace(markdown)) {
+				sb.AppendLine(markdown);
+				sb.AppendLine();
+			}
+		}
+
+		if (footnotes is { Count: > 0 }) {
+			sb.AppendLine();
+			AppendFootnotes(sb, footnotes, footnoteMap);
+		}
+
+		return sb.ToString();
+	}
+
+	public string RenderDescription(IEnumerable<TextSegmentModel> segments, IReadOnlyDictionary<string, string>? assetMap = null) {
+		var segmentList = segments.ToList();
+		if (segmentList.Count == 0) {
+			return string.Empty;
+		}
+
+		var sb = new StringBuilder();
+		foreach (var segment in segmentList) {
+			var markdown = ConvertTextSegmentToMarkdown(segment);
+			if (!string.IsNullOrWhiteSpace(markdown)) {
+				sb.AppendLine(markdown);
+			}
+		}
+
+		return sb.ToString();
+	}
+
 	public IReadOnlyList<NavEntry> RenderSection(
 		BookExportContext context,
 		ExportSectionDto section,
 		IPackageBuilder builder) => section.Type switch {
 			BookSection.Intro or BookSection.IntroPage => RenderIntro(context, section, builder),
 			BookSection.Toc or BookSection.TableOfContents => RenderToc(context, builder),
-			BookSection.Description => RenderDescription(context, section, builder),
+			BookSection.Description => RenderDescriptionSection(context, section, builder),
 			BookSection.Content or BookSection.Chapters => RenderContent(context, builder),
 			BookSection.Unknown or _ => []
 		};
@@ -77,7 +119,7 @@ public partial class MarkdownSectionRenderer(
 		return [new NavEntry("toc", "Table of Contents")];
 	}
 
-	private IReadOnlyList<NavEntry> RenderDescription(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
+	private IReadOnlyList<NavEntry> RenderDescriptionSection(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
 		var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
 
 		if (introSection != null && !IsSplitDescriptionEnabled(introSection)) {

@@ -1,10 +1,14 @@
 namespace Grimoire.Infrastructure.Export.Epub;
 
+using System.Text;
+using System.Web;
 using Application.Dto.Book;
 using Application.Export;
 using Application.Extensions;
 using Application.Service.Strategy;
 using Common;
+using Domain.Entity.Book;
+using Domain.Entity.Book.Segment;
 using Microsoft.Extensions.Logging;
 
 public partial class EpubSectionRenderer(
@@ -12,7 +16,144 @@ public partial class EpubSectionRenderer(
 	ILogger<EpubSectionRenderer> logger) : ISectionRenderer {
 	public ExportFormat Format => ExportFormat.Epub;
 
+	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null, IReadOnlyDictionary<string, string>? assetMap = null) {
+		var segmentList = segments.ToList();
+		if (segmentList.Count == 0) {
+			return string.Empty;
+		}
 
+		var footnoteMap = BuildFootnoteMap(segmentList);
+		var sb = new StringBuilder();
+
+		foreach (var segment in segmentList) {
+			switch (segment) {
+				case TextSegmentModel ts:
+					sb.Append($"<p>{RenderTextRuns(ts.Runs, footnoteMap)}</p>");
+					break;
+				case ImageSegmentModel ism:
+					var url = assetMap?.TryGetValue(ism.AssetKey, out var fileName) == true
+						? $"images/{fileName}"
+						: ism.AssetKey;
+					var encodedCaption = HttpUtility.HtmlEncode(ism.Caption ?? string.Empty);
+					sb.Append(
+						$"<figure><img src=\"{HttpUtility.HtmlEncode(url)}\" alt=\"{encodedCaption}\"/><figcaption>{encodedCaption}</figcaption></figure>");
+					break;
+				case DividerSegmentModel ds:
+					sb.Append("<hr class=\"divider\" aria-hidden=\"true\" />");
+					break;
+				case FootnoteSegmentModel fs:
+					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs, assetMap)}</aside>");
+					break;
+			}
+		}
+
+		if (footnotes is { Count: > 0 }) {
+			sb.Append(RenderFootnotesAtEnd(footnotes, footnoteMap));
+		}
+
+		return sb.ToString();
+	}
+
+	public string RenderDescription(IEnumerable<TextSegmentModel> segments, IReadOnlyDictionary<string, string>? assetMap = null) {
+		var segmentList = segments.ToList();
+		if (segmentList.Count == 0) {
+			return string.Empty;
+		}
+
+		var sb = new StringBuilder();
+		foreach (var segment in segmentList) {
+			sb.Append($"<p>{RenderTextRuns(segment.Runs)}</p>");
+		}
+
+		return sb.ToString();
+	}
+
+	private static Dictionary<string, int> BuildFootnoteMap(List<SegmentModel> segments) {
+		var footnoteMap = new Dictionary<string, int>();
+		var footnoteCounter = 1;
+
+		foreach (var segment in segments) {
+			if (segment is not TextSegmentModel textSeg) {
+				continue;
+			}
+
+			foreach (var run in textSeg.Runs) {
+				if (!string.IsNullOrEmpty(run.FootnoteId) && !footnoteMap.ContainsKey(run.FootnoteId)) {
+					footnoteMap[run.FootnoteId] = footnoteCounter++;
+				}
+			}
+		}
+
+		return footnoteMap;
+	}
+
+	private static string RenderTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null) {
+		var sb = new StringBuilder();
+		foreach (var run in runs) {
+			var text = HttpUtility.HtmlEncode(run.Text);
+			text = FormatText(text, run.IsBold, run.IsItalic);
+
+			if (!string.IsNullOrEmpty(run.FootnoteId) && footnoteMap != null &&
+				footnoteMap.TryGetValue(run.FootnoteId, out var footnoteNumber)) {
+				text +=
+					$"<a class=\"footnote-ref\" epub:type=\"noteref\" href=\"#{run.FootnoteId}\">[{footnoteNumber}]</a>";
+			}
+
+			sb.Append(text);
+		}
+
+		return sb.ToString();
+	}
+
+	private static string FormatText(string text, bool isBold, bool isItalic) =>
+		(isBold, isItalic) switch {
+			(true, true) => $"<strong><em>{text}</em></strong>",
+			(true, false) => $"<strong>{text}</strong>",
+			(false, true) => $"<em>{text}</em>",
+			_ => text
+		};
+
+	private static string RenderFootnoteContent(FootnoteSegmentModel footnote, IReadOnlyDictionary<string, string>? assetMap) {
+		var sb = new StringBuilder();
+		foreach (var textSegment in footnote.Segments) {
+			sb.Append($"<p>{RenderTextRuns(textSegment.Runs)}</p>");
+		}
+
+		return sb.ToString();
+	}
+
+	private static string RenderFootnotesAtEnd(List<FootnoteSegmentModel> footnotes,
+		Dictionary<string, int> footnoteMap) {
+		if (footnotes == null || footnotes.Count == 0) {
+			return string.Empty;
+		}
+
+		var sb = new StringBuilder();
+		sb.AppendLine("<aside class=\"footnotes\" epub:type=\"footnotes\" role=\"doc-footnote\">");
+
+		foreach (var footnote in footnotes) {
+			var footnoteIdStr = footnote.Id.ToString();
+			if (!footnoteMap.TryGetValue(footnoteIdStr, out var footnoteNumber)) {
+				continue;
+			}
+
+			sb.AppendLine($"<div id=\"{footnoteIdStr}\" epub:type=\"footnote\">");
+			sb.AppendLine($"<p>[{footnoteNumber}] ");
+
+			var contentSb = new StringBuilder();
+			foreach (var textSeg in footnote.Segments) {
+				contentSb.Append(RenderTextRuns(textSeg.Runs));
+			}
+
+			sb.Append(contentSb);
+
+			sb.AppendLine("</p>");
+			sb.AppendLine("</div>");
+		}
+
+		sb.AppendLine("</aside>");
+		return sb.ToString();
+	}
 
 	public IReadOnlyList<NavEntry> RenderSection(
 		BookExportContext context,
@@ -26,11 +167,15 @@ public partial class EpubSectionRenderer(
 		};
 
 	private IReadOnlyList<NavEntry> RenderIntro(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
+		var renderedDescription = context.Series.Metadata?.Description != null
+			? RenderDescription(context.Series.Metadata.Description, context.AssetFileMap)
+			: string.Empty;
+
 		var html = templateEngine.Render("epub_intro", new {
 			context.Series.Title,
 			Author = context.Series.Metadata?.Authors?.FirstOrDefault(),
 			context.Series.Metadata?.Tags,
-			context.Series.Metadata?.Description,
+			RenderedDescription = renderedDescription,
 			Section = section,
 			CoverLocalPath = ResolveCoverLocalPath(context),
 			ImageFileMap = context.AssetFileMap
@@ -83,11 +228,13 @@ public partial class EpubSectionRenderer(
 			if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
 				foreach (var chapter in chapters) {
 					var chId = chapter.Id.ToString();
+					var renderedContent = chapter.ContentData?.Segments != null
+						? RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, context.AssetFileMap)
+						: string.Empty;
+
 					var chHtml = templateEngine.Render("epub_chapter", new {
 						chapter.Title,
-						chapter.ContentData?.Segments,
-						chapter.ContentData?.Footnotes,
-						ImageFileMap = context.AssetFileMap
+						RenderedContent = renderedContent
 					});
 
 					var chFileName = builder.AddPage(chId, chHtml, PageRole.Chapter);
