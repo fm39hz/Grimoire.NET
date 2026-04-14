@@ -6,6 +6,7 @@ using Domain.Common.Repository;
 using Export;
 using Export.Common;
 using Export.Epub;
+using Export.Markdown;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -54,10 +55,11 @@ public static class DependencyInjection {
 		services.AddScoped<ISectionRendererFactory, SectionRendererFactory>();
 
 		services.AddScoped<ISectionRenderer, EpubSectionRenderer>();
+		services.AddScoped<ISectionRenderer, MarkdownSectionRenderer>();
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
+		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
 		// services.AddScoped<IExportStrategy, PdfExportStrategy>();
 		// services.AddScoped<IExportStrategy, HtmlExportStrategy>();
-		// services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
 
 		return services;
 	}
