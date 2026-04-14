@@ -1,10 +1,10 @@
 namespace Grimoire.Application.Service.Implementation;
 
+using Common;
 using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
@@ -102,7 +102,7 @@ public sealed class ChapterService(
 			originalChapter.ContentData.Segments = segments.Take(firstSplitIndex).ToList();
 
 			// Extract footnotes referenced by segments in the original chapter
-			var firstChapterFootnoteIds = GetReferencedFootnoteIds(originalChapter.ContentData.Segments);
+			var firstChapterFootnoteIds = FootnoteRemapper.ExtractReferencedIds(originalChapter.ContentData.Segments);
 			originalChapter.ContentData.Footnotes = footnotes
 				.Where(f => firstChapterFootnoteIds.Contains(f.Id.ToString()))
 				.ToList();
@@ -119,7 +119,7 @@ public sealed class ChapterService(
 					: segments.Count;
 
 				var newChapterSegments = segments.Skip(currentIndex).Take(nextIndex - currentIndex).ToList();
-				var newChapterFootnoteIds = GetReferencedFootnoteIds(newChapterSegments);
+				var newChapterFootnoteIds = FootnoteRemapper.ExtractReferencedIds(newChapterSegments);
 				var newChapterFootnotes = footnotes
 					.Where(f => newChapterFootnoteIds.Contains(f.Id.ToString()))
 					.ToList();
@@ -150,28 +150,5 @@ public sealed class ChapterService(
 			await unitOfWork.RollbackTransactionAsync();
 			throw;
 		}
-	}
-
-	/// <summary>
-	///     Extracts all footnote IDs referenced in the given segments
-	/// </summary>
-	private static HashSet<string> GetReferencedFootnoteIds(List<SegmentModel> segments) {
-		var footnoteIds = new HashSet<string>();
-
-		foreach (var segment in segments) {
-			// Check if segment is a text segment with footnote references
-			if (segment is not TextSegmentModel textSegment) {
-				continue;
-			}
-
-			// Check each text run for footnote references
-			foreach (var run in textSegment.Runs) {
-				if (!string.IsNullOrEmpty(run.FootnoteId)) {
-					footnoteIds.Add(run.FootnoteId);
-				}
-			}
-		}
-
-		return footnoteIds;
 	}
 }
