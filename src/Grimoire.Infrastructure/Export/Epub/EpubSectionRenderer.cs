@@ -16,7 +16,8 @@ public partial class EpubSectionRenderer(
 	ILogger<EpubSectionRenderer> logger) : ISectionRenderer {
 	public ExportFormat Format => ExportFormat.Epub;
 
-	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null, IReadOnlyDictionary<string, string>? assetMap = null) {
+	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null,
+		IReadOnlyDictionary<string, string>? assetMap = null) {
 		var segmentList = segments.ToList();
 		if (segmentList.Count == 0) {
 			return string.Empty;
@@ -39,10 +40,16 @@ public partial class EpubSectionRenderer(
 						$"<figure><img src=\"{HttpUtility.HtmlEncode(url)}\" alt=\"{encodedCaption}\"/><figcaption>{encodedCaption}</figcaption></figure>");
 					break;
 				case DividerSegmentModel ds:
+					if (ds.Style != default!) {
+						sb.Append($"<p>{ds}</p");
+					}
+
 					sb.Append("<hr class=\"divider\" aria-hidden=\"true\" />");
 					break;
 				case FootnoteSegmentModel fs:
-					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs, assetMap)}</aside>");
+					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs)}</aside>");
+					break;
+				default:
 					break;
 			}
 		}
@@ -54,7 +61,8 @@ public partial class EpubSectionRenderer(
 		return sb.ToString();
 	}
 
-	public string RenderDescription(IEnumerable<TextSegmentModel> segments, IReadOnlyDictionary<string, string>? assetMap = null) {
+	public string RenderDescription(IEnumerable<TextSegmentModel> segments,
+		IReadOnlyDictionary<string, string>? assetMap = null) {
 		var segmentList = segments.ToList();
 		if (segmentList.Count == 0) {
 			return string.Empty;
@@ -113,7 +121,7 @@ public partial class EpubSectionRenderer(
 			_ => text
 		};
 
-	private static string RenderFootnoteContent(FootnoteSegmentModel footnote, IReadOnlyDictionary<string, string>? assetMap) {
+	private static string RenderFootnoteContent(FootnoteSegmentModel footnote) {
 		var sb = new StringBuilder();
 		foreach (var textSegment in footnote.Segments) {
 			sb.Append($"<p>{RenderTextRuns(textSegment.Runs)}</p>");
@@ -163,23 +171,26 @@ public partial class EpubSectionRenderer(
 			BookSection.Toc or BookSection.TableOfContents => RenderToc(builder),
 			BookSection.Description => RenderDescription(context, section, builder),
 			BookSection.Content or BookSection.Chapters => RenderContent(context, builder),
-			BookSection.Unknown or _ => []
+			BookSection.Unknown => throw new NotImplementedException(),
+			_ => []
 		};
 
-	private IReadOnlyList<NavEntry> RenderIntro(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
+	private IReadOnlyList<NavEntry> RenderIntro(BookExportContext context, ExportSectionDto section,
+		IPackageBuilder builder) {
 		var renderedDescription = context.Series.Metadata?.Description != null
 			? RenderDescription(context.Series.Metadata.Description, context.AssetFileMap)
 			: string.Empty;
 
-		var html = templateEngine.Render("epub_intro", new {
-			context.Series.Title,
-			Author = context.Series.Metadata?.Authors?.FirstOrDefault(),
-			context.Series.Metadata?.Tags,
-			RenderedDescription = renderedDescription,
-			Section = section,
-			CoverLocalPath = ResolveCoverLocalPath(context),
-			ImageFileMap = context.AssetFileMap
-		});
+		var html = templateEngine.Render("epub_intro",
+			new {
+				context.Series.Title,
+				Author = context.Series.Metadata?.Authors?.FirstOrDefault(),
+				context.Series.Metadata?.Tags,
+				RenderedDescription = renderedDescription,
+				Section = section,
+				CoverLocalPath = ResolveCoverLocalPath(context),
+				ImageFileMap = context.AssetFileMap
+			});
 
 		builder.AddPage("intro", html, PageRole.Intro);
 		return [new NavEntry("intro", EpubConstants.LocalizedText.INTRODUCTION)];
@@ -191,7 +202,8 @@ public partial class EpubSectionRenderer(
 		return [new NavEntry("toc", EpubConstants.LocalizedText.TABLE_OF_CONTENTS)];
 	}
 
-	private IReadOnlyList<NavEntry> RenderDescription(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
+	private IReadOnlyList<NavEntry> RenderDescription(BookExportContext context, ExportSectionDto section,
+		IPackageBuilder builder) {
 		var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
 
 		if (introSection != null && !ExportUtilities.IsSplitDescriptionEnabled(introSection)) {
@@ -199,12 +211,13 @@ public partial class EpubSectionRenderer(
 			return [];
 		}
 
-		var html = templateEngine.Render("epub_intro", new {
-			Title = EpubConstants.LocalizedText.SUMMARY,
-			context.Series.Metadata?.Description,
-			Section = section,
-			ImageFileMap = context.AssetFileMap
-		});
+		var html = templateEngine.Render("epub_intro",
+			new {
+				Title = EpubConstants.LocalizedText.SUMMARY,
+				context.Series.Metadata?.Description,
+				Section = section,
+				ImageFileMap = context.AssetFileMap
+			});
 
 		builder.AddPage("description", html, PageRole.Description);
 		return [new NavEntry("description", EpubConstants.LocalizedText.SUMMARY)];
@@ -215,31 +228,32 @@ public partial class EpubSectionRenderer(
 
 		foreach (var volume in context.Volumes) {
 			var volId = $"vol_{volume.Id:N}";
-			var volHtml = templateEngine.Render("epub_volume", new {
-				volume.Title,
-				CoverImagePath = volume.Metadata?.CoverImage != null && context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage, out var path) ? path : null,
-				volume.Metadata?.PublicationDate,
-				volume.Metadata?.Isbn
-			});
+			var volHtml = templateEngine.Render("epub_volume",
+				new {
+					volume.Title,
+					CoverImagePath =
+						volume.Metadata?.CoverImage != null &&
+						context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage, out var path)
+							? path
+							: null,
+					volume.Metadata?.PublicationDate,
+					volume.Metadata?.Isbn
+				});
 
 			var volFileName = builder.AddPage(volId, volHtml, PageRole.VolumeTitle);
 
 			var children = new List<NavEntry>();
 			if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
-				foreach (var chapter in chapters) {
-					var chId = chapter.Id.ToString();
-					var renderedContent = chapter.ContentData?.Segments != null
-						? RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, context.AssetFileMap)
-						: string.Empty;
-
-					var chHtml = templateEngine.Render("epub_chapter", new {
-						chapter.Title,
-						RenderedContent = renderedContent
-					});
-
-					var chFileName = builder.AddPage(chId, chHtml, PageRole.Chapter);
-					children.Add(new NavEntry(chFileName, chapter.Title));
-				}
+				children.AddRange(from chapter in chapters
+								  let chId = chapter.Id.ToString()
+								  let renderedContent = chapter.ContentData?.Segments != null
+									  ? RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes,
+										  context.AssetFileMap)
+									  : string.Empty
+								  let chHtml = templateEngine.Render("epub_chapter",
+									  new { chapter.Title, RenderedContent = renderedContent })
+								  let chFileName = builder.AddPage(chId, chHtml)
+								  select new NavEntry(chFileName, chapter.Title));
 			}
 
 			navEntries.Add(new NavEntry(volFileName, volume.Title, children));

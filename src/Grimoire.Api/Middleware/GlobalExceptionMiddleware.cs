@@ -41,6 +41,7 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 			UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized"),
 			KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
 			InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
+			UnsupportedOperationException => (StatusCodes.Status501NotImplemented, "Not Implemented"),
 			_ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
 		};
 

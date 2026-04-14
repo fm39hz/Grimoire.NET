@@ -3,21 +3,22 @@ namespace Grimoire.Api.Controller;
 using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
+using Application.Service.Strategy;
 using Constant;
 using Domain.Common;
+using Domain.Exception;
 using Dto;
 using EntityFramework.Exceptions.Common;
+using Infrastructure.Export.Common;
 using Microsoft.AspNetCore.Mvc;
-using static Application.Common.SegmentMarkdownConverter;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
-public sealed class SeriesController(ISeriesService service, IBookMapper mapper) : ControllerBase {
+public sealed class SeriesController(ISeriesService service, IBookMapper mapper, ISectionRendererFactory rendererFactory) : ControllerBase {
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false,
-		[FromQuery] bool? markdown = false) {
+	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
 		var series = await service.FindOne(guid);
 		if (series is null) {
@@ -25,31 +26,56 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper)
 		}
 
 		var dto = mapper.ToSeriesDto(series);
-		if (timestamp != true) {
-			dto.CreatedAt = null;
-			dto.UpdatedAt = null;
+		if (timestamp == true) {
+			return Results.Ok(dto);
 		}
 
-		if (markdown == true) {
-			dto.Markdown = ConvertTextSegmentsToMarkdown(dto.Metadata.Description);
-		}
+		dto.CreatedAt = null;
+		dto.UpdatedAt = null;
 
 		return Results.Ok(dto);
 	}
 
+	[HttpGet("{id}/content")]
+	[ProducesResponseType(typeof(ContentResponseDto), 200)]
+	[ProducesResponseType(400)]
+	[ProducesResponseType(404)]
+	[ProducesResponseType(501)]
+	public async Task<IResult> GetContent(string id, [FromQuery] string format = "markdown") {
+		if (!Enum.TryParse<ExportFormat>(format, true, out var exportFormat)) {
+			throw new ArgumentException($"Unsupported format: {format}");
+		}
+
+		if (exportFormat is not (ExportFormat.Markdown or ExportFormat.Html)) {
+			throw new ArgumentException($"Content format must be 'markdown' or 'html', got: {format}");
+		}
+
+		var renderer = rendererFactory.Resolve(exportFormat) ?? throw new UnsupportedOperationException($"Renderer for format {format} is not implemented");
+
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var series = await service.FindOne(guid)
+			?? throw new EntityNotFoundException($"Series with id {id} not found");
+
+		if (series.Metadata?.Description == null || series.Metadata.Description.Count == 0) {
+			return Results.Ok(new ContentResponseDto {
+				Content = string.Empty,
+				ContentType = "text/markdown"
+			});
+		}
+
+		var content = renderer.RenderDescription(series.Metadata.Description);
+		var contentType = exportFormat == ExportFormat.Html ? "text/html" : "text/markdown";
+		return Results.Ok(new ContentResponseDto {
+			Content = content,
+			ContentType = contentType
+		});
+	}
+
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<SeriesResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination,
-		[FromQuery] bool? markdown = false) {
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination) {
 		var pagedSeries = await service.FindAll(pagination.ToApplicationDto());
-		var items = pagedSeries.Items.Select(s => {
-			var dto = mapper.ToSeriesDto(s);
-			if (markdown == true) {
-				dto.Markdown = ConvertTextSegmentsToMarkdown(dto.Metadata.Description);
-			}
-
-			return dto;
-		}).ToList();
+		var items = pagedSeries.Items.Select(mapper.ToSeriesDto).ToList();
 		var pagedDto = new PagedResult<SeriesResponseDto>(
 			items,
 			pagedSeries.TotalCount,
