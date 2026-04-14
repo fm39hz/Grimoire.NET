@@ -69,7 +69,7 @@ public partial class EpubSectionRenderer(
 		var navEntries = new List<NavEntry>();
 
 		foreach (var volume in context.Volumes) {
-			var volId = $"vol_{volume.Id:N}"[..Math.Min(8, $"vol_{volume.Id:N}".Length)]; // Use volume ID to ensure unique ID
+			var volId = $"vol_{volume.Id:N}";
 			var volHtml = templateEngine.Render("epub_volume", new {
 				volume.Title,
 				CoverImagePath = volume.Metadata?.CoverImage != null && context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage, out var path) ? path : null,
@@ -77,7 +77,7 @@ public partial class EpubSectionRenderer(
 				volume.Metadata?.Isbn
 			});
 
-			builder.AddPage(volId, volHtml, PageRole.VolumeTitle);
+			var volFileName = builder.AddPage(volId, volHtml, PageRole.VolumeTitle);
 
 			var children = new List<NavEntry>();
 			if (context.ChapterMap.TryGetValue(volume.Id, out var chapters)) {
@@ -90,12 +90,12 @@ public partial class EpubSectionRenderer(
 						ImageFileMap = context.AssetFileMap
 					});
 
-					builder.AddPage(chId, chHtml, PageRole.Chapter);
-					children.Add(new NavEntry(chId, chapter.Title));
+					var chFileName = builder.AddPage(chId, chHtml, PageRole.Chapter);
+					children.Add(new NavEntry(chFileName, chapter.Title));
 				}
 			}
 
-			navEntries.Add(new NavEntry(volId, volume.Title, children));
+			navEntries.Add(new NavEntry(volFileName, volume.Title, children));
 		}
 
 		return navEntries;
