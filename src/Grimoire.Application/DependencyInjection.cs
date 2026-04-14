@@ -20,7 +20,11 @@ public static class DependencyInjection {
 		// Register mappers
 		services.AddScoped<IBookMapper, BookMapper>();
 
-		// Register export orchestrator
+		// Register export collaborators
+		services.AddScoped<VolumeResolver>();
+		services.AddScoped<ChapterLoader>();
+		services.AddScoped<CoverResolver>();
+		services.AddScoped<ImageAssetCollector>();
 		services.AddScoped<BookExportOrchestrator>();
 
 		// Register ingestion strategies in priority order
