@@ -12,8 +12,7 @@ public partial class EpubSectionRenderer(
 	ILogger<EpubSectionRenderer> logger) : ISectionRenderer {
 	public ExportFormat Format => ExportFormat.Epub;
 
-	// Internal counters to maintain file naming inside the renderer
-	private int _volumeIndex = 1;
+
 
 	public IReadOnlyList<NavEntry> RenderSection(
 		BookExportContext context,
@@ -41,7 +40,7 @@ public partial class EpubSectionRenderer(
 		return [new NavEntry("intro", EpubConstants.LocalizedText.INTRODUCTION)];
 	}
 
-	private IReadOnlyList<NavEntry> RenderToc(IPackageBuilder builder) {
+	private static IReadOnlyList<NavEntry> RenderToc(IPackageBuilder builder) {
 		// Content is empty because IPackageBuilder generates the nav.xhtml automatically
 		builder.AddPage("toc", string.Empty, PageRole.TableOfContents);
 		return [new NavEntry("toc", EpubConstants.LocalizedText.TABLE_OF_CONTENTS)];
@@ -70,7 +69,7 @@ public partial class EpubSectionRenderer(
 		var navEntries = new List<NavEntry>();
 
 		foreach (var volume in context.Volumes) {
-			var volId = $"vol_{_volumeIndex++:D3}";
+			var volId = $"vol_{volume.Id:N}"[..Math.Min(8, $"vol_{volume.Id:N}".Length)]; // Use volume ID to ensure unique ID
 			var volHtml = templateEngine.Render("epub_volume", new {
 				volume.Title,
 				CoverImagePath = volume.Metadata?.CoverImage != null && context.AssetFileMap.TryGetValue(volume.Metadata.CoverImage, out var path) ? path : null,
@@ -102,7 +101,7 @@ public partial class EpubSectionRenderer(
 		return navEntries;
 	}
 
-	private string? ResolveCoverLocalPath(BookExportContext context) {
+	private static string? ResolveCoverLocalPath(BookExportContext context) {
 		if (context.CoverAsset == null) {
 			return null;
 		}

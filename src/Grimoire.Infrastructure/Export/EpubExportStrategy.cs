@@ -1,11 +1,11 @@
 namespace Grimoire.Infrastructure.Export;
 
 using Application.Export;
+using Application.Extensions;
 using Application.Service.Strategy;
 using Common;
-using Epub;
-using Application.Extensions;
 using Domain.Entity.Book;
+using Epub;
 using Microsoft.Extensions.Logging;
 
 public partial class EpubExportStrategy(
@@ -55,7 +55,7 @@ public partial class EpubExportStrategy(
 		}
 	}
 
-	private void RegisterAssets(BookExportContext context, IPackageBuilder builder) {
+	private static void RegisterAssets(BookExportContext context, IPackageBuilder builder) {
 		// Cover
 		if (context.CoverAsset != null && context.CoverStreamProvider != null) {
 			var ext = Path.GetExtension(context.CoverAsset.Path).DefaultIfNullOrEmpty(".jpg");

@@ -27,7 +27,8 @@ public interface IPackageBuilder {
 	///     For <see cref="PageRole.TableOfContents"/> pass an empty string for
 	///     htmlContent — the builder generates the navigation document itself.
 	/// </summary>
-	public void AddPage(string pageId, string htmlContent, PageRole role = PageRole.Chapter);
+	/// <returns>The resolved filename (e.g. "chapter_001.xhtml")</returns>
+	public string AddPage(string pageId, string htmlContent, PageRole role = PageRole.Chapter);
 
 	/// <summary>
 	///     Sets the global stylesheet. Implementations decide whether to embed,

@@ -49,17 +49,18 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		}
 	}
 
-	public void AddPage(string pageId, string htmlContent, PageRole role = PageRole.Chapter) {
+	public string AddPage(string pageId, string htmlContent, PageRole role = PageRole.Chapter) {
 		var fileName = ResolveFileName(pageId, role);
 		_pageIdToPath[pageId] = fileName;
 
 		// TableOfContents nav document is generated in BuildAsync from the
 		// resolved NavPoint tree — don't add a resource for it now.
 		if (role == PageRole.TableOfContents) {
-			return;
+			return fileName;
 		}
 
 		AddResource(EpubResource.FromText($"{EpubConstants.Paths.OEBPS_PREFIX}{fileName}", htmlContent));
+		return fileName;
 	}
 
 	public void AddStylesheet(string css) =>
