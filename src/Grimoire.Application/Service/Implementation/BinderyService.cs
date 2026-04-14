@@ -16,7 +16,8 @@ public sealed class BinderyService(
 	public async Task<ExportResult> ExportSeriesAsync(Guid seriesId, BinderyRequestDto request) {
 		var series = await seriesRepository.FindOne(seriesId) ??
 					throw new EntityNotFoundException($"Series with id {seriesId} not found");
-		var context = await orchestrator.BuildContextAsync(series, request);
+		var structure = request.Structure ?? ExportStructureDefaults.Standard();
+		var context = await orchestrator.BuildContextAsync(series, request with { Structure = structure });
 		var strategy = exportStrategies.FirstOrDefault(s => s.Format == request.Format) ??
 						throw new InvalidOperationException($"No export strategy found for format: {request.Format}");
 
