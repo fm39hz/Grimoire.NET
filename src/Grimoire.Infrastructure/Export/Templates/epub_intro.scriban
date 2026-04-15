@@ -25,11 +25,11 @@
     {{ end }}
 </div>
 
-{{ if description && description.size > 0 && (section | should_show_description_in_intro) }}
+{{ if rendered_description && rendered_description.size > 0 && (section | should_show_description_in_intro) }}
 <div class="front-matter">
     <div class="section-title">Tóm tắt</div>
     <div class="description text-justify">
-        {{ description | to_format "html" null image_file_map }}
+        {{ rendered_description }}
     </div>
 </div>
 {{ end }}

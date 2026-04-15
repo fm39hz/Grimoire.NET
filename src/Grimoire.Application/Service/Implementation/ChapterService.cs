@@ -4,8 +4,8 @@ using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Segment;
 using Domain.Exception;
+using Domain.Service;
 using Dto.Book;
 using Dto.Common;
 using Mapper;
@@ -72,106 +72,35 @@ public sealed class ChapterService(
 	public async Task<int> Delete(Guid id) => await chapterRepository.Delete(id);
 
 	public async Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto) {
-		// Begin transaction for multistep operation
 		await unitOfWork.BeginTransactionAsync();
 
 		try {
-			// Find the original chapter with content
 			var originalChapter = await chapterRepository.FindOne(chapterId) ??
 								throw new EntityNotFoundException($"Chapter with id {chapterId} not found");
 
-			if (originalChapter.ContentData == null || originalChapter.ContentData.Segments.Count == 0) {
+			if (originalChapter.ContentData == null) {
 				throw new InvalidOperationException("Cannot split a chapter with no content");
 			}
 
-			var segments = originalChapter.ContentData.Segments;
-			var footnotes = originalChapter.ContentData.Footnotes;
-
-			// Validate all split points are within bounds
-			foreach (var splitPoint in dto.SplitPoints.Where(splitPoint => splitPoint.SegmentIndex >= segments.Count)) {
-				throw new InvalidOperationException(
-					$"SegmentIndex {splitPoint.SegmentIndex} is out of bounds (max: {segments.Count - 1})");
-			}
-
-			var resultChapters = new List<ChapterModel>();
-			var currentIndex = 0;
-			var orderIncrement = 0.1f;
-
-			// First chapter: update the original chapter with segments before first split
-			var firstSplitIndex = dto.SplitPoints[0].SegmentIndex;
-			originalChapter.ContentData.Segments = segments.Take(firstSplitIndex).ToList();
-
-			// Extract footnotes referenced by segments in the original chapter
-			var firstChapterFootnoteIds = GetReferencedFootnoteIds(originalChapter.ContentData.Segments);
-			originalChapter.ContentData.Footnotes = footnotes
-				.Where(f => firstChapterFootnoteIds.Contains(f.Id.ToString()))
+			var splitPoints = dto.SplitPoints
+				.Select(sp => (sp.SegmentIndex, sp.NewChapterTitle))
 				.ToList();
 
-			await chapterRepository.Update(originalChapter);
-			resultChapters.Add(originalChapter);
-			currentIndex = firstSplitIndex;
+			var splitResult = originalChapter.Split(splitPoints);
 
-			// Create new chapters for each split point
-			for (var i = 0; i < dto.SplitPoints.Count; i++) {
-				var splitPoint = dto.SplitPoints[i];
-				var nextIndex = i < dto.SplitPoints.Count - 1
-					? dto.SplitPoints[i + 1].SegmentIndex
-					: segments.Count;
+			await chapterRepository.Update(splitResult.UpdatedOriginal);
 
-				var newChapterSegments = segments.Skip(currentIndex).Take(nextIndex - currentIndex).ToList();
-				var newChapterFootnoteIds = GetReferencedFootnoteIds(newChapterSegments);
-				var newChapterFootnotes = footnotes
-					.Where(f => newChapterFootnoteIds.Contains(f.Id.ToString()))
-					.ToList();
-
-				var newChapter = new ChapterModel {
-					Id = Guid.CreateVersion7(),
-					VolumeId = originalChapter.VolumeId,
-					Title = splitPoint.NewChapterTitle,
-					Order = originalChapter.Order + (orderIncrement * (i + 1)),
-					Status = originalChapter.Status,
-					ContentData = new ChapterContentModel {
-						Id = Guid.CreateVersion7(),
-						Segments = newChapterSegments,
-						Footnotes = newChapterFootnotes
-					}
-				};
-
-				var createdChapter = await chapterRepository.Create(newChapter);
-				resultChapters.Add(createdChapter);
-				currentIndex = nextIndex;
+			foreach (var newChapter in splitResult.NewChapters) {
+				await chapterRepository.Create(newChapter);
 			}
 
 			await unitOfWork.CommitTransactionAsync();
 
-			return resultChapters;
+			return splitResult.NewChapters.Prepend(splitResult.UpdatedOriginal);
 		}
 		catch {
 			await unitOfWork.RollbackTransactionAsync();
 			throw;
 		}
-	}
-
-	/// <summary>
-	///     Extracts all footnote IDs referenced in the given segments
-	/// </summary>
-	private static HashSet<string> GetReferencedFootnoteIds(List<SegmentModel> segments) {
-		var footnoteIds = new HashSet<string>();
-
-		foreach (var segment in segments) {
-			// Check if segment is a text segment with footnote references
-			if (segment is not TextSegmentModel textSegment) {
-				continue;
-			}
-
-			// Check each text run for footnote references
-			foreach (var run in textSegment.Runs) {
-				if (!string.IsNullOrEmpty(run.FootnoteId)) {
-					footnoteIds.Add(run.FootnoteId);
-				}
-			}
-		}
-
-		return footnoteIds;
 	}
 }

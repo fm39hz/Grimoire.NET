@@ -6,6 +6,7 @@ using Domain.Common.Repository;
 using Export;
 using Export.Common;
 using Export.Epub;
+using Export.Markdown;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -42,18 +43,23 @@ public static class DependencyInjection {
 				throw new InvalidOperationException($"Unknown storage type: {storageType}");
 		}
 
-		// Register template engine
+		// Template engine
 		services.AddSingleton<ITemplateEngine, ScribanTemplateEngine>();
 
-		// Register EPUB builders
-		services.AddSingleton<IEpubPackageBuilderFactory, EpubPackageBuilderFactory>();
-		services.AddTransient<EpubPackageBuilder>();
+		// Package builders
+		services.AddTransient<IPackageBuilderFactory, PackageBuilderFactory>();
+		services.AddScoped<IPackageBuilder, EpubPackageBuilder>();
 
-		// Register export strategies
+
+		// Export strategies
+		services.AddScoped<ISectionRendererFactory, SectionRendererFactory>();
+
+		services.AddScoped<ISectionRenderer, EpubSectionRenderer>();
+		services.AddScoped<ISectionRenderer, MarkdownSectionRenderer>();
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
-		services.AddScoped<IExportStrategy, PdfExportStrategy>();
-		services.AddScoped<IExportStrategy, HtmlExportStrategy>();
 		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
+		// services.AddScoped<IExportStrategy, PdfExportStrategy>();
+		// services.AddScoped<IExportStrategy, HtmlExportStrategy>();
 
 		return services;
 	}

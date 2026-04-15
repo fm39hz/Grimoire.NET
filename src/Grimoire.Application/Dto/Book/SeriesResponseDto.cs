@@ -13,11 +13,4 @@ public class SeriesResponseDto {
 
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? UpdatedAt { get; set; }
-
-	/// <summary>
-	///     Markdown representation of the series description.
-	///     Only populated when ?markdown=true query parameter is used.
-	/// </summary>
-	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	public string? Markdown { get; set; }
 }

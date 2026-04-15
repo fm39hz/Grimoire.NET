@@ -17,8 +17,8 @@ public class ScribanTemplateEngine : ITemplateEngine {
 			new Func<ExportSectionDto?, bool>(ExportUtilities.IsSplitDescriptionEnabled));
 	}
 
-	public async Task<string> RenderAsync<T>(string templateName, T model) where T : class {
-		var templateContent = await GetTemplateAsync(templateName);
+	public string Render<T>(string templateName, T model) where T : class {
+		var templateContent = GetTemplate(templateName);
 		var template = Template.Parse(templateContent);
 
 		if (template.HasErrors) {
@@ -35,7 +35,7 @@ public class ScribanTemplateEngine : ITemplateEngine {
 		context.PushGlobal(modelObject);
 
 		if (model is not BookExportContext exportContext) {
-			return await template.RenderAsync(context);
+			return template.Render(context);
 		}
 
 		var bookUtils = new ScriptObject();
@@ -43,17 +43,17 @@ public class ScribanTemplateEngine : ITemplateEngine {
 			exportContext.AssetFileMap.GetValueOrDefault(key, key)));
 		context.PushGlobal(bookUtils);
 
-		return await template.RenderAsync(context);
+		return template.Render(context);
 	}
 
-	private static async Task<string> GetTemplateAsync(string templateName) {
+	private static string GetTemplate(string templateName) {
 		var assembly = typeof(ScribanTemplateEngine).Assembly;
 		var resourceName = $"Grimoire.Infrastructure.Export.Templates.{templateName}.scriban";
 
-		await using var stream = assembly.GetManifestResourceStream(resourceName) ??
+		using var stream = assembly.GetManifestResourceStream(resourceName) ??
 								throw new FileNotFoundException($"Template resource {resourceName} not found.");
 
 		using var reader = new StreamReader(stream);
-		return await reader.ReadToEndAsync();
+		return reader.ReadToEnd();
 	}
 }

@@ -1,6 +1,5 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Export;
 using Service.Strategy;
 
 public record BinderyRequestDto {
@@ -20,17 +19,8 @@ public record BinderyRequestDto {
 	public List<string>? TargetVolumeIds { get; init; }
 
 	/// <summary>
-	///     Document structure configuration - defines the layout of the export
-	///     Default: Intro -> Description -> Content -> TOC
+	///     Document structure configuration - defines the layout of the export.
+	///     If null, resolves to the standard default (IntroPage -> Description -> Toc -> Content).
 	/// </summary>
-	public ExportStructureDto Structure { get; init; } = new() {
-		Sections = [
-			new ExportSectionDto {
-				Type = BookSection.IntroPage, Options = new Dictionary<string, object> { { "splitDescription", false } }
-			},
-			new ExportSectionDto { Type = BookSection.Description },
-			new ExportSectionDto { Type = BookSection.Toc },
-			new ExportSectionDto { Type = BookSection.Content }
-		]
-	};
+	public ExportStructureDto? Structure { get; init; }
 }
