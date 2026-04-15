@@ -1,6 +1,6 @@
 # Grimoire.NET Makefile
 
-.PHONY: build run debug db-up db-down db-clear clean help
+.PHONY: help
 
 # Default target
 help: ## Show this help message
@@ -8,6 +8,7 @@ help: ## Show this help message
 	@echo ""
 	@echo "Usage:"
 	@echo "  make build     - Build the application"
+	@echo "  make init      - Initialize the application"
 	@echo "  make run       - Run the application"
 	@echo "  make debug     - Debug the application"
 	@echo "  make db-up     - Start PostgreSQL database with Docker"
@@ -19,10 +20,13 @@ help: ## Show this help message
 build: ## Build the application
 	dotnet build
 
-run: ## Run the application
+run: build ## Run the application
+	clear
 	dotnet run --project src/Grimoire.Api
 
-debug: db-clear db-up ## Run the application
+init: db-clear db-up debug ## Initialize debug session
+
+debug: build ## Debug application
 	clear
 	dotnet watch --project src/Grimoire.Api
 
@@ -48,6 +52,6 @@ db-clear: ## Clear database and stop PostgreSQL database
 	rm -rf /tmp/grimoire-files/
 	@echo "PostgreSQL database cleared, stopped and removed."
 
-clean: ## Clean build artifacts
+clean: db-clear ## Clean build artifacts
 	dotnet clean
 	dotnet nuget locals all --clear
