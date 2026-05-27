@@ -28,4 +28,14 @@ public class AssetModel : BaseModel {
 	///     Type of reference: Cover or Content
 	/// </summary>
 	public required AssetRefType RefType { get; init; }
+
+	/// <summary>
+	///     Original MIME type of the uploaded file (e.g. image/jpeg)
+	/// </summary>
+	public required string ContentType { get; init; }
+
+	/// <summary>
+	///     Original file name at upload time
+	/// </summary>
+	public required string OriginalFileName { get; init; }
 }

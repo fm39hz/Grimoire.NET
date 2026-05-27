@@ -35,8 +35,8 @@ public class FileController(IStorageService storageService, IBookMapper mapper) 
 	[ProducesResponseType(404)]
 	public async Task<IActionResult> Get(string assetId) {
 		var guid = PrefixedId.ToGuid(assetId, EntityPrefix.Asset);
-		var stream = await storageService.GetFileStreamAsync(guid);
-		return stream == null ? NotFound() : File(stream, "application/octet-stream");
+		var result = await storageService.GetFileStreamAsync(guid);
+		return result == null ? NotFound() : File(result.Stream, result.ContentType, result.FileName);
 	}
 
 	[HttpDelete("{assetId}")]

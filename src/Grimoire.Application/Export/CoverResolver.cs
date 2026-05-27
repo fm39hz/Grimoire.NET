@@ -27,17 +27,17 @@ public class CoverResolver(IAssetService assetService, IStorageService storageSe
 			return (null, null);
 		}
 
-		return (asset, async () => await storageService.GetFileStreamAsync(id));
+		return (asset, async () => (await storageService.GetFileStreamAsync(id))?.Stream);
 	}
 
 	private async Task<bool> StreamExistsAsync(Guid assetId) {
 		try {
-			var stream = await storageService.GetFileStreamAsync(assetId);
-			if (stream == null) {
+			var result = await storageService.GetFileStreamAsync(assetId);
+			if (result == null) {
 				return false;
 			}
 
-			await stream.DisposeAsync();
+			await result.Stream.DisposeAsync();
 			return true;
 		}
 		catch {

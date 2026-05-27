@@ -2,6 +2,7 @@ namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
 using Configuration;
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.Extensions.Logging;
@@ -54,7 +55,9 @@ public partial class LocalStorageRepository(
 			SeriesId = seriesId,
 			Path = assetPath,
 			FileHash = hash,
-			RefType = refType
+			RefType = refType,
+			ContentType = contentType,
+			OriginalFileName = originalFileName
 		};
 
 		await assetRepository.Create(newAsset);
@@ -72,7 +75,7 @@ public partial class LocalStorageRepository(
 		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath);
 	}
 
-	public async Task<Stream?> GetFileStreamAsync(Guid assetId) {
+	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId) {
 		var asset = await assetRepository.FindOne(assetId);
 		if (asset is null) {
 			return null;
@@ -81,9 +84,16 @@ public partial class LocalStorageRepository(
 		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
 
-		return !File.Exists(filePath)
-			? null
-			: (Stream)new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+		if (!File.Exists(filePath)) {
+			return null;
+		}
+
+		var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+		return new AssetFileResult {
+			Stream = stream,
+			ContentType = asset.ContentType,
+			FileName = asset.OriginalFileName
+		};
 	}
 
 	public async Task DeleteFileAsync(Guid assetId) {

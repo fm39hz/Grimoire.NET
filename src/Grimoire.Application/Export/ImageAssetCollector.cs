@@ -29,7 +29,7 @@ public class ImageAssetCollector(IAssetRepository assetRepository, IStorageServi
 
 			result[entry.Key] = new ResolvedAsset(
 				asset,
-				async () => await storageService.GetFileStreamAsync(capturedId));
+				async () => (await storageService.GetFileStreamAsync(capturedId))?.Stream);
 		}
 
 		return result;
@@ -65,12 +65,12 @@ public class ImageAssetCollector(IAssetRepository assetRepository, IStorageServi
 
 	private async Task<bool> StreamExistsAsync(Guid assetId) {
 		try {
-			var stream = await storageService.GetFileStreamAsync(assetId);
-			if (stream == null) {
+			var result = await storageService.GetFileStreamAsync(assetId);
+			if (result == null) {
 				return false;
 			}
 
-			await stream.DisposeAsync();
+			await result.Stream.DisposeAsync();
 			return true;
 		}
 		catch {
