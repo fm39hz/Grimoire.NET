@@ -144,7 +144,7 @@ public sealed class ChapterController(
 		return assets.Values.Select(a => new AssetListingDto {
 			Id = PrefixedId.ToString(EntityPrefix.Asset, a.Id),
 			RefType = a.RefType.ToString(),
-			FileName = a.OriginalFileName
+			FileName = Path.GetFileName(a.OriginalFileName)
 		}).ToList();
 	}
 }

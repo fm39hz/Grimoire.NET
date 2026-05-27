@@ -92,7 +92,7 @@ public partial class LocalStorageRepository(
 		return new AssetFileResult {
 			Stream = stream,
 			ContentType = asset.ContentType,
-			FileName = asset.OriginalFileName
+			FileName = Path.GetFileName(asset.OriginalFileName)
 		};
 	}
 
