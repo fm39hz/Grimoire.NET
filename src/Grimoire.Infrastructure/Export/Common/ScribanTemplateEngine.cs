@@ -26,7 +26,7 @@ public class ScribanTemplateEngine : ITemplateEngine {
 				$"Template {templateName} errors: {string.Join(", ", template.Messages)}");
 		}
 
-		var context = new TemplateContext { MemberRenamer = StandardMemberRenamer.Rename };
+		var context = new TemplateContext { MemberRenamer = StandardMemberRenamer.Rename, LoopLimit = 100_000 };
 
 		var modelObject = new ScriptObject();
 		modelObject.Import(model, renamer: context.MemberRenamer);

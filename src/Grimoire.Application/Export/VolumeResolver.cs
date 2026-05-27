@@ -10,7 +10,7 @@ public class VolumeResolver(IVolumeRepository volumeRepository) {
 		var allVolumes = await volumeRepository.FindBySeriesId(seriesId);
 		var ordered = allVolumes.OrderBy(v => v.Order).ToList();
 
-		if (request.Mode.Equals("Single", StringComparison.OrdinalIgnoreCase)
+		if (string.Equals(request.Mode, "Single", StringComparison.OrdinalIgnoreCase)
 			&& request.TargetVolumeIds is { Count: > 0 }) {
 			var targetSet = request.TargetVolumeIds.ToHashSet();
 			ordered = ordered
