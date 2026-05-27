@@ -267,8 +267,8 @@ public partial class EpubSectionRenderer(
 			return null;
 		}
 
-		var ext = Path.GetExtension(context.CoverAsset.Path).DefaultIfNullOrEmpty(".jpg");
-		return $"{EpubConstants.Paths.IMAGES_FOLDER}cover{ext}";
+		var coverFileName = ImageAssetCollector.BuildExportFileName(context.CoverAsset.OriginalFileName, 0);
+		return $"{EpubConstants.Paths.IMAGES_FOLDER}{coverFileName}";
 	}
 
 	[LoggerMessage(LogLevel.Information, "Skipping separate description (already in intro)")]

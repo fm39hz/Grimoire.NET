@@ -37,20 +37,23 @@ public class ImageAssetCollector(IAssetRepository assetRepository, IStorageServi
 
 	public static IReadOnlyDictionary<string, string> GenerateFileMap(
 		IReadOnlyDictionary<string, ResolvedAsset> imageAssets) {
-		var assetFileMap = new Dictionary<string, string>();
 		var index = 1;
-
+		var result = new Dictionary<string, string>();
 		foreach (var (assetKey, resolved) in imageAssets) {
-			var ext = Path.GetExtension(resolved.Asset.Path);
-			if (string.IsNullOrEmpty(ext)) {
-				ext = ".jpg";
-			}
-
-			assetFileMap[assetKey] = $"img{index:D3}{ext}";
+			var fileName = resolved.Asset.OriginalFileName;
+			result[assetKey] = BuildExportFileName(fileName, index);
 			index++;
 		}
+		return result;
+	}
 
-		return assetFileMap;
+	public static string BuildExportFileName(string originalFileName, int index) {
+		var ext = Path.GetExtension(originalFileName);
+		var name = Path.GetFileNameWithoutExtension(originalFileName);
+		var sanitized = string.Join("_",
+			name.ToLowerInvariant()
+				.Split(Path.GetInvalidFileNameChars(), StringSplitOptions.RemoveEmptyEntries));
+		return $"{sanitized}_{index:D3}{ext}";
 	}
 
 	private static Dictionary<string, Guid> BuildAssetKeyToIdMap(

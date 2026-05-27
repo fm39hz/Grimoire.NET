@@ -58,8 +58,8 @@ public partial class EpubExportStrategy(
 	private static void RegisterAssets(BookExportContext context, IPackageBuilder builder) {
 		// Cover
 		if (context.CoverAsset != null && context.CoverStreamProvider != null) {
-			var ext = Path.GetExtension(context.CoverAsset.Path).DefaultIfNullOrEmpty(".jpg");
-			builder.AddAsset($"cover{ext}", context.CoverStreamProvider, AssetRefType.Cover);
+			var coverFileName = ImageAssetCollector.BuildExportFileName(context.CoverAsset.OriginalFileName, 0);
+			builder.AddAsset(coverFileName, context.CoverStreamProvider, AssetRefType.Cover);
 		}
 
 		// Inline Images

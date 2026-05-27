@@ -57,7 +57,7 @@ public partial class LocalStorageRepository(
 			FileHash = hash,
 			RefType = refType,
 			ContentType = contentType,
-			OriginalFileName = originalFileName
+			OriginalFileName = Path.GetFileName(originalFileName)
 		};
 
 		await assetRepository.Create(newAsset);
