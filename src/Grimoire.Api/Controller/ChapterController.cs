@@ -6,6 +6,7 @@ using Application.Service.Contract;
 using Application.Service.Strategy;
 using Constant;
 using Domain.Common;
+using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Dto;
 using Infrastructure.Export.Common;
@@ -16,7 +17,8 @@ using Microsoft.AspNetCore.Mvc;
 public sealed class ChapterController(
 	IChapterService service,
 	IBookMapper mapper,
-	ISectionRendererFactory rendererFactory) : ControllerBase {
+	ISectionRendererFactory rendererFactory,
+	IAssetService assetService) : ControllerBase {
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	[ProducesResponseType(404)]
@@ -60,16 +62,19 @@ public sealed class ChapterController(
 
 		if (chapter.ContentData == null) {
 			return Results.Ok(new ContentResponseDto {
-				Content = string.Empty,
-				ContentType = "text/markdown"
+				Data = string.Empty,
+				Type = "text/markdown"
 			});
 		}
+
+		var assets = await ResolveContentAssets(chapter.ContentData.Segments);
 
 		var content = renderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes);
 		var contentType = exportFormat == ExportFormat.Html ? "text/html" : "text/markdown";
 		return Results.Ok(new ContentResponseDto {
-			Content = content,
-			ContentType = contentType
+			Data = content,
+			Type = contentType,
+			Assets = assets
 		});
 	}
 
@@ -119,5 +124,27 @@ public sealed class ChapterController(
 		var resultChapters = await service.SplitAsync(guid, dto);
 		var responseDtos = resultChapters.Select(mapper.ToChapterDto);
 		return Results.Created("/api/v1/chapter", responseDtos);
+	}
+
+	private async Task<IReadOnlyList<AssetListingDto>> ResolveContentAssets(
+		IReadOnlyList<Domain.Entity.Book.SegmentModel> segments) {
+		var assetIds = segments
+			.OfType<ImageSegmentModel>()
+			.Select(s => PrefixedId.TryToGuid(s.AssetKey, EntityPrefix.Asset, out var id) ? id : Guid.Empty)
+			.Where(id => id != Guid.Empty)
+			.Distinct()
+			.ToList();
+
+		if (assetIds.Count == 0) {
+			return [];
+		}
+
+		var assets = await assetService.FindByIdsAsync(assetIds);
+
+		return assets.Values.Select(a => new AssetListingDto {
+			Id = PrefixedId.ToString(EntityPrefix.Asset, a.Id),
+			RefType = a.RefType.ToString(),
+			FileName = a.OriginalFileName
+		}).ToList();
 	}
 }

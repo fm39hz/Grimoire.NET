@@ -58,16 +58,16 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 
 		if (series.Metadata?.Description == null || series.Metadata.Description.Count == 0) {
 			return Results.Ok(new ContentResponseDto {
-				Content = string.Empty,
-				ContentType = "text/markdown"
+				Data = string.Empty,
+				Type = "text/markdown"
 			});
 		}
 
 		var content = renderer.RenderDescription(series.Metadata.Description);
 		var contentType = exportFormat == ExportFormat.Html ? "text/html" : "text/markdown";
 		return Results.Ok(new ContentResponseDto {
-			Content = content,
-			ContentType = contentType
+			Data = content,
+			Type = contentType
 		});
 	}
 
