@@ -56,7 +56,7 @@ environment:
   - Storage__UseTemporaryDirectory=false
 ```
 
-### Storage Path Resolution
+### Storage Path Resolution (LocalStorage)
 
 The actual storage path is determined by:
 
@@ -68,7 +68,81 @@ The actual storage path is determined by:
 
 Files are organized as: `{StoragePath}/{SeriesPath}/{SeriesId}/{FileHash}.{ext}`
 
-### Production Recommendations
+---
+
+## S3-Compatible Storage
+
+When `Storage:Type` is set to `S3`, files are stored in an S3-compatible object store.
+The SDK used is `AWSSDK.S3` — works with any S3-compatible service.
+
+### S3 Configuration Options
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `Storage:S3:Endpoint` | string | `http://localhost:9000` | S3 service endpoint URL |
+| `Storage:S3:BucketName` | string | `grimoire` | Bucket name |
+| `Storage:S3:AccessKey` | string | — | Access key (store in User Secrets / env var) |
+| `Storage:S3:SecretKey` | string | — | Secret key (store in User Secrets / env var) |
+| `Storage:S3:UseSsl` | bool | `false` | Enable HTTPS |
+| `Storage:S3:Region` | string | `us-east-1` | AWS region / authentication region |
+
+### S3 Object Key Pattern
+
+```
+series/{SeriesId}/{FileHash}.{ext}
+```
+
+Same structure as LocalStorage, just stored as S3 object keys instead of file paths.
+
+### Configuration via appsettings.json
+
+```json
+{
+  "Storage": {
+    "Type": "S3",
+    "S3": {
+      "Endpoint": "https://s3.custom-service.com",
+      "BucketName": "grimoire",
+      "Region": "us-east-1",
+      "UseSsl": true
+      // AccessKey / SecretKey go in User Secrets or env vars
+    }
+  }
+}
+```
+
+### Local Development — User Secrets
+
+```bash
+dotnet user-secrets init --project src/Grimoire.Api
+dotnet user-secrets set "Storage:S3:AccessKey" "dev-access-key"
+dotnet user-secrets set "Storage:S3:SecretKey" "dev-secret-key"
+```
+
+### Docker / Production — Environment Variables
+
+```yaml
+environment:
+  - Storage__Type=S3
+  - Storage__S3__Endpoint=https://s3.custom-service.com
+  - Storage__S3__BucketName=grimoire
+  - Storage__S3__AccessKey=${S3_ACCESS_KEY}
+  - Storage__S3__SecretKey=${S3_SECRET_KEY}
+  - Storage__S3__Region=us-east-1
+  - Storage__S3__UseSsl=true
+```
+
+### Important Notes
+
+- `ForcePathStyle = true` is always set — required for non-AWS S3-compatible services.
+- `UseSsl` controls the `UseHttp` flag on the AWS SDK config.
+- `AccessKey` and `SecretKey` are **never** hardcoded in `appsettings.json`.
+  Use User Secrets (local dev) or environment variables (Docker/production).
+- Bucket is auto-created on the first file upload if it doesn't exist.
+
+---
+
+### Production Recommendations (LocalStorage)
 
 For production deployments:
 

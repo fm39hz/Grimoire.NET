@@ -34,8 +34,9 @@ public static class DependencyInjection {
 		var storageType = storageConfig.Type;
 		switch (storageType) {
 			case "S3":
-				// services.AddScoped<IStorageRepository, S3StorageRepository>();
-				throw new NotImplementedException("S3 storage is not implemented yet.");
+				services.Configure<S3Configuration>(storageSection.GetRequiredSection("S3"));
+				services.AddScoped<IStorageRepository, S3StorageRepository>();
+				break;
 			case "LocalStorage":
 				services.AddScoped<IStorageRepository, LocalStorageRepository>();
 				break;
