@@ -5,6 +5,7 @@ using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
+using Domain.Entity.Book.Metadata;
 using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
@@ -21,10 +22,22 @@ public sealed class VolumeService(
 		await GetPagedResultAsync(repository, request, cancellationToken);
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		// Validate that the Series exists
 		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
-		var series = await seriesRepository.FindOne(seriesId, cancellationToken) ??
-					throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
+		_ = await seriesRepository.FindOne(seriesId, cancellationToken) ??
+			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
+
+		var existing = await repository.FindBySeriesIdAndOrder(seriesId, dto.Order, cancellationToken);
+		if (existing is not null) {
+			existing.Title = dto.Title;
+			existing.Metadata = dto.Metadata != null
+				? new VolumeMetadata {
+					CoverImage = dto.Metadata.CoverImage,
+					PublicationDate = dto.Metadata.PublicationDate,
+					Isbn = dto.Metadata.Isbn
+				}
+				: null;
+			return await repository.Update(existing, cancellationToken);
+		}
 
 		var volume = mapper.CreateVolume(dto, seriesId);
 		return await repository.Create(volume, cancellationToken);
