@@ -25,37 +25,51 @@ public sealed class ChapterService(
 		await GetPagedResultAsync(chapterRepository, request, cancellationToken);
 
 	public async Task<ChapterModel> Create(CreateChapterRequestDto dto, CancellationToken cancellationToken = default) {
-		// Begin transaction for multistep operation
 		await unitOfWork.BeginTransactionAsync(cancellationToken);
-
 		try {
-			// Validate that the Volume exists
 			var volumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
-			var volume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
-						throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+			_ = await volumeRepository.FindOne(volumeId, cancellationToken) ??
+				throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
 
-			// Use strategy pattern to handle different ingestion types
 			var strategy = strategyFactory.GetStrategy(dto);
 			var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
 
-			// Save SourceMaterial if present (from RawMarkdown ingestion)
+			var existing = await chapterRepository.FindByVolumeIdAndOrder(volumeId, dto.Order, cancellationToken);
+			if (existing is not null) {
+				existing.Title = result.Chapter.Title;
+				existing.Status = result.Chapter.Status;
+
+				if (existing.ContentData != null) {
+					existing.ContentData.Segments = result.Content.Segments;
+					existing.ContentData.Footnotes = result.Content.Footnotes;
+				}
+				else {
+					existing.ContentData = new ChapterContentModel {
+						Id = existing.Id,
+						Segments = result.Content.Segments,
+						Footnotes = result.Content.Footnotes
+					};
+				}
+
+				if (result.Source is not null) {
+					await sourceRepository.Create(result.Source, cancellationToken);
+				}
+
+				await chapterRepository.Update(existing, cancellationToken);
+				await unitOfWork.CommitTransactionAsync(cancellationToken);
+				return existing;
+			}
+
 			if (result.Source is not null) {
 				await sourceRepository.Create(result.Source, cancellationToken);
 			}
 
-			// Set navigation property to ensure EF Core saves both Chapter and Content
 			result.Chapter.ContentData = result.Content;
-
-			// Save chapter with content
 			var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
-
-			// Commit transaction
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
-
 			return chapter;
 		}
 		catch {
-			// Rollback transaction on any error
 			await unitOfWork.RollbackTransactionAsync(cancellationToken);
 			throw;
 		}
