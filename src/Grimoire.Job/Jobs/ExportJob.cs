@@ -11,7 +11,7 @@ namespace Grimoire.Job.Jobs;
 /// <summary>
 ///     Hangfire job that processes series export asynchronously.
 ///     Result is stored as a regular AssetModel in the same storage as other assets.
-///     Returns the asset ID string — Hangfire stores it as ReturnValue in Succeeded state.
+///     Returns the asset ID as a plain string — Hangfire stores it as ReturnValue.
 /// </summary>
 public sealed class ExportJob
 {
@@ -57,21 +57,20 @@ public sealed class ExportJob
                 return null;
             }
 
-            // Store as a regular asset (same bucket/folder as cover & content images)
+            var formatDir = request.Format.ToString().ToLowerInvariant();
             var asset = await storage.UploadAssetAsync(
                 seriesId,
                 exportResult.ContentStream,
                 exportResult.ContentType,
                 exportResult.FileName,
                 AssetRefType.Export,
+                prefix: $"staging/export/{formatDir}",
                 cancellationToken);
 
             _logger.LogInformation(
                 "ExportJob completed — JobId={JobId}, SeriesId={SeriesId}, AssetId={AssetId}",
                 jobId, seriesId, asset.Id);
 
-            // Hangfire stores this string as ReturnValue in the Succeeded state.
-            // JobController reads it to serve the download.
             return asset.Id.ToString();
         }
         catch (OperationCanceledException)

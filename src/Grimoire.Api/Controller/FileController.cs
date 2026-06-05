@@ -27,7 +27,7 @@ public class FileController(IStorageService storageService, IBookMapper mapper) 
 		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
 		await using var stream = file.OpenReadStream();
 		var asset = await storageService.UploadAssetAsync(guid, stream, file.ContentType, file.FileName,
-			assetRefType, cancellationToken);
+			assetRefType, cancellationToken: cancellationToken);
 		return Ok(mapper.ToAssetDto(asset));
 	}
 

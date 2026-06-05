@@ -21,16 +21,21 @@ public partial class LocalStorageRepository(
 		: _config.BasePath;
 
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType,
-		string originalFileName, AssetRefType refType, CancellationToken cancellationToken = default) {
+		string originalFileName, AssetRefType refType, string? prefix = null,
+		CancellationToken cancellationToken = default) {
 		var hash = await ComputeHashAsync(content, cancellationToken);
 
-		var existingAsset = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
-		if (existingAsset is not null) {
-			return existingAsset;
+		if (prefix is null) {
+			var existingAsset = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
+			if (existingAsset is not null) {
+				return existingAsset;
+			}
 		}
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-		var assetPath = $"{_config.SeriesPath}/{seriesId}/{hash}{extension}";
+		var assetPath = prefix is not null
+			? $"{prefix}/{hash}{extension}"
+			: $"{_config.SeriesPath}/{seriesId}/{hash}{extension}";
 		var filePath = Path.Combine(StoragePath, assetPath);
 
 		var directory = Path.GetDirectoryName(filePath);

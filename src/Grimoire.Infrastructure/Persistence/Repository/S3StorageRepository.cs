@@ -44,17 +44,23 @@ public sealed partial class S3StorageRepository(
 	///     Object key: series/{seriesId}/{hash}{ext}
 	/// </summary>
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content,
-		string contentType, string originalFileName, AssetRefType refType, CancellationToken cancellationToken = default) {
+		string contentType, string originalFileName, AssetRefType refType, string? prefix = null,
+		CancellationToken cancellationToken = default) {
 		await EnsureBucketAsync(cancellationToken);
 
 		var hash = await ComputeHashAsync(content, cancellationToken);
-		var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
-		if (existing is not null) {
-			return existing;
+
+		if (prefix is null) {
+			var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
+			if (existing is not null) {
+				return existing;
+			}
 		}
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-		var objectKey = $"series/{seriesId}/{hash}{extension}";
+		var objectKey = prefix is not null
+			? $"{prefix}/{hash}{extension}"
+			: $"series/{seriesId}/{hash}{extension}";
 
 		LogUploadingToS3(logger, _config.BucketName, objectKey);
 		content.Seek(0, SeekOrigin.Begin);

@@ -1,9 +1,6 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Threading;
 using Grimoire.Api.Constant;
 using Grimoire.Domain.Common.Repository;
-using Grimoire.Job.Common;
 using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,18 +8,12 @@ namespace Grimoire.Api.Controller;
 
 /// <summary>
 ///     Monitor background job status and download results.
-///     Export files are stored as regular AssetModel entries via IStorageRepository.
 ///     The asset ID is read from the job's return value (Succeeded state).
 /// </summary>
 [ApiController]
 [Route($"{RouteConstant.CONTROLLER}")]
 public sealed class JobController : ControllerBase
 {
-    private static readonly JsonSerializerOptions JsonOpts = new()
-    {
-        PropertyNameCaseInsensitive = true
-    };
-
     private readonly IStorageRepository _storage;
     private readonly JobStorage _jobStorage;
 
@@ -93,7 +84,8 @@ public sealed class JobController : ControllerBase
 
     /// <summary>
     ///     Extract the export asset ID from the job's Succeeded state return value.
-    ///     ExportJob returns JobResult with DownloadUrl = asset.Id.ToString().
+    ///     ExportJob returns asset.Id.ToString() — a GUID string.
+    ///     Hangfire's monitoring API gives us the raw string value (already unwrapped from JSON).
     /// </summary>
     private async Task<Guid?> ResolveAssetIdAsync(string jobId)
     {
@@ -106,22 +98,16 @@ public sealed class JobController : ControllerBase
         if (succeeded?.Data is null) return null;
 
         // Hangfire stores the job return value in SucceededState.Data["ReturnValue"]
-        if (!succeeded.Data.TryGetValue("ReturnValue", out var returnValueJson)
-            || string.IsNullOrEmpty(returnValueJson))
+        if (!succeeded.Data.TryGetValue("ReturnValue", out var returnValue)
+            || string.IsNullOrEmpty(returnValue))
         {
             return null;
         }
 
-        try
-        {
-            var result = JsonSerializer.Deserialize<JobResult>(returnValueJson, JsonOpts);
-            if (result?.DownloadUrl is null) return null;
+        // returnValue is already a bare GUID string from the monitoring API
+        if (Guid.TryParse(returnValue, out var assetId))
+            return assetId;
 
-            return Guid.Parse(result.DownloadUrl);
-        }
-        catch
-        {
-            return null;
-        }
+        return null;
     }
 }
