@@ -32,4 +32,8 @@ public sealed class VolumeRepository(ApplicationDbContext context)
 			.AsNoTracking()
 			.Where(v => v.SeriesId == seriesId)
 			.CountAsync(cancellationToken);
+
+	public async Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, float order, CancellationToken cancellationToken = default) =>
+		await Entities
+			.FirstOrDefaultAsync(v => v.SeriesId == seriesId && v.Order == order, cancellationToken);
 }

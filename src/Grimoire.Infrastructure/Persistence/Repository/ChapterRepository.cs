@@ -51,4 +51,10 @@ public sealed class ChapterRepository(ApplicationDbContext context)
 			.OrderBy(c => c.VolumeId)
 			.ThenBy(c => c.Order)
 			.ToListAsync(cancellationToken);
+
+	public async Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, float order, CancellationToken cancellationToken = default) =>
+		await Entities
+			.AsSplitQuery()
+			.Include(c => c.ContentData)
+			.FirstOrDefaultAsync(c => c.VolumeId == volumeId && c.Order == order, cancellationToken);
 }
