@@ -1,7 +1,9 @@
 using System.Threading;
 using Grimoire.Api.Constant;
 using Grimoire.Domain.Common.Repository;
+using Grimoire.Job.Common;
 using Hangfire;
+using Hangfire.Common;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Grimoire.Api.Controller;
@@ -83,9 +85,9 @@ public sealed class JobController : ControllerBase
     }
 
     /// <summary>
-    ///     Extract the export asset ID from the job's Succeeded state return value.
-    ///     ExportJob returns asset.Id.ToString() — a GUID string.
-    ///     Hangfire's monitoring API gives us the raw string value (already unwrapped from JSON).
+    ///     Extract the export asset ID from the job's Succeeded state data.
+    ///     Hangfire stores the return value via its own serializer; we read it
+    ///     using JobHelper.FromJson (Hangfire's own serializer) for type-safety.
     /// </summary>
     private async Task<Guid?> ResolveAssetIdAsync(string jobId)
     {
@@ -97,17 +99,23 @@ public sealed class JobController : ControllerBase
         var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
         if (succeeded?.Data is null) return null;
 
-        // Hangfire stores the job return value in SucceededState.Data["ReturnValue"]
-        if (!succeeded.Data.TryGetValue("ReturnValue", out var returnValue)
-            || string.IsNullOrEmpty(returnValue))
+        if (!succeeded.Data.TryGetValue("Result", out var resultValue)
+            || string.IsNullOrEmpty(resultValue))
         {
             return null;
         }
 
-        // returnValue is already a bare GUID string from the monitoring API
-        if (Guid.TryParse(returnValue, out var assetId))
-            return assetId;
+        try
+        {
+            var result = JobHelper.FromJson<JobResult>(resultValue);
+            if (result?.DownloadUrl is not null && Guid.TryParse(result.DownloadUrl, out var assetId))
+                return assetId;
 
-        return null;
+            return null;
+        }
+        catch
+        {
+            return null;
+        }
     }
 }
