@@ -6,6 +6,7 @@
 		<ImplicitUsings>enable</ImplicitUsings>
 		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
 		<UserSecretsId>c557bb05-8075-4842-a160-073cbb79e238</UserSecretsId>
+		<NoWarn>NU1903;NU1904</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -45,8 +46,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Hangfire"/>
+		<PackageReference Include="Hangfire.AspNetCore"/>
+		<PackageReference Include="Hangfire.PostgreSql"/>
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="..\Grimoire.Application\Grimoire.Application.csproj"/>
 		<ProjectReference Include="..\Grimoire.Infrastructure\Grimoire.Infrastructure.csproj"/>
+		<ProjectReference Include="..\Grimoire.Job\Grimoire.Job.csproj"/>
 	</ItemGroup>
 
 </Project>

@@ -20,9 +20,13 @@ help: ## Show this help message
 build: ## Build the application
 	dotnet build
 
-run: build ## Run the application
+run: build ## Run the API
 	clear
 	dotnet run --project src/Grimoire.Api
+
+run-job: build ## Run the background job worker
+	clear
+	dotnet run --project src/Grimoire.Job
 
 init: db-clear db-up debug ## Initialize debug session
 

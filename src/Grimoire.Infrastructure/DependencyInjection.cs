@@ -51,7 +51,6 @@ public static class DependencyInjection {
 		services.AddTransient<IPackageBuilderFactory, PackageBuilderFactory>();
 		services.AddScoped<IPackageBuilder, EpubPackageBuilder>();
 
-
 		// Export strategies
 		services.AddScoped<ISectionRendererFactory, SectionRendererFactory>();
 

@@ -12,5 +12,10 @@ public enum AssetRefType {
 	/// <summary>
 	///     Asset is used as content (inline images, etc.)
 	/// </summary>
-	Content
+	Content,
+
+	/// <summary>
+	///     Asset is an export result (EPUB, PDF, etc.)
+	/// </summary>
+	Export
 }

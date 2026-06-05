@@ -7,4 +7,5 @@
 	<Project Path="src/Grimoire.Application/Grimoire.Application.csproj"/>
 	<Project Path="src/Grimoire.Domain/Grimoire.Domain.csproj"/>
 	<Project Path="src/Grimoire.Infrastructure/Grimoire.Infrastructure.csproj"/>
+	<Project Path="src/Grimoire.Job/Grimoire.Job.csproj"/>
 </Solution>

@@ -1,33 +1,44 @@
 namespace Grimoire.Api.Controller;
 
 using Application.Dto.Book;
-using Application.Service.Contract;
 using Constant;
 using Domain.Common;
+using Grimoire.Job.Jobs;
+using Hangfire;
 using Microsoft.AspNetCore.Mvc;
 
 /// <summary>
-///     Controller for exporting series with custom structure and layout
+///     Enqueue series export jobs. Processing happens in the Grimoire.Job worker.
 /// </summary>
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
-public sealed class BinderyController(IBinderyService binderyService) : ControllerBase {
-	/// <summary>
-	///     Export a series with custom structure and layout
-	/// </summary>
-	/// <param name="seriesId">The series ID to export</param>
-	/// <param name="request">Export configuration including format, mode, target volumes, and structure</param>
-	/// <returns>Export file</returns>
-	[HttpPost]
-	[ProducesResponseType(typeof(FileResult), 200)]
-	[ProducesResponseType(400)]
-	[ProducesResponseType(404)]
-	public async Task<IResult> ExportSeries([FromQuery] string seriesId, [FromBody] BinderyRequestDto request) {
-		var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
-		var result = await binderyService.ExportSeriesAsync(guid, request);
+public sealed class BinderyController(IBackgroundJobClient jobs) : ControllerBase
+{
+    /// <summary>
+    ///     Enqueue an export job. Returns 202 with job ID.
+    ///     Poll GET /api/v1/jobs/{jobId} for status and download URL.
+    /// </summary>
+    [HttpPost]
+    [ProducesResponseType(202)]
+    [ProducesResponseType(400)]
+    public IActionResult ExportSeries(
+        [FromQuery] string seriesId,
+        [FromBody] BinderyRequestDto request)
+    {
+        var guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
 
-		return !result.Success
-			? Results.BadRequest(new { error = result.ErrorMessage })
-			: Results.File(result.ContentStream, result.ContentType, result.FileName);
-	}
+        var jobId = jobs.Enqueue<ExportJob>(
+            job => job.ExecuteAsync(
+                null!,        // PerformContext — filled by Hangfire
+                guid,
+                request,
+                CancellationToken.None));
+
+        return Accepted($"/api/v1/jobs/{jobId}", new
+        {
+            jobId,
+            status = "Queued",
+            statusUrl = $"/api/v1/jobs/{jobId}"
+        });
+    }
 }

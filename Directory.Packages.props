@@ -36,5 +36,9 @@
     <PackageVersion Include="Swashbuckle.AspNetCore.SwaggerUI" Version="10.1.7" />
     <PackageVersion Include="System.IdentityModel.Tokens.Jwt" Version="8.18.0" />
     <PackageVersion Include="VersOne.Epub" Version="3.3.6" />
+    <PackageVersion Include="Hangfire" Version="1.8.18" />
+    <PackageVersion Include="Hangfire.AspNetCore" Version="1.8.18" />
+    <PackageVersion Include="Hangfire.PostgreSql" Version="1.20.12" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.0" />
   </ItemGroup>
 </Project>

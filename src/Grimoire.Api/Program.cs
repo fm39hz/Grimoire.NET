@@ -2,6 +2,9 @@ namespace Grimoire.Api;
 
 using Constant;
 using Extension;
+using Hangfire;
+using Hangfire.Dashboard;
+using Hangfire.PostgreSql;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
 using Microsoft.AspNetCore.Mvc.ApplicationModels;
@@ -43,6 +46,18 @@ public class Program {
 		}
 
 		app.UseCors("AllowAll");
+		
+		// Start Hangfire server (singleton activated here)
+		app.UseHangfireServer();
+		
+		if (app.Environment.IsDevelopment())
+		{
+			app.UseHangfireDashboard("/hangfire", new DashboardOptions
+			{
+				Authorization = []
+			});
+		}
+		
 		app.MapControllers();
 		app.UseSerilogRequestLogging(options => options.GetLevel = (httpContext, _, ex) => {
 			var path = httpContext.Request.Path.Value;
@@ -62,6 +77,19 @@ public class Program {
 
 	private static WebApplication Build(WebApplicationBuilder builder) {
 		builder.Services.AddEndpointsApiExplorer();
+		
+		// Hangfire — enqueue + process jobs in-process
+		// Multiple servers (e.g. +Grimoire.Job) cooperate via distributed locks
+		builder.Services.AddHangfire(config => config
+			.UsePostgreSqlStorage(options => options
+				.UseNpgsqlConnection(
+					builder.Configuration.GetConnectionString("Postgre")!)));
+		builder.Services.AddHangfireServer(options =>
+		{
+			options.Queues = ["default", "exports"];
+			options.WorkerCount = Math.Max(1, Environment.ProcessorCount);
+		});
+		
 		builder.Services
 			.AddControllers(options =>
 				options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer())))
