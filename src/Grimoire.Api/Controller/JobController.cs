@@ -48,7 +48,7 @@ public sealed class JobController : ControllerBase
 
         var state = jobDetails.History
             .Select(h => h.StateName)
-            .LastOrDefault() ?? "Unknown";
+            .FirstOrDefault() ?? "Unknown";
 
         return state switch
         {
@@ -102,7 +102,7 @@ public sealed class JobController : ControllerBase
 
         if (jobDetails?.History is null) return null;
 
-        var succeeded = jobDetails.History.LastOrDefault(h => h.StateName == "Succeeded");
+        var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
         if (succeeded?.Data is null) return null;
 
         // Hangfire stores the job return value in SucceededState.Data["ReturnValue"]
