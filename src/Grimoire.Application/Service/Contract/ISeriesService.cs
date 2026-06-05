@@ -6,6 +6,7 @@ using Dto.Book;
 using Dto.Common;
 
 public interface ISeriesService : ICrudService<SeriesModel, CreateSeriesRequestDto, UpdateSeriesRequestDto> {
+	public Task<(SeriesModel Series, bool Created)> GetOrCreate(CreateSeriesRequestDto dto);
 	public Task<IEnumerable<VolumeModel>> FindAllVolumes(Guid seriesId);
 	public Task<PagedResult<VolumeModel>> FindAllVolumes(Guid seriesId, PaginationRequest pagination);
 }

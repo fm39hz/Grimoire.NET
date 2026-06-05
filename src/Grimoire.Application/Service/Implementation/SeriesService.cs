@@ -24,6 +24,17 @@ public sealed class SeriesService(
 		return await repository.Create(series);
 	}
 
+	public async Task<(SeriesModel Series, bool Created)> GetOrCreate(CreateSeriesRequestDto dto) {
+		var existing = await repository.FindOneByTitle(dto.Title);
+		if (existing is not null) {
+			return (existing, false);
+		}
+
+		var series = mapper.CreateSeries(dto);
+		var created = await repository.Create(series);
+		return (created, true);
+	}
+
 	public async Task<SeriesModel> Update(Guid id, UpdateSeriesRequestDto dto) {
 		var series = await repository.FindOne(id) ??
 					throw new EntityNotFoundException($"Series with id {id} not found");

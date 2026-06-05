@@ -8,7 +8,6 @@ using Constant;
 using Domain.Common;
 using Domain.Exception;
 using Dto;
-using EntityFramework.Exceptions.Common;
 using Infrastructure.Export.Common;
 using Microsoft.AspNetCore.Mvc;
 
@@ -86,17 +85,14 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 	}
 
 	[HttpPost]
+	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(typeof(SeriesResponseDto), 201)]
-	[ProducesResponseType(409)]
 	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto) {
-		try {
-			var createdSeries = await service.Create(dto);
-			var responseDto = mapper.ToSeriesDto(createdSeries);
-			return Results.Created($"{responseDto.Id}", responseDto);
-		}
-		catch (UniqueConstraintException e) {
-			return Results.Conflict($"{e.ConstraintName} existed at {e.SchemaQualifiedTableName}");
-		}
+		var (series, created) = await service.GetOrCreate(dto);
+		var responseDto = mapper.ToSeriesDto(series);
+		return created
+			? Results.Created($"{responseDto.Id}", responseDto)
+			: Results.Ok(responseDto);
 	}
 
 	[HttpPatch("{id}")]
