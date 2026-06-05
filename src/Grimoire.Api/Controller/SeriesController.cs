@@ -14,7 +14,7 @@ using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
-public sealed class SeriesController(ISeriesService service, IBookMapper mapper, ISectionRendererFactory rendererFactory) : ControllerBase {
+public sealed class SeriesController(ISeriesService service, ISeriesSyncService syncService, IBookMapper mapper, ISectionRendererFactory rendererFactory) : ControllerBase {
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
@@ -94,6 +94,15 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 		return created
 			? Results.Created($"{responseDto.Id}", responseDto)
 			: Results.Ok(responseDto);
+	}
+
+	[HttpPost("{id}/sync")]
+	[ProducesResponseType(200)]
+	[ProducesResponseType(404)]
+	public async Task<IResult> SyncTree(string id, [FromBody] SyncSeriesRequestDto dto, CancellationToken cancellationToken) {
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		await syncService.SyncSeriesTree(guid, dto, cancellationToken);
+		return Results.Ok();
 	}
 
 	[HttpPatch("{id}")]

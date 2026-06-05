@@ -15,6 +15,7 @@ public static class DependencyInjection {
 		services.AddScoped<IChapterService, ChapterService>();
 		services.AddScoped<IBinderyService, BinderyService>();
 		services.AddScoped<IAssetService, AssetService>();
+		services.AddScoped<ISeriesSyncService, SeriesSyncService>();
 		services.AddScoped<IStorageService, StorageService>();
 
 		// Register mappers
