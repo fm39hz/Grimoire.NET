@@ -98,6 +98,7 @@ public sealed class SeriesController(ISeriesService service, ISeriesSyncService 
 
 	[HttpPost("{id}/sync")]
 	[ProducesResponseType(200)]
+	[ProducesResponseType(400)]
 	[ProducesResponseType(404)]
 	public async Task<IResult> SyncTree(string id, [FromBody] SyncSeriesRequestDto dto, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
