@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading;
 using Grimoire.Api.Constant;
 using Grimoire.Domain.Common.Repository;
 using Grimoire.Job.Common;
@@ -73,7 +74,7 @@ public sealed class JobController : ControllerBase
     [HttpGet("{jobId}/download")]
     [ProducesResponseType(typeof(FileResult), 200)]
     [ProducesResponseType(404)]
-    public async Task<IResult> Download(string jobId)
+    public async Task<IResult> Download(string jobId, CancellationToken cancellationToken)
     {
         var assetId = await ResolveAssetIdAsync(jobId);
         if (assetId is null)
@@ -81,7 +82,7 @@ public sealed class JobController : ControllerBase
             return Results.NotFound(new { error = "Export result not found or job not yet completed" });
         }
 
-        var result = await _storage.GetFileStreamAsync(assetId.Value);
+        var result = await _storage.GetFileStreamAsync(assetId.Value, cancellationToken);
         if (result is null)
         {
             return Results.NotFound(new { error = "Export file not found in storage" });

@@ -9,6 +9,7 @@ using Domain.Common;
 using Domain.Exception;
 using Dto;
 using Infrastructure.Export.Common;
+using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -17,9 +18,9 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false) {
+	public async Task<IResult> FindOne(string id, CancellationToken cancellationToken, [FromQuery] bool? timestamp = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
-		var series = await service.FindOne(guid);
+		var series = await service.FindOne(guid, cancellationToken);
 		if (series is null) {
 			return Results.NotFound();
 		}
@@ -40,7 +41,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 	[ProducesResponseType(400)]
 	[ProducesResponseType(404)]
 	[ProducesResponseType(501)]
-	public async Task<IResult> GetContent(string id, [FromQuery] string format = "markdown") {
+	public async Task<IResult> GetContent(string id, CancellationToken cancellationToken, [FromQuery] string format = "markdown") {
 		if (!Enum.TryParse<ExportFormat>(format, true, out var exportFormat)) {
 			throw new ArgumentException($"Unsupported format: {format}");
 		}
@@ -52,7 +53,7 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 		var renderer = rendererFactory.Resolve(exportFormat) ?? throw new UnsupportedOperationException($"Renderer for format {format} is not implemented");
 
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
-		var series = await service.FindOne(guid)
+		var series = await service.FindOne(guid, cancellationToken)
 			?? throw new EntityNotFoundException($"Series with id {id} not found");
 
 		if (series.Metadata?.Description == null || series.Metadata.Description.Count == 0) {
@@ -72,8 +73,8 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<SeriesResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination) {
-		var pagedSeries = await service.FindAll(pagination.ToApplicationDto());
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination, CancellationToken cancellationToken) {
+		var pagedSeries = await service.FindAll(pagination.ToApplicationDto(), cancellationToken);
 		var items = pagedSeries.Items.Select(mapper.ToSeriesDto).ToList();
 		var pagedDto = new PagedResult<SeriesResponseDto>(
 			items,
@@ -87,8 +88,8 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 	[HttpPost]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(typeof(SeriesResponseDto), 201)]
-	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto) {
-		var (series, created) = await service.GetOrCreate(dto);
+	public async Task<IResult> Create([FromBody] CreateSeriesRequestDto dto, CancellationToken cancellationToken) {
+		var (series, created) = await service.GetOrCreate(dto, cancellationToken);
 		var responseDto = mapper.ToSeriesDto(series);
 		return created
 			? Results.Created($"{responseDto.Id}", responseDto)
@@ -97,31 +98,31 @@ public sealed class SeriesController(ISeriesService service, IBookMapper mapper,
 
 	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
-	public async Task<IResult> Update(string id, [FromBody] UpdateSeriesRequestDto dto) {
+	public async Task<IResult> Update(string id, [FromBody] UpdateSeriesRequestDto dto, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
-		var updatedSeries = await service.Update(guid, dto);
+		var updatedSeries = await service.Update(guid, dto, cancellationToken);
 		return Results.Ok(mapper.ToSeriesDto(updatedSeries));
 	}
 
 	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
-	public async Task<IResult> Delete(string id) {
+	public async Task<IResult> Delete(string id, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
-		var result = await service.Delete(guid);
+		var result = await service.Delete(guid, cancellationToken);
 		return Results.Ok(result);
 	}
 
 	[HttpGet("{id}/volumes")]
 	[ProducesResponseType(typeof(IEnumerable<VolumeResponseDto>), 200)]
-	public async Task<IResult> GetVolumes(string id, [FromQuery] PaginationRequestDto? pagination) {
+	public async Task<IResult> GetVolumes(string id, [FromQuery] PaginationRequestDto? pagination, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
 		if (pagination == null) {
-			var series = await service.FindAllVolumes(guid);
+			var series = await service.FindAllVolumes(guid, cancellationToken);
 			var dto = series.Select(mapper.ToVolumeDto);
 			return Results.Ok(dto);
 		}
 
-		var pagedVolumes = await service.FindAllVolumes(guid, pagination.ToApplicationDto());
+		var pagedVolumes = await service.FindAllVolumes(guid, pagination.ToApplicationDto(), cancellationToken);
 		var pagedDto = new PagedResult<VolumeResponseDto>(
 			[.. pagedVolumes.Items.Select(mapper.ToVolumeDto)],
 			pagedVolumes.TotalCount,

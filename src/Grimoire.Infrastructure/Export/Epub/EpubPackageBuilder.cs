@@ -2,6 +2,7 @@ namespace Grimoire.Infrastructure.Export.Epub;
 
 using System.IO.Compression;
 using System.Text;
+using System.Threading;
 using Common;
 using Domain.Entity.Book;
 
@@ -73,7 +74,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		}
 	}
 
-	public async Task<Stream> BuildAsync() {
+	public async Task<Stream> BuildAsync(CancellationToken cancellationToken = default) {
 		GenerateNavXhtml();
 		GenerateContainerXml();
 		GenerateContentOpf();

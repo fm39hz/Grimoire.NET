@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Strategy;
 
+using System.Threading;
 using Common;
 using Domain.Entity.Book;
 using Dto.Book;
@@ -12,7 +13,7 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 		// Can handle if Content array exists (even if empty)
 		dto.Content is not null;
 
-	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId) {
+	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId, CancellationToken cancellationToken = default) {
 		if (!CanHandle(dto)) {
 			throw new InvalidOperationException("This strategy cannot handle the provided DTO");
 		}

@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Implementation;
 
+using System.Threading;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
@@ -13,8 +14,8 @@ public abstract class CrudServiceBase<TModel> where TModel : class, IModel {
 	///     Helper method to create paginated results
 	/// </summary>
 	protected static async Task<PagedResult<TModel>> GetPagedResultAsync(IRepository<TModel> repository,
-		PaginationRequest request) {
-		var items = await repository.FindAll(request.PageIndex, request.PageSize);
+		PaginationRequest request, CancellationToken cancellationToken = default) {
+		var items = await repository.FindAll(request.PageIndex, request.PageSize, cancellationToken);
 		return items;
 	}
 
@@ -24,7 +25,7 @@ public abstract class CrudServiceBase<TModel> where TModel : class, IModel {
 	protected static async Task<PagedResult<T>> GetPagedResultAsync<T>(
 		Func<Task<IEnumerable<T>>> itemFetcher,
 		Func<Task<int>> countFetcher,
-		PaginationRequest request) where T : class {
+		PaginationRequest request, CancellationToken cancellationToken = default) where T : class {
 		var items = await itemFetcher();
 		var totalCount = await countFetcher();
 		return new PagedResult<T>([.. items], totalCount, request.PageIndex, request.PageSize);

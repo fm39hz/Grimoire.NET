@@ -1,5 +1,6 @@
 namespace Grimoire.Infrastructure.Export.Common;
 
+using System.Threading;
 using Domain.Entity.Book;
 
 /// <summary>
@@ -45,5 +46,5 @@ public interface IPackageBuilder {
 	/// <summary>
 	///     Builds and returns the final package stream.
 	/// </summary>
-	public Task<Stream> BuildAsync();
+	public Task<Stream> BuildAsync(CancellationToken cancellationToken = default);
 }

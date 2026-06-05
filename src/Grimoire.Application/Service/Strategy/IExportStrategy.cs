@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Strategy;
 
+using System.Threading;
 using Export;
 
 /// <summary>
@@ -14,5 +15,5 @@ public interface IExportStrategy {
 	/// <summary>
 	///     Exports a series using pre-assembled export context
 	/// </summary>
-	public Task<ExportResult> ExportAsync(BookExportContext context);
+	public Task<ExportResult> ExportAsync(BookExportContext context, CancellationToken cancellationToken = default);
 }

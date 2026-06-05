@@ -47,7 +47,7 @@ public sealed class ExportJob
             var bindery = services.GetRequiredService<IBinderyService>();
             var storage = services.GetRequiredService<IStorageRepository>();
 
-            var exportResult = await bindery.ExportSeriesAsync(seriesId, request);
+            var exportResult = await bindery.ExportSeriesAsync(seriesId, request, cancellationToken);
 
             if (!exportResult.Success)
             {
@@ -63,7 +63,8 @@ public sealed class ExportJob
                 exportResult.ContentStream,
                 exportResult.ContentType,
                 exportResult.FileName,
-                AssetRefType.Export);
+                AssetRefType.Export,
+                cancellationToken);
 
             _logger.LogInformation(
                 "ExportJob completed — JobId={JobId}, SeriesId={SeriesId}, AssetId={AssetId}",

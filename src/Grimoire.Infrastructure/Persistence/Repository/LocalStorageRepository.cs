@@ -1,6 +1,7 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
+using System.Threading;
 using Configuration;
 using Domain.Common;
 using Domain.Common.Repository;
@@ -20,10 +21,10 @@ public partial class LocalStorageRepository(
 		: _config.BasePath;
 
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType,
-		string originalFileName, AssetRefType refType) {
-		var hash = await ComputeHashAsync(content);
+		string originalFileName, AssetRefType refType, CancellationToken cancellationToken = default) {
+		var hash = await ComputeHashAsync(content, cancellationToken);
 
-		var existingAsset = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash);
+		var existingAsset = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
 		if (existingAsset is not null) {
 			return existingAsset;
 		}
@@ -43,7 +44,7 @@ public partial class LocalStorageRepository(
 			content.Seek(0, SeekOrigin.Begin);
 			// Use FileMode.CreateNew to prevent overwriting if file was created by another thread
 			await using var fileStream = new FileStream(filePath, FileMode.CreateNew);
-			await content.CopyToAsync(fileStream);
+			await content.CopyToAsync(fileStream, cancellationToken);
 		}
 		catch (IOException ex) when (ex.Message.Contains("already exists") || File.Exists(filePath)) {
 			// File was created by another concurrent operation, this is acceptable
@@ -60,23 +61,23 @@ public partial class LocalStorageRepository(
 			OriginalFileName = Path.GetFileName(originalFileName)
 		};
 
-		await assetRepository.Create(newAsset);
+		await assetRepository.Create(newAsset, cancellationToken);
 		return newAsset;
 	}
 
-	public async Task<byte[]> GetFileAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
+	public async Task<byte[]> GetFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
 		if (asset is null) {
 			return [];
 		}
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
 		LogGettingFileFromFilepath(logger, filePath);
-		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath);
+		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath, cancellationToken);
 	}
 
-	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
+	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
 		if (asset is null) {
 			return null;
 		}
@@ -96,8 +97,8 @@ public partial class LocalStorageRepository(
 		};
 	}
 
-	public async Task DeleteFileAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
+	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
 		if (asset is null) {
 			return;
 		}
@@ -108,12 +109,12 @@ public partial class LocalStorageRepository(
 			File.Delete(filePath);
 		}
 
-		await assetRepository.Delete(assetId);
+		await assetRepository.Delete(assetId, cancellationToken);
 	}
 
-	private static async Task<string> ComputeHashAsync(Stream stream) {
+	private static async Task<string> ComputeHashAsync(Stream stream, CancellationToken cancellationToken = default) {
 		using var sha256 = SHA256.Create();
-		var hashBytes = await sha256.ComputeHashAsync(stream);
+		var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 

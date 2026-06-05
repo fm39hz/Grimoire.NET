@@ -1,6 +1,7 @@
 namespace Grimoire.Infrastructure.Export.Markdown;
 
 using System.Text;
+using System.Threading;
 using Application.Export;
 using Application.Service.Strategy;
 using Common;
@@ -12,7 +13,7 @@ public partial class MarkdownExportStrategy(
 	ISectionRendererFactory sectionRendererFactory) : IExportStrategy {
 	public ExportFormat Format => ExportFormat.Markdown;
 
-	public async Task<ExportResult> ExportAsync(BookExportContext context) {
+	public async Task<ExportResult> ExportAsync(BookExportContext context, CancellationToken cancellationToken = default) {
 		try {
 			var renderer = sectionRendererFactory.Resolve(Format);
 
@@ -87,7 +88,7 @@ public partial class MarkdownExportStrategy(
 		public void SetNavigation(IReadOnlyList<NavEntry> navEntries) {
 		}
 
-		public Task<Stream> BuildAsync() => throw new NotImplementedException("MarkdownPackageBuilder does not support BuildAsync");
+		public Task<Stream> BuildAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("MarkdownPackageBuilder does not support BuildAsync");
 	}
 
 	[LoggerMessage(LogLevel.Error, "Failed to export series as Markdown")]

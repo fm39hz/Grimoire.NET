@@ -1,5 +1,6 @@
 namespace Grimoire.Infrastructure.Export;
 
+using System.Threading;
 using Application.Export;
 using Application.Extensions;
 using Application.Service.Strategy;
@@ -14,7 +15,7 @@ public partial class EpubExportStrategy(
 	ISectionRendererFactory sectionRendererFactory) : IExportStrategy {
 	public ExportFormat Format => ExportFormat.Epub;
 
-	public async Task<ExportResult> ExportAsync(BookExportContext context) {
+	public async Task<ExportResult> ExportAsync(BookExportContext context, CancellationToken cancellationToken = default) {
 		try {
 			var builder = packageBuilderFactory.Create();
 			var renderer = sectionRendererFactory.Resolve(Format);
@@ -44,7 +45,7 @@ public partial class EpubExportStrategy(
 			builder.SetNavigation(navEntries);
 
 			// 5. Build
-			var stream = await builder.BuildAsync();
+			var stream = await builder.BuildAsync(cancellationToken);
 			var fileName = $"{ExportUtilities.SanitizeFileName(context.Series.Title)}.epub";
 
 			return ExportResult.Ok(stream, fileName, "application/epub+zip");

@@ -1,6 +1,7 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
+using System.Threading;
 using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
@@ -43,11 +44,11 @@ public sealed partial class S3StorageRepository(
 	///     Object key: series/{seriesId}/{hash}{ext}
 	/// </summary>
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content,
-		string contentType, string originalFileName, AssetRefType refType) {
-		await EnsureBucketAsync();
+		string contentType, string originalFileName, AssetRefType refType, CancellationToken cancellationToken = default) {
+		await EnsureBucketAsync(cancellationToken);
 
-		var hash = await ComputeHashAsync(content);
-		var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash);
+		var hash = await ComputeHashAsync(content, cancellationToken);
+		var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
 		if (existing is not null) {
 			return existing;
 		}
@@ -66,7 +67,7 @@ public sealed partial class S3StorageRepository(
 			AutoResetStreamPosition = false
 		};
 
-		await _s3Client.PutObjectAsync(putRequest);
+		await _s3Client.PutObjectAsync(putRequest, cancellationToken);
 
 		var asset = new AssetModel {
 			Id = Guid.CreateVersion7(),
@@ -78,15 +79,15 @@ public sealed partial class S3StorageRepository(
 			OriginalFileName = Path.GetFileName(originalFileName)
 		};
 
-		await assetRepository.Create(asset);
+		await assetRepository.Create(asset, cancellationToken);
 		return asset;
 	}
 
 	/// <summary>
 	///     Returns direct stream from S3. Caller must dispose.
 	/// </summary>
-	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
+	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
 		if (asset is null) {
 			return null;
 		}
@@ -97,7 +98,7 @@ public sealed partial class S3StorageRepository(
 			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
 				BucketName = _config.BucketName,
 				Key = asset.Path
-			});
+			}, cancellationToken);
 
 			return new AssetFileResult {
 				Stream = response.ResponseStream,
@@ -113,8 +114,8 @@ public sealed partial class S3StorageRepository(
 	/// <summary>
 	///     Downloads object as byte array.
 	/// </summary>
-	public async Task<byte[]> GetFileAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
+	public async Task<byte[]> GetFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
 		if (asset is null) {
 			return [];
 		}
@@ -123,11 +124,11 @@ public sealed partial class S3StorageRepository(
 			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
 				BucketName = _config.BucketName,
 				Key = asset.Path
-			});
+			}, cancellationToken);
 
 			await using var stream = response.ResponseStream;
 			using var memoryStream = new MemoryStream();
-			await stream.CopyToAsync(memoryStream);
+			await stream.CopyToAsync(memoryStream, cancellationToken);
 			return memoryStream.ToArray();
 		}
 		catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) {
@@ -138,8 +139,8 @@ public sealed partial class S3StorageRepository(
 	/// <summary>
 	///     Deletes the object from S3 and the asset record from DB.
 	/// </summary>
-	public async Task DeleteFileAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
+	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
 		if (asset is null) {
 			return;
 		}
@@ -149,9 +150,9 @@ public sealed partial class S3StorageRepository(
 		await _s3Client.DeleteObjectAsync(new DeleteObjectRequest {
 			BucketName = _config.BucketName,
 			Key = asset.Path
-		});
+		}, cancellationToken);
 
-		await assetRepository.Delete(assetId);
+		await assetRepository.Delete(assetId, cancellationToken);
 	}
 
 	// ── helpers ──────────────────────────────────────────────────────
@@ -159,7 +160,7 @@ public sealed partial class S3StorageRepository(
 	private bool _bucketInitialized;
 	private readonly Lock _bucketLock = new();
 
-	private async Task EnsureBucketAsync() {
+	private async Task EnsureBucketAsync(CancellationToken cancellationToken = default) {
 		if (_bucketInitialized) {
 			return;
 		}
@@ -170,7 +171,7 @@ public sealed partial class S3StorageRepository(
 			}
 		}
 
-		var buckets = await _s3Client.ListBucketsAsync();
+		var buckets = await _s3Client.ListBucketsAsync(cancellationToken);
 		var bucketExists = buckets.Buckets.Exists(b => b.BucketName == _config.BucketName);
 
 		if (!bucketExists) {
@@ -178,15 +179,15 @@ public sealed partial class S3StorageRepository(
 			await _s3Client.PutBucketAsync(new PutBucketRequest {
 				BucketName = _config.BucketName,
 				UseClientRegion = true
-			});
+			}, cancellationToken);
 		}
 
 		_bucketInitialized = true;
 	}
 
-	private static async Task<string> ComputeHashAsync(Stream stream) {
+	private static async Task<string> ComputeHashAsync(Stream stream, CancellationToken cancellationToken = default) {
 		using var sha256 = SHA256.Create();
-		var hashBytes = await sha256.ComputeHashAsync(stream);
+		var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 

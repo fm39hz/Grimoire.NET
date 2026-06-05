@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Implementation;
 
+using System.Threading;
 using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
@@ -14,38 +15,38 @@ public sealed class VolumeService(
 	ISeriesRepository seriesRepository,
 	IChapterRepository chapterRepository,
 	IBookMapper mapper) : CrudServiceBase<VolumeModel>, IVolumeService {
-	public async Task<VolumeModel?> FindOne(Guid id) => await repository.FindOne(id);
+	public async Task<VolumeModel?> FindOne(Guid id, CancellationToken cancellationToken = default) => await repository.FindOne(id, cancellationToken);
 
-	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request) =>
-		await GetPagedResultAsync(repository, request);
+	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default) =>
+		await GetPagedResultAsync(repository, request, cancellationToken);
 
-	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto) {
+	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
 		// Validate that the Series exists
 		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
-		var series = await seriesRepository.FindOne(seriesId) ??
+		var series = await seriesRepository.FindOne(seriesId, cancellationToken) ??
 					throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
 
 		var volume = mapper.CreateVolume(dto, seriesId);
-		return await repository.Create(volume);
+		return await repository.Create(volume, cancellationToken);
 	}
 
-	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto) {
-		var volume = await repository.FindOne(id) ??
+	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
+		var volume = await repository.FindOne(id, cancellationToken) ??
 					throw new EntityNotFoundException($"Volume with id {id} not found");
 		mapper.UpdateVolume(dto, volume);
 
-		return await repository.Update(volume);
+		return await repository.Update(volume, cancellationToken);
 	}
 
-	public async Task<int> Delete(Guid id) => await repository.Delete(id);
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await repository.Delete(id, cancellationToken);
 
-	public async Task<IEnumerable<ChapterModel>> FindAllChapters(Guid volumeId) =>
-		await chapterRepository.FindByVolumeId(volumeId);
+	public async Task<IEnumerable<ChapterModel>> FindAllChapters(Guid volumeId, CancellationToken cancellationToken = default) =>
+		await chapterRepository.FindByVolumeId(volumeId, cancellationToken);
 
 	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId,
-		PaginationRequest pagination) =>
+		PaginationRequest pagination, CancellationToken cancellationToken = default) =>
 		await GetPagedResultAsync(
-			() => chapterRepository.FindByVolumeId(volumeId, pagination.PageIndex, pagination.PageSize),
-			() => chapterRepository.CountByVolumeId(volumeId),
-			pagination);
+			() => chapterRepository.FindByVolumeId(volumeId, pagination.PageIndex, pagination.PageSize, cancellationToken),
+			() => chapterRepository.CountByVolumeId(volumeId, cancellationToken),
+			pagination, cancellationToken);
 }

@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Export;
 
+using System.Threading;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -16,11 +17,12 @@ public class BookExportOrchestrator(
 
 	public async Task<BookExportContext> BuildContextAsync(
 		SeriesModel series,
-		BinderyRequestDto request) {
-		var volumes = await volumeResolver.ResolveAsync(series.Id, request);
-		var chapterMap = await chapterLoader.LoadAsync(volumes);
-		var (coverAsset, coverStream) = await coverResolver.ResolveAsync(series);
-		var imageAssets = await imageAssetCollector.CollectAsync(chapterMap);
+		BinderyRequestDto request,
+		CancellationToken cancellationToken = default) {
+		var volumes = await volumeResolver.ResolveAsync(series.Id, request, cancellationToken);
+		var chapterMap = await chapterLoader.LoadAsync(volumes, cancellationToken);
+		var (coverAsset, coverStream) = await coverResolver.ResolveAsync(series, cancellationToken);
+		var imageAssets = await imageAssetCollector.CollectAsync(chapterMap, cancellationToken);
 		var assetFileMap = ImageAssetCollector.GenerateFileMap(imageAssets);
 		var plainTextDescription = FlattenDescription(series.Metadata?.Description);
 

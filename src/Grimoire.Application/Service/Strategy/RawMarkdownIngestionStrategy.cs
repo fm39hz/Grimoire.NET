@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Strategy;
 
+using System.Threading;
 using System.Text.RegularExpressions;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
@@ -21,7 +22,7 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 		return !HtmlTagRegex.IsMatch(dto.RawContent);
 	}
 
-	public async Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId) {
+	public async Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId, CancellationToken cancellationToken = default) {
 		if (!CanHandle(dto)) {
 			throw new InvalidOperationException("This strategy cannot handle the provided DTO");
 		}
@@ -30,7 +31,7 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 		var sourceId = Guid.CreateVersion7();
 
 		// Fetch the volume to get SeriesId
-		var volume = await volumeRepository.FindOne(volumeId) ??
+		var volume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
 					throw new InvalidOperationException($"Volume with ID {dto.VolumeId} not found");
 
 		// Parse RawContent into segments (simple split by newline)

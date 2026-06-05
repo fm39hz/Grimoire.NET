@@ -10,6 +10,7 @@ using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Dto;
 using Infrastructure.Export.Common;
+using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -22,9 +23,9 @@ public sealed class ChapterController(
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id, [FromQuery] bool? timestamp = false) {
+	public async Task<IResult> FindOne(string id, CancellationToken cancellationToken, [FromQuery] bool? timestamp = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
-		var chapter = await service.FindOne(guid);
+		var chapter = await service.FindOne(guid, cancellationToken);
 		if (chapter is null) {
 			return Results.NotFound();
 		}
@@ -45,7 +46,7 @@ public sealed class ChapterController(
 	[ProducesResponseType(400)]
 	[ProducesResponseType(404)]
 	[ProducesResponseType(501)]
-	public async Task<IResult> GetContent(string id, [FromQuery] string format = "markdown") {
+	public async Task<IResult> GetContent(string id, CancellationToken cancellationToken, [FromQuery] string format = "markdown") {
 		if (!Enum.TryParse<ExportFormat>(format, true, out var exportFormat)) {
 			throw new ArgumentException($"Unsupported format: {format}");
 		}
@@ -57,7 +58,7 @@ public sealed class ChapterController(
 		var renderer = rendererFactory.Resolve(exportFormat) ?? throw new UnsupportedOperationException($"Renderer for format {format} is not implemented");
 
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
-		var chapter = await service.FindOne(guid)
+		var chapter = await service.FindOne(guid, cancellationToken)
 			?? throw new EntityNotFoundException($"Chapter with id {id} not found");
 
 		if (chapter.ContentData == null) {
@@ -67,7 +68,7 @@ public sealed class ChapterController(
 			});
 		}
 
-		var assets = await ResolveContentAssets(chapter.ContentData.Segments);
+		var assets = await ResolveContentAssets(chapter.ContentData.Segments, cancellationToken);
 
 		var content = renderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes);
 		var contentType = exportFormat == ExportFormat.Html ? "text/html" : "text/markdown";
@@ -80,8 +81,8 @@ public sealed class ChapterController(
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<ChapterListResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination) {
-		var pagedChapters = await service.FindAll(pagination.ToApplicationDto());
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination, CancellationToken cancellationToken) {
+		var pagedChapters = await service.FindAll(pagination.ToApplicationDto(), cancellationToken);
 		var pagedDto = new PagedResult<ChapterListResponseDto>(
 			pagedChapters.Items.Select(mapper.ToChapterListDto).ToList(),
 			pagedChapters.TotalCount,
@@ -93,25 +94,25 @@ public sealed class ChapterController(
 
 	[HttpPost]
 	[ProducesResponseType(typeof(ChapterResponseDto), 201)]
-	public async Task<IResult> Create([FromBody] CreateChapterRequestDto dto) {
-		var createdChapter = await service.CreateFromImportAsync(dto);
+	public async Task<IResult> Create([FromBody] CreateChapterRequestDto dto, CancellationToken cancellationToken) {
+		var createdChapter = await service.CreateFromImportAsync(dto, cancellationToken);
 		var responseDto = mapper.ToChapterDto(createdChapter);
 		return Results.Created($"{responseDto.Id}", responseDto);
 	}
 
 	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
-	public async Task<IResult> Update(string id, [FromBody] UpdateChapterRequestDto dto) {
+	public async Task<IResult> Update(string id, [FromBody] UpdateChapterRequestDto dto, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
-		var updatedChapter = await service.Update(guid, dto);
+		var updatedChapter = await service.Update(guid, dto, cancellationToken);
 		return Results.Ok(mapper.ToChapterDto(updatedChapter));
 	}
 
 	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
-	public async Task<IResult> Delete(string id) {
+	public async Task<IResult> Delete(string id, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
-		var result = await service.Delete(guid);
+		var result = await service.Delete(guid, cancellationToken);
 		return Results.Ok(result);
 	}
 
@@ -119,15 +120,16 @@ public sealed class ChapterController(
 	[ProducesResponseType(typeof(IEnumerable<ChapterResponseDto>), 201)]
 	[ProducesResponseType(404)]
 	[ProducesResponseType(400)]
-	public async Task<IResult> Split(string id, [FromBody] SplitChapterRequestDto dto) {
+	public async Task<IResult> Split(string id, [FromBody] SplitChapterRequestDto dto, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
-		var resultChapters = await service.SplitAsync(guid, dto);
+		var resultChapters = await service.SplitAsync(guid, dto, cancellationToken);
 		var responseDtos = resultChapters.Select(mapper.ToChapterDto);
 		return Results.Created("/api/v1/chapter", responseDtos);
 	}
 
 	private async Task<IReadOnlyList<AssetListingDto>> ResolveContentAssets(
-		IReadOnlyList<Domain.Entity.Book.SegmentModel> segments) {
+		IReadOnlyList<Domain.Entity.Book.SegmentModel> segments,
+		CancellationToken cancellationToken) {
 		var assetIds = segments
 			.OfType<ImageSegmentModel>()
 			.Select(s => PrefixedId.TryToGuid(s.AssetKey, EntityPrefix.Asset, out var id) ? id : Guid.Empty)
@@ -139,7 +141,7 @@ public sealed class ChapterController(
 			return [];
 		}
 
-		var assets = await assetService.FindByIdsAsync(assetIds);
+		var assets = await assetService.FindByIdsAsync(assetIds, cancellationToken);
 
 		return assets.Values.Select(a => new AssetListingDto {
 			Id = PrefixedId.ToString(EntityPrefix.Asset, a.Id),

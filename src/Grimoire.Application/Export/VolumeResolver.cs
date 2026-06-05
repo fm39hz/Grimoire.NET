@@ -1,13 +1,14 @@
 namespace Grimoire.Application.Export;
 
+using System.Threading;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Dto.Book;
 
 public class VolumeResolver(IVolumeRepository volumeRepository) {
-	public async Task<List<VolumeModel>> ResolveAsync(Guid seriesId, BinderyRequestDto request) {
-		var allVolumes = await volumeRepository.FindBySeriesId(seriesId);
+	public async Task<List<VolumeModel>> ResolveAsync(Guid seriesId, BinderyRequestDto request, CancellationToken cancellationToken = default) {
+		var allVolumes = await volumeRepository.FindBySeriesId(seriesId, cancellationToken);
 		var ordered = allVolumes.OrderBy(v => v.Order).ToList();
 
 		if (string.Equals(request.Mode, "Single", StringComparison.OrdinalIgnoreCase)
