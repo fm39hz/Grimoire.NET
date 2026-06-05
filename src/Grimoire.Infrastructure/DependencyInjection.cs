@@ -24,6 +24,7 @@ public static class DependencyInjection {
 		services.AddScoped<IChapterRepository, ChapterRepository>();
 		services.AddScoped<IAssetRepository, AssetRepository>();
 		services.AddScoped<ISourceMaterialRepository, SourceMaterialRepository>();
+		services.AddScoped<ISeriesExportRecordRepository, SeriesExportRecordRepository>();
 
 		// Register storage configuration
 		var storageSection = configuration.GetSection(StorageConfiguration.SECTION_NAME);

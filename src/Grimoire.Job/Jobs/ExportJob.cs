@@ -46,6 +46,23 @@ public sealed class ExportJob
 
             var bindery = services.GetRequiredService<IBinderyService>();
             var storage = services.GetRequiredService<IStorageRepository>();
+            var exportRecords = services.GetRequiredService<ISeriesExportRecordRepository>();
+
+            var formatDir = request.Format.ToString().ToLowerInvariant();
+
+            // Dedup check: if source content hasn't changed since last export, skip building
+            var prevRecord = await exportRecords.GetBySeriesAndFormatAsync(seriesId, formatDir, cancellationToken);
+            if (prevRecord is not null)
+            {
+                var maxContentDt = await exportRecords.GetMaxContentTimestampAsync(seriesId, cancellationToken);
+                if (prevRecord.LastExportedAt >= maxContentDt)
+                {
+                    _logger.LogInformation(
+                        "Export skipped (unchanged) — JobId={JobId}, SeriesId={SeriesId}, Format={Format}",
+                        jobId, seriesId, formatDir);
+                    return prevRecord.AssetId.ToString();
+                }
+            }
 
             var exportResult = await bindery.ExportSeriesAsync(seriesId, request, cancellationToken);
 
@@ -57,7 +74,6 @@ public sealed class ExportJob
                 return null;
             }
 
-            var formatDir = request.Format.ToString().ToLowerInvariant();
             var asset = await storage.UploadAssetAsync(
                 seriesId,
                 exportResult.ContentStream,
@@ -66,6 +82,24 @@ public sealed class ExportJob
                 AssetRefType.Export,
                 prefix: $"staging/export/{formatDir}",
                 cancellationToken);
+
+            // Update export record
+            if (prevRecord is not null)
+            {
+                prevRecord.LastExportedAt = DateTime.UtcNow;
+                prevRecord.AssetId = asset.Id;
+                await exportRecords.Update(prevRecord, cancellationToken);
+            }
+            else
+            {
+                await exportRecords.Create(new SeriesExportRecord
+                {
+                    SeriesId = seriesId,
+                    Format = formatDir,
+                    LastExportedAt = DateTime.UtcNow,
+                    AssetId = asset.Id
+                }, cancellationToken);
+            }
 
             _logger.LogInformation(
                 "ExportJob completed — JobId={JobId}, SeriesId={SeriesId}, AssetId={AssetId}",

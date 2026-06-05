@@ -17,6 +17,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<GlossaryTerm> GlossaryTerms { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SourceMaterial> SourceMaterials { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
+	[UsedImplicitly] public DbSet<SeriesExportRecord> SeriesExportRecords { get; set; } = null!;
 
 	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
 		foreach (var entry in ChangeTracker.Entries<BaseModel>().Where(e => e.State == EntityState.Modified)) {
@@ -162,6 +163,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.HasIndex(a => a.FileHash);
 			entity.HasIndex(a => new { a.SeriesId, a.FileHash });
 			entity.HasIndex(a => a.RefType);
+		});
+
+		modelBuilder.Entity<SeriesExportRecord>(entity => {
+			entity.Property(e => e.Id).ValueGeneratedOnAdd();
+			entity.Property(e => e.Format).HasMaxLength(50).IsRequired();
+			entity.HasIndex(e => new { e.SeriesId, e.Format }).IsUnique();
 		});
 	}
 }
