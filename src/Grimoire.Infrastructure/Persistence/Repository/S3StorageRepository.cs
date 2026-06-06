@@ -5,6 +5,7 @@ using System.Threading;
 using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
+using Amazon.S3.Transfer;
 using Configuration;
 using Domain.Common;
 using Domain.Common.Repository;
@@ -65,15 +66,13 @@ public sealed partial class S3StorageRepository(
 		LogUploadingToS3(logger, _config.BucketName, objectKey);
 		content.Seek(0, SeekOrigin.Begin);
 
-		var putRequest = new PutObjectRequest {
+		using var transferUtility = new TransferUtility(_s3Client);
+		await transferUtility.UploadAsync(new TransferUtilityUploadRequest {
 			BucketName = _config.BucketName,
 			Key = objectKey,
 			InputStream = content,
-			ContentType = contentType,
-			AutoResetStreamPosition = false
-		};
-
-		await _s3Client.PutObjectAsync(putRequest, cancellationToken);
+			ContentType = contentType
+		}, cancellationToken);
 
 		var asset = new AssetModel {
 			Id = Guid.CreateVersion7(),
