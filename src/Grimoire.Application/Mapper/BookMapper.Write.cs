@@ -46,6 +46,7 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	[MapperIgnoreTarget(nameof(ChapterModel.VolumeId))]
 	public partial void UpdateChapter(UpdateChapterRequestDto dto, [MappingTarget] ChapterModel model);
 #pragma warning restore RMG012
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]

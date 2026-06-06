@@ -81,10 +81,67 @@ public sealed class ChapterService(
 		var chapter = await chapterRepository.FindOne(id, cancellationToken) ??
 					throw new EntityNotFoundException($"Chapter with id {id} not found");
 		mapper.UpdateChapter(dto, chapter);
+
+		if (dto.VolumeId is not null) {
+			var newVolumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
+			if (chapter.VolumeId != newVolumeId) {
+				_ = await volumeRepository.FindOne(newVolumeId, cancellationToken) ??
+					throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
+				chapter.VolumeId = newVolumeId;
+			}
+		}
+
 		return await chapterRepository.Update(chapter, cancellationToken);
 	}
 
 	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await chapterRepository.Delete(id, cancellationToken);
+
+	public async Task<ChapterModel> MergeAsync(MergeChaptersRequestDto dto, CancellationToken cancellationToken = default) {
+		await unitOfWork.BeginTransactionAsync(cancellationToken);
+
+		try {
+			if (dto.ChapterIds.Count < 2) {
+				throw new InvalidOperationException("At least two chapters are required to merge");
+			}
+
+			var chapterIds = dto.ChapterIds
+				.Select(id => PrefixedId.ToGuid(id, EntityPrefix.Chapter))
+				.ToList();
+
+			var chapters = new List<ChapterModel>(chapterIds.Count);
+			foreach (var id in chapterIds) {
+				var chapter = await chapterRepository.FindOne(id, cancellationToken)
+					?? throw new EntityNotFoundException($"Chapter with id {id} not found");
+				chapters.Add(chapter);
+			}
+
+			var firstVolumeId = chapters[0].VolumeId;
+			for (var i = 1; i < chapters.Count; i++) {
+				if (chapters[i].VolumeId != firstVolumeId) {
+					throw new InvalidOperationException("All chapters to merge must belong to the same volume");
+				}
+			}
+
+			var baseChapter = chapters[0];
+			var chaptersToMerge = chapters.Skip(1).ToList();
+
+			baseChapter.Merge(chaptersToMerge);
+
+			await chapterRepository.Update(baseChapter, cancellationToken);
+
+			foreach (var chapter in chaptersToMerge) {
+				await chapterRepository.Delete(chapter.Id, cancellationToken);
+			}
+
+			await unitOfWork.CommitTransactionAsync(cancellationToken);
+
+			return baseChapter;
+		}
+		catch {
+			await unitOfWork.RollbackTransactionAsync(cancellationToken);
+			throw;
+		}
+	}
 
 	public async Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto, CancellationToken cancellationToken = default) {
 		await unitOfWork.BeginTransactionAsync(cancellationToken);

@@ -116,6 +116,15 @@ public sealed class ChapterController(
 		return Results.Ok(result);
 	}
 
+	[HttpPost("merge")]
+	[ProducesResponseType(typeof(ChapterResponseDto), 200)]
+	[ProducesResponseType(404)]
+	[ProducesResponseType(400)]
+	public async Task<IResult> Merge([FromBody] MergeChaptersRequestDto dto, CancellationToken cancellationToken) {
+		var mergedChapter = await service.MergeAsync(dto, cancellationToken);
+		return Results.Ok(mapper.ToChapterDto(mergedChapter));
+	}
+
 	[HttpPost("{id}/split")]
 	[ProducesResponseType(typeof(IEnumerable<ChapterResponseDto>), 201)]
 	[ProducesResponseType(404)]

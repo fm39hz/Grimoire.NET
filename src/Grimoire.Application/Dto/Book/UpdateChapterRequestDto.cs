@@ -7,4 +7,5 @@ public record UpdateChapterRequestDto(
 	int? Order,
 	string? Title,
 	List<SegmentModel>? Content,
-	List<FootnoteSegmentDto>? Footnotes);
+	List<FootnoteSegmentDto>? Footnotes,
+	string? VolumeId);
