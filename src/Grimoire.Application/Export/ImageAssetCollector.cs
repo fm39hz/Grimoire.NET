@@ -9,9 +9,10 @@ using Service.Contract;
 
 public class ImageAssetCollector(IAssetRepository assetRepository, IStorageService storageService) {
 	public async Task<IReadOnlyDictionary<string, ResolvedAsset>> CollectAsync(
+		List<VolumeModel> volumes,
 		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap,
 		CancellationToken cancellationToken = default) {
-		var assetKeyToIdMap = BuildAssetKeyToIdMap(chapterMap);
+		var assetKeyToIdMap = BuildAssetKeyToIdMap(chapterMap, volumes);
 		if (assetKeyToIdMap.Count == 0) {
 			return new Dictionary<string, ResolvedAsset>();
 		}
@@ -59,7 +60,9 @@ public class ImageAssetCollector(IAssetRepository assetRepository, IStorageServi
 	}
 
 	private static Dictionary<string, Guid> BuildAssetKeyToIdMap(
-		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap) => chapterMap.Values
+		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap,
+		List<VolumeModel> volumes) {
+		var result = chapterMap.Values
 			.SelectMany(chapters => chapters)
 			.SelectMany(chapter => chapter.ContentData!.Segments.OfType<ImageSegmentModel>())
 			.Select(seg => (seg.AssetKey,
@@ -67,6 +70,17 @@ public class ImageAssetCollector(IAssetRepository assetRepository, IStorageServi
 			.Where(pair => pair.Item2 != Guid.Empty)
 			.DistinctBy(pair => pair.Item2)
 			.ToDictionary(pair => pair.AssetKey, pair => pair.Item2);
+
+		foreach (var volume in volumes) {
+			var coverKey = volume.Metadata?.CoverImage;
+			if (string.IsNullOrEmpty(coverKey)) continue;
+			if (!PrefixedId.TryToGuid(coverKey, EntityPrefix.Asset, out var id)) continue;
+			if (result.ContainsKey(coverKey)) continue;
+			result[coverKey] = id;
+		}
+
+		return result;
+	}
 
 	private async Task<bool> StreamExistsAsync(Guid assetId, CancellationToken cancellationToken) {
 		try {

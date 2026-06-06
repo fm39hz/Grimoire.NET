@@ -22,7 +22,7 @@ public class BookExportOrchestrator(
 		var volumes = await volumeResolver.ResolveAsync(series.Id, request, cancellationToken);
 		var chapterMap = await chapterLoader.LoadAsync(volumes, cancellationToken);
 		var (coverAsset, coverStream) = await coverResolver.ResolveAsync(series, cancellationToken);
-		var imageAssets = await imageAssetCollector.CollectAsync(chapterMap, cancellationToken);
+		var imageAssets = await imageAssetCollector.CollectAsync(volumes, chapterMap, cancellationToken);
 		var assetFileMap = ImageAssetCollector.GenerateFileMap(imageAssets);
 		var plainTextDescription = FlattenDescription(series.Metadata?.Description);
 
