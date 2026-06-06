@@ -1,6 +1,7 @@
 namespace Grimoire.Application;
 
 using Export;
+using Import;
 using Mapper;
 using Microsoft.Extensions.DependencyInjection;
 using Service.Contract;
@@ -32,6 +33,18 @@ public static class DependencyInjection {
 		services.AddScoped<IIngestionStrategy, PreProcessedIngestionStrategy>();
 		services.AddScoped<IIngestionStrategy, RawMarkdownIngestionStrategy>();
 		services.AddScoped<IngestionStrategyFactory>();
+
+		// Register import strategies
+		services.AddScoped<IImportStrategy, EpubImportStrategy>();
+		services.AddScoped<ImportStrategyFactory>();
+
+		// Register import orchestrator
+		services.AddScoped<IImportOrchestrator, ImportOrchestrator>();
+
+		// Register import collaborators
+		services.AddScoped<IVolumeTreeResolver, VolumeTreeResolver>();
+		services.AddScoped<IChapterImportHandler, ChapterImportHandler>();
+		services.AddScoped<IMediaImportService, MediaImportService>();
 
 		return services;
 	}

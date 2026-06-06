@@ -24,6 +24,7 @@
 		<PackageReference Include="Scriban"/>
 		<PackageReference Include="System.IdentityModel.Tokens.Jwt"/>
 		<PackageReference Include="VersOne.Epub"/>
+		<PackageReference Include="AngleSharp"/>
 	</ItemGroup>
 
 	<ItemGroup>

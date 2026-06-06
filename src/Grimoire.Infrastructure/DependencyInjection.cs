@@ -1,5 +1,6 @@
 namespace Grimoire.Infrastructure;
 
+using Application.Import;
 using Application.Service.Strategy;
 using Configuration;
 using Domain.Common.Repository;
@@ -7,6 +8,7 @@ using Export;
 using Export.Common;
 using Export.Epub;
 using Export.Markdown;
+using Import;
 using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -59,8 +61,10 @@ public static class DependencyInjection {
 		services.AddScoped<ISectionRenderer, MarkdownSectionRenderer>();
 		services.AddScoped<IExportStrategy, EpubExportStrategy>();
 		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
-		// services.AddScoped<IExportStrategy, PdfExportStrategy>();
-		// services.AddScoped<IExportStrategy, HtmlExportStrategy>();
+
+		// Import infrastructure
+		services.AddScoped<IEpubParser, EpubParser>();
+		services.AddScoped<IXhtmlSegmentParser, XhtmlSegmentParser>();
 
 		return services;
 	}

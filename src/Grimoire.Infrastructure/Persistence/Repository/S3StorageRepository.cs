@@ -13,13 +13,6 @@ using Domain.Entity.Book;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
-/// <summary>
-///     S3-compatible storage repository using AWSSDK.S3.
-///     Works with any S3-compatible service (custom, Minio, R2, Backblaze, etc.)
-///     via ServiceURL + ForcePathStyle configuration.
-///     Thread-safe; AmazonS3Client is singleton-safe.
-///     Bucket is auto-created on first use.
-/// </summary>
 public sealed partial class S3StorageRepository(
 	ILogger<S3StorageRepository> logger,
 	IAssetRepository assetRepository,
@@ -38,12 +31,8 @@ public sealed partial class S3StorageRepository(
 		return new AmazonS3Client(cfg.AccessKey, cfg.SecretKey, awsConfig);
 	}
 
-	// ── public API ───────────────────────────────────────────────────
+	// ── Asset-bound API (with AssetModel record) ──────────────────────
 
-	/// <summary>
-	///     Deduplicates by SHA256 hash within a series, then uploads to S3.
-	///     Object key: series/{seriesId}/{hash}{ext}
-	/// </summary>
 	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content,
 		string contentType, string originalFileName, AssetRefType refType, string? prefix = null,
 		CancellationToken cancellationToken = default) {
@@ -58,10 +47,7 @@ public sealed partial class S3StorageRepository(
 			}
 		}
 
-		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-		var objectKey = prefix is not null
-			? $"{prefix}/{hash}{extension}"
-			: $"series/{seriesId}/{hash}{extension}";
+		var objectKey = BuildKey(originalFileName, hash, prefix, seriesId);
 
 		LogUploadingToS3(logger, _config.BucketName, objectKey);
 		content.Seek(0, SeekOrigin.Begin);
@@ -88,76 +74,73 @@ public sealed partial class S3StorageRepository(
 		return asset;
 	}
 
-	/// <summary>
-	///     Returns direct stream from S3. Caller must dispose.
-	/// </summary>
 	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) {
-			return null;
-		}
+		if (asset is null) return null;
 
-		LogGettingFromS3(logger, _config.BucketName, asset.Path);
-
-		try {
-			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
-				BucketName = _config.BucketName,
-				Key = asset.Path
-			}, cancellationToken);
-
-			return new AssetFileResult {
-				Stream = response.ResponseStream,
-				ContentType = response.Headers.ContentType ?? asset.ContentType,
-				FileName = asset.OriginalFileName
-			};
-		}
-		catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) {
-			return null;
-		}
+		return await GetStreamByKeyAsync(asset.Path, asset.ContentType, asset.OriginalFileName, cancellationToken);
 	}
 
-	/// <summary>
-	///     Downloads object as byte array.
-	/// </summary>
 	public async Task<byte[]> GetFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) {
-			return [];
-		}
+		if (asset is null) return [];
 
+		return await GetBytesByKeyAsync(asset.Path, cancellationToken);
+	}
+
+	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
+		if (asset is null) return;
+
+		await DeleteByKeyAsync(asset.Path, cancellationToken);
+		await assetRepository.Delete(assetId, cancellationToken);
+	}
+
+	// ── Raw file API (no AssetModel) ──────────────────────────────────
+
+	public async Task<string> UploadFileAsync(Stream content, string contentType, string fileName,
+		string? prefix = null, CancellationToken cancellationToken = default) {
+		await EnsureBucketAsync(cancellationToken);
+
+		var hash = await ComputeHashAsync(content, cancellationToken);
+		var ext = Path.GetExtension(fileName).ToLowerInvariant();
+		var objectKey = prefix is not null
+			? $"{prefix.TrimEnd('/')}/{hash}{ext}"
+			: $"uploads/{hash}{ext}";
+
+		LogUploadingToS3(logger, _config.BucketName, objectKey);
+		content.Seek(0, SeekOrigin.Begin);
+
+		using var transferUtility = new TransferUtility(_s3Client);
+		await transferUtility.UploadAsync(new TransferUtilityUploadRequest {
+			BucketName = _config.BucketName,
+			Key = objectKey,
+			InputStream = content,
+			ContentType = contentType
+		}, cancellationToken);
+
+		return objectKey;
+	}
+
+	public async Task<Stream?> GetFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
 		try {
 			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
 				BucketName = _config.BucketName,
-				Key = asset.Path
+				Key = filePath
 			}, cancellationToken);
 
-			await using var stream = response.ResponseStream;
-			using var memoryStream = new MemoryStream();
-			await stream.CopyToAsync(memoryStream, cancellationToken);
-			return memoryStream.ToArray();
+			return response.ResponseStream;
 		}
 		catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) {
-			return [];
+			return null;
 		}
 	}
 
-	/// <summary>
-	///     Deletes the object from S3 and the asset record from DB.
-	/// </summary>
-	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
-		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) {
-			return;
-		}
-
-		LogDeletingFromS3(logger, _config.BucketName, asset.Path);
-
+	public async Task DeleteFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
 		await _s3Client.DeleteObjectAsync(new DeleteObjectRequest {
 			BucketName = _config.BucketName,
-			Key = asset.Path
+			Key = filePath
 		}, cancellationToken);
-
-		await assetRepository.Delete(assetId, cancellationToken);
 	}
 
 	// ── helpers ──────────────────────────────────────────────────────
@@ -166,14 +149,10 @@ public sealed partial class S3StorageRepository(
 	private readonly Lock _bucketLock = new();
 
 	private async Task EnsureBucketAsync(CancellationToken cancellationToken = default) {
-		if (_bucketInitialized) {
-			return;
-		}
+		if (_bucketInitialized) return;
 
 		lock (_bucketLock) {
-			if (_bucketInitialized) {
-				return;
-			}
+			if (_bucketInitialized) return;
 		}
 
 		var buckets = await _s3Client.ListBucketsAsync(cancellationToken);
@@ -194,6 +173,58 @@ public sealed partial class S3StorageRepository(
 		using var sha256 = SHA256.Create();
 		var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
+	}
+
+	private static string BuildKey(string fileName, string hash, string? prefix, Guid seriesId) {
+		var ext = Path.GetExtension(fileName).ToLowerInvariant();
+		return prefix is not null
+			? $"{prefix.TrimEnd('/')}/{hash}{ext}"
+			: $"series/{seriesId}/{hash}{ext}";
+	}
+
+	private async Task<AssetFileResult?> GetStreamByKeyAsync(string key, string contentType, string fileName, CancellationToken ct) {
+		LogGettingFromS3(logger, _config.BucketName, key);
+
+		try {
+			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
+				BucketName = _config.BucketName,
+				Key = key
+			}, ct);
+
+			return new AssetFileResult {
+				Stream = response.ResponseStream,
+				ContentType = response.Headers.ContentType ?? contentType,
+				FileName = fileName
+			};
+		}
+		catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) {
+			return null;
+		}
+	}
+
+	private async Task<byte[]> GetBytesByKeyAsync(string key, CancellationToken ct) {
+		try {
+			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
+				BucketName = _config.BucketName,
+				Key = key
+			}, ct);
+
+			await using var stream = response.ResponseStream;
+			using var memoryStream = new MemoryStream();
+			await stream.CopyToAsync(memoryStream, ct);
+			return memoryStream.ToArray();
+		}
+		catch (AmazonS3Exception ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound) {
+			return [];
+		}
+	}
+
+	private async Task DeleteByKeyAsync(string key, CancellationToken ct) {
+		LogDeletingFromS3(logger, _config.BucketName, key);
+		await _s3Client.DeleteObjectAsync(new DeleteObjectRequest {
+			BucketName = _config.BucketName,
+			Key = key
+		}, ct);
 	}
 
 	// ── logging ──────────────────────────────────────────────────────

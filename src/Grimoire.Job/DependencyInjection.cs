@@ -33,13 +33,13 @@ public static class DependencyInjection
                 .ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
 
         // Hangfire client — server runs only in API (single process)
-        // Re-enable AddHangfireServer here for distributed deployment
         services.AddHangfire(config => config
             .UsePostgreSqlStorage(options => options
                 .UseNpgsqlConnection(connectionString)));
 
         // Register jobs so they can be resolved when this project runs as worker
         services.AddTransient<ExportJob>();
+        services.AddTransient<ImportEpubJob>();
 
         return services;
     }

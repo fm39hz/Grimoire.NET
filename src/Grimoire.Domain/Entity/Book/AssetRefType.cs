@@ -17,5 +17,10 @@ public enum AssetRefType {
 	/// <summary>
 	///     Asset is an export result (EPUB, PDF, etc.)
 	/// </summary>
-	Export
+	Export,
+
+	/// <summary>
+	///     Asset is a source file (imported EPUB, etc.)
+	/// </summary>
+	Source
 }
