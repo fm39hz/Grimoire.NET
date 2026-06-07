@@ -42,6 +42,14 @@ public sealed class ChapterRepository(ApplicationDbContext context)
 			.Where(c => c.VolumeId == volumeId)
 			.CountAsync(cancellationToken);
 
+	public async Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
+		await Entities
+			.AsNoTracking()
+			.Where(c => volumeIds.Contains(c.VolumeId))
+			.OrderBy(c => c.VolumeId)
+			.ThenBy(c => c.Order)
+			.ToListAsync(cancellationToken);
+
 	public async Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
 		await Entities
 			.AsNoTracking()

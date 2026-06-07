@@ -5,61 +5,31 @@ using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Metadata;
-using Domain.Exception;
 using Dto.Book;
 using Dto.Common;
-using Mapper;
 
 public sealed class VolumeService(
 	IVolumeRepository repository,
-	ISeriesRepository seriesRepository,
-	IChapterRepository chapterRepository,
-	IBookMapper mapper) : CrudServiceBase<VolumeModel>, IVolumeService {
+	IBookTreeService bookTreeService) : CrudServiceBase<VolumeModel>, IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id, CancellationToken cancellationToken = default) => await repository.FindOne(id, cancellationToken);
 
 	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default) =>
 		await GetPagedResultAsync(repository, request, cancellationToken);
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
-		_ = await seriesRepository.FindOne(seriesId, cancellationToken) ??
-			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
-
-		var existing = await repository.FindBySeriesIdAndOrder(seriesId, dto.Order, cancellationToken);
-		if (existing is not null) {
-			existing.Title = dto.Title;
-			existing.Metadata = dto.Metadata != null
-				? new VolumeMetadata {
-					CoverImage = dto.Metadata.CoverImage,
-					PublicationDate = dto.Metadata.PublicationDate,
-					Isbn = dto.Metadata.Isbn
-				}
-				: null;
-			return await repository.Update(existing, cancellationToken);
-		}
-
-		var volume = mapper.CreateVolume(dto, seriesId);
-		return await repository.Create(volume, cancellationToken);
+		return await bookTreeService.CreateVolume(dto, cancellationToken);
 	}
 
 	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		var volume = await repository.FindOne(id, cancellationToken) ??
-					throw new EntityNotFoundException($"Volume with id {id} not found");
-		mapper.UpdateVolume(dto, volume);
-
-		return await repository.Update(volume, cancellationToken);
+		return await bookTreeService.UpdateVolume(id, dto, cancellationToken);
 	}
 
-	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await repository.Delete(id, cancellationToken);
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await bookTreeService.DeleteSubtree(id, cancellationToken);
 
 	public async Task<IEnumerable<ChapterModel>> FindAllChapters(Guid volumeId, CancellationToken cancellationToken = default) =>
-		await chapterRepository.FindByVolumeId(volumeId, cancellationToken);
+		await bookTreeService.FindChapters(volumeId, cancellationToken);
 
 	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId,
 		PaginationRequest pagination, CancellationToken cancellationToken = default) =>
-		await GetPagedResultAsync(
-			() => chapterRepository.FindByVolumeId(volumeId, pagination.PageIndex, pagination.PageSize, cancellationToken),
-			() => chapterRepository.CountByVolumeId(volumeId, cancellationToken),
-			pagination, cancellationToken);
+		await bookTreeService.FindChapters(volumeId, pagination, cancellationToken);
 }

@@ -2,6 +2,7 @@ namespace Grimoire.Application.Export;
 
 using Domain.Entity.Book;
 using Dto.Book;
+using Dto.Book.Tree;
 
 /// <summary>
 ///     Pure data bag produced by BookExportOrchestrator.
@@ -11,6 +12,9 @@ using Dto.Book;
 public class BookExportContext {
 	/// <summary>The series being exported.</summary>
 	public required SeriesModel Series { get; init; }
+
+	/// <summary>Canonical hierarchy tree for the exported series.</summary>
+	public required BookTreeDto Tree { get; init; }
 
 	/// <summary>Volumes in ascending Order, filtered per BinderyRequest mode.</summary>
 	public required List<VolumeModel> Volumes { get; init; }

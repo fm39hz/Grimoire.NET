@@ -16,8 +16,10 @@ public static class DependencyInjection {
 		services.AddScoped<IChapterService, ChapterService>();
 		services.AddScoped<IBinderyService, BinderyService>();
 		services.AddScoped<IAssetService, AssetService>();
+		services.AddScoped<IAssetOwnershipService, AssetOwnershipService>();
 		services.AddScoped<ISeriesSyncService, SeriesSyncService>();
 		services.AddScoped<IStorageService, StorageService>();
+		services.AddScoped<IBookTreeService, BookTreeService>();
 
 		// Register mappers
 		services.AddScoped<IBookMapper, BookMapper>();

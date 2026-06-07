@@ -27,10 +27,8 @@ public partial class LocalStorageRepository(
 		CancellationToken cancellationToken = default) {
 		var hash = await ComputeHashAsync(content, cancellationToken);
 
-		if (prefix is null) {
-			var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
-			if (existing is not null) return existing;
-		}
+		var existing = await assetRepository.GetByFileHashAsync(hash, cancellationToken);
+		if (existing is not null) return existing;
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
 		var assetPath = prefix is not null
@@ -47,6 +45,7 @@ public partial class LocalStorageRepository(
 		var asset = new AssetModel {
 			Id = Guid.CreateVersion7(),
 			SeriesId = seriesId,
+			OwnerNodeId = seriesId,
 			Path = assetPath,
 			FileHash = hash,
 			RefType = refType,

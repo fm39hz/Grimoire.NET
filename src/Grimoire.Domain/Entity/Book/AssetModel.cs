@@ -10,6 +10,11 @@ public class AssetModel : BaseModel {
 	public required Guid SeriesId { get; init; }
 
 	/// <summary>
+	///     Canonical tree owner. Null means the asset is shared at the logical BookShelf root.
+	/// </summary>
+	public Guid? OwnerNodeId { get; set; }
+
+	/// <summary>
 	///     Reference to the parent series
 	/// </summary>
 	public SeriesModel? Series { get; init; }

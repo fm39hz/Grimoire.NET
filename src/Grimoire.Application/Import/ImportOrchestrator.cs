@@ -11,6 +11,7 @@ public sealed class ImportOrchestrator(
     IVolumeTreeResolver volumeResolver,
     IChapterImportHandler chapterHandler,
     IMediaImportService mediaService,
+    IAssetOwnershipService assetOwnershipService,
     IUnitOfWork unitOfWork,
     ILogger<ImportOrchestrator> logger) : IImportOrchestrator {
 
@@ -58,6 +59,7 @@ public sealed class ImportOrchestrator(
                 }
             }
 
+            await assetOwnershipService.ReconcileSeriesAsync(seriesId, cancellationToken);
             await unitOfWork.CommitTransactionAsync(cancellationToken);
 
             logger.LogInformation(

@@ -1,9 +1,8 @@
 namespace Grimoire.Application.Import;
 
 using Domain.Common;
-using Domain.Common.Repository;
 using Dto.Book;
-using Mapper;
+using Service.Contract;
 
 public sealed record ResolvedVolume {
     public required Guid Id { get; init; }
@@ -25,16 +24,15 @@ public interface IVolumeTreeResolver {
 }
 
 public sealed class VolumeTreeResolver(
-    IVolumeRepository volumeRepository,
-    IBookMapper mapper) : IVolumeTreeResolver {
+	IBookTreeService bookTreeService) : IVolumeTreeResolver {
 
     public async Task<List<ResolvedVolume>> ResolveAsync(
         Guid seriesId,
         List<NormalizedVolume> volumes,
         CancellationToken cancellationToken = default) {
 
-        var existing = (await volumeRepository.FindBySeriesId(seriesId, cancellationToken))
-            .ToDictionary(v => v.Order);
+		var existing = (await bookTreeService.FindVolumes(seriesId, cancellationToken))
+			.ToDictionary(v => v.Order);
 
         var result = new List<ResolvedVolume>();
 
@@ -42,9 +40,9 @@ public sealed class VolumeTreeResolver(
         {
             if (existing.TryGetValue(entry.Order, out var vol))
             {
-                vol.Title = entry.Title;
-                await volumeRepository.Update(vol, cancellationToken);
-                result.Add(new ResolvedVolume
+				vol.Title = entry.Title;
+				await bookTreeService.UpdateVolume(vol.Id, new UpdateVolumeRequestDto(entry.Order, entry.Title, null), cancellationToken);
+				result.Add(new ResolvedVolume
                 {
                     Id = vol.Id,
                     VolumeOrder = entry.Order,
@@ -58,14 +56,11 @@ public sealed class VolumeTreeResolver(
             }
             else
             {
-                var newVol = mapper.CreateVolume(
-                    new CreateVolumeRequestDto(
-                        PrefixedId.ToString(EntityPrefix.Series, seriesId),
-                        entry.Order,
-                        entry.Title,
-                        null),
-                    seriesId);
-                var created = await volumeRepository.Create(newVol, cancellationToken);
+				var created = await bookTreeService.CreateVolume(new CreateVolumeRequestDto(
+					PrefixedId.ToString(EntityPrefix.Series, seriesId),
+					entry.Order,
+					entry.Title,
+					null), cancellationToken);
                 result.Add(new ResolvedVolume
                 {
                     Id = created.Id,

@@ -34,13 +34,15 @@ public class Program {
 
 				// EnsureCreatedAsync skips if DB already exists (Hangfire creates it first).
 				// Probe our tables; if missing, recreate the full schema.
-				try {
-					await dbContext.Series.AnyAsync();
-				}
-				catch {
+				var hasApplicationSchema = await dbContext.Database
+					.SqlQueryRaw<bool>("SELECT to_regclass('public.series') IS NOT NULL AS \"Value\"")
+					.SingleAsync();
+				if (!hasApplicationSchema) {
 					await dbContext.Database.EnsureDeletedAsync();
 					await dbContext.Database.EnsureCreatedAsync();
 				}
+
+				await dbContext.EnsureBookNodesAsync();
 			}
 
 			app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");

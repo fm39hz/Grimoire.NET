@@ -40,11 +40,9 @@ public sealed partial class S3StorageRepository(
 
 		var hash = await ComputeHashAsync(content, cancellationToken);
 
-		if (prefix is null) {
-			var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
-			if (existing is not null) {
-				return existing;
-			}
+		var existing = await assetRepository.GetByFileHashAsync(hash, cancellationToken);
+		if (existing is not null) {
+			return existing;
 		}
 
 		var objectKey = BuildKey(originalFileName, hash, prefix, seriesId);
@@ -63,6 +61,7 @@ public sealed partial class S3StorageRepository(
 		var asset = new AssetModel {
 			Id = Guid.CreateVersion7(),
 			SeriesId = seriesId,
+			OwnerNodeId = seriesId,
 			Path = objectKey,
 			FileHash = hash,
 			RefType = refType,

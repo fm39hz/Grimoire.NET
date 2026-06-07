@@ -52,6 +52,7 @@ public partial class BookMapper {
 	[MapperIgnoreTarget(nameof(BaseModel.CreatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.UpdatedAt))]
 	[MapperIgnoreTarget(nameof(BaseModel.Id))]
+	[MapperIgnoreTarget(nameof(VolumeModel.SeriesId))]
 	public partial void UpdateVolume(UpdateVolumeRequestDto dto, [MappingTarget] VolumeModel model);
 
 #pragma warning disable RMG012

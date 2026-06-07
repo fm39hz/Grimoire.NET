@@ -2,6 +2,7 @@ namespace Grimoire.Application.Import;
 
 using Domain.Common.Repository;
 using Domain.Entity.Book;
+using Domain.Common;
 using Dto.Book;
 using Service.Contract;
 using Microsoft.Extensions.Logging;
@@ -41,7 +42,7 @@ public sealed class MediaImportService(
                 prefix: prefix,
                 cancellationToken: cancellationToken);
 
-            map[file.FileName] = asset.Path;
+            map[file.FileName] = PrefixedId.ToString(EntityPrefix.Asset, asset.Id);
         }
 
         return map;
@@ -62,7 +63,7 @@ public sealed class MediaImportService(
                 AssetRefType.Cover,
                 cancellationToken: cancellationToken);
 
-            seriesDto.Metadata.CoverImage = asset.Path;
+            seriesDto.Metadata.CoverImage = PrefixedId.ToString(EntityPrefix.Asset, asset.Id);
             await seriesService.Update(seriesId,
                 new UpdateSeriesRequestDto(null, seriesDto.Metadata),
                 cancellationToken);

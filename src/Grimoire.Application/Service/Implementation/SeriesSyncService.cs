@@ -5,18 +5,16 @@ using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Metadata;
 using Domain.Exception;
 using Dto.Book;
-using Mapper;
 using Strategy;
 
 public sealed class SeriesSyncService(
 	ISeriesRepository seriesRepository,
-	IVolumeRepository volumeRepository,
 	IChapterRepository chapterRepository,
 	ISourceMaterialRepository sourceRepository,
-	IBookMapper mapper,
+	IBookTreeService bookTreeService,
+	IAssetOwnershipService assetOwnershipService,
 	IngestionStrategyFactory strategyFactory,
 	IUnitOfWork unitOfWork) : ISeriesSyncService {
 
@@ -26,7 +24,7 @@ public sealed class SeriesSyncService(
 			_ = await seriesRepository.FindOne(seriesId, cancellationToken) ??
 				throw new EntityNotFoundException($"Series with id {seriesId} not found");
 
-			var existingVolumes = (await volumeRepository.FindBySeriesId(seriesId, cancellationToken)).ToList();
+			var existingVolumes = (await bookTreeService.FindVolumes(seriesId, cancellationToken)).ToList();
 			var volumesByOrder = existingVolumes.ToDictionary(v => v.Order);
 
 			var volumeOrderToId = new Dictionary<float, Guid>();
@@ -34,24 +32,17 @@ public sealed class SeriesSyncService(
 			foreach (var volDto in request.Volumes) {
 				Guid volId;
 				if (volumesByOrder.TryGetValue(volDto.Order, out var existingVol)) {
-					existingVol.Title = volDto.Title;
-					existingVol.Metadata = volDto.Metadata != null
-						? new VolumeMetadata {
-							CoverImage = volDto.Metadata.CoverImage,
-							PublicationDate = volDto.Metadata.PublicationDate,
-							Isbn = volDto.Metadata.Isbn
-						}
-						: null;
-					await volumeRepository.Update(existingVol, cancellationToken);
-					volId = existingVol.Id;
+					var updated = await bookTreeService.UpdateVolume(
+						existingVol.Id,
+						new UpdateVolumeRequestDto(volDto.Order, volDto.Title, volDto.Metadata),
+						cancellationToken);
+					volId = updated.Id;
 				} else {
-					var createVolDto = new CreateVolumeRequestDto(
+					var created = await bookTreeService.CreateVolume(new CreateVolumeRequestDto(
 						PrefixedId.ToString(EntityPrefix.Series, seriesId),
 						volDto.Order,
 						volDto.Title,
-						volDto.Metadata);
-					var newVol = mapper.CreateVolume(createVolDto, seriesId);
-					var created = await volumeRepository.Create(newVol, cancellationToken);
+						volDto.Metadata), cancellationToken);
 					volId = created.Id;
 				}
 				volumeOrderToId[volDto.Order] = volId;
@@ -97,17 +88,26 @@ public sealed class SeriesSyncService(
 						}
 
 						await chapterRepository.Update(existingChp, cancellationToken);
+						await bookTreeService.UpdateNode(existingChp.Id, existingChp.Title, existingChp.Order, cancellationToken);
 					} else {
 						if (result.Source is not null) {
 							await sourceRepository.Create(result.Source, cancellationToken);
 						}
 
 						result.Chapter.ContentData = result.Content;
-						await chapterRepository.Create(result.Chapter, cancellationToken);
+						var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
+						await bookTreeService.CreateNode(
+							chapter.Id,
+							BookNodeType.Chapter,
+							volId,
+							chapter.Title,
+							chapter.Order,
+							cancellationToken);
 					}
 				}
 			}
 
+			await assetOwnershipService.ReconcileSeriesAsync(seriesId, cancellationToken);
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 		}
 		catch {

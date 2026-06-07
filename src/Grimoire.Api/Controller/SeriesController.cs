@@ -1,6 +1,7 @@
 namespace Grimoire.Api.Controller;
 
 using Application.Dto.Book;
+using Application.Dto.Book.Tree;
 using Application.Mapper;
 using Application.Service.Contract;
 using Application.Service.Strategy;
@@ -14,7 +15,12 @@ using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
-public sealed class SeriesController(ISeriesService service, ISeriesSyncService syncService, IBookMapper mapper, ISectionRendererFactory rendererFactory) : ControllerBase {
+public sealed class SeriesController(
+	ISeriesService service,
+	ISeriesSyncService syncService,
+	IBookTreeService bookTreeService,
+	IBookMapper mapper,
+	ISectionRendererFactory rendererFactory) : ControllerBase {
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
 	[ProducesResponseType(404)]
@@ -104,6 +110,15 @@ public sealed class SeriesController(ISeriesService service, ISeriesSyncService 
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
 		await syncService.SyncSeriesTree(guid, dto, cancellationToken);
 		return Results.Ok();
+	}
+
+	[HttpGet("{id}/tree")]
+	[ProducesResponseType(typeof(BookTreeDto), 200)]
+	[ProducesResponseType(404)]
+	public async Task<IResult> GetTree(string id, CancellationToken cancellationToken) {
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var tree = await bookTreeService.GetTree(guid, cancellationToken: cancellationToken);
+		return Results.Ok(tree);
 	}
 
 	[HttpPatch("{id}")]

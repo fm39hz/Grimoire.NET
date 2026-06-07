@@ -16,6 +16,7 @@ public sealed class ChapterService(
 	IChapterRepository chapterRepository,
 	IVolumeRepository volumeRepository,
 	ISourceMaterialRepository sourceRepository,
+	IBookTreeService bookTreeService,
 	IBookMapper mapper,
 	IngestionStrategyFactory strategyFactory,
 	IUnitOfWork unitOfWork) : CrudServiceBase<ChapterModel>, IChapterService {
@@ -56,6 +57,7 @@ public sealed class ChapterService(
 				}
 
 				await chapterRepository.Update(existing, cancellationToken);
+				await bookTreeService.UpdateNode(existing.Id, existing.Title, existing.Order, cancellationToken);
 				await unitOfWork.CommitTransactionAsync(cancellationToken);
 				return existing;
 			}
@@ -66,6 +68,7 @@ public sealed class ChapterService(
 
 			result.Chapter.ContentData = result.Content;
 			var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
+			await bookTreeService.CreateNode(chapter.Id, BookNodeType.Chapter, volumeId, chapter.Title, chapter.Order, cancellationToken);
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 			return chapter;
 		}
@@ -80,7 +83,15 @@ public sealed class ChapterService(
 	public async Task<ChapterModel> Update(Guid id, UpdateChapterRequestDto dto, CancellationToken cancellationToken = default) {
 		var chapter = await chapterRepository.FindOne(id, cancellationToken) ??
 					throw new EntityNotFoundException($"Chapter with id {id} not found");
+		var currentTitle = chapter.Title;
+		var currentOrder = chapter.Order;
 		mapper.UpdateChapter(dto, chapter);
+		if (dto.Title is null) {
+			chapter.Title = currentTitle;
+		}
+		if (dto.Order is null) {
+			chapter.Order = currentOrder;
+		}
 
 		if (dto.VolumeId is not null) {
 			var newVolumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);
@@ -88,13 +99,16 @@ public sealed class ChapterService(
 				_ = await volumeRepository.FindOne(newVolumeId, cancellationToken) ??
 					throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
 				chapter.VolumeId = newVolumeId;
+				await bookTreeService.MoveNode(chapter.Id, newVolumeId, dto.Order ?? chapter.Order, cancellationToken);
 			}
 		}
 
-		return await chapterRepository.Update(chapter, cancellationToken);
+		var updated = await chapterRepository.Update(chapter, cancellationToken);
+		await bookTreeService.UpdateNode(updated.Id, updated.Title, updated.Order, cancellationToken);
+		return updated;
 	}
 
-	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await chapterRepository.Delete(id, cancellationToken);
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await bookTreeService.DeleteSubtree(id, cancellationToken);
 
 	public async Task<ChapterModel> MergeAsync(MergeChaptersRequestDto dto, CancellationToken cancellationToken = default) {
 		await unitOfWork.BeginTransactionAsync(cancellationToken);
@@ -128,9 +142,10 @@ public sealed class ChapterService(
 			baseChapter.Merge(chaptersToMerge);
 
 			await chapterRepository.Update(baseChapter, cancellationToken);
+			await bookTreeService.UpdateNode(baseChapter.Id, baseChapter.Title, baseChapter.Order, cancellationToken);
 
 			foreach (var chapter in chaptersToMerge) {
-				await chapterRepository.Delete(chapter.Id, cancellationToken);
+				await bookTreeService.DeleteSubtree(chapter.Id, cancellationToken);
 			}
 
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
@@ -161,14 +176,26 @@ public sealed class ChapterService(
 			var splitResult = originalChapter.Split(splitPoints);
 
 			await chapterRepository.Update(splitResult.UpdatedOriginal, cancellationToken);
+			await bookTreeService.UpdateNode(
+				splitResult.UpdatedOriginal.Id,
+				splitResult.UpdatedOriginal.Title,
+				splitResult.UpdatedOriginal.Order,
+				cancellationToken);
 
-			foreach (var newChapter in splitResult.NewChapters) {
+			foreach (var newChapter in splitResult.NewChapters.Skip(1)) {
 				await chapterRepository.Create(newChapter, cancellationToken);
+				await bookTreeService.CreateNode(
+					newChapter.Id,
+					BookNodeType.Chapter,
+					newChapter.VolumeId,
+					newChapter.Title,
+					newChapter.Order,
+					cancellationToken);
 			}
 
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 
-			return splitResult.NewChapters.Prepend(splitResult.UpdatedOriginal);
+			return splitResult.NewChapters;
 		}
 		catch {
 			await unitOfWork.RollbackTransactionAsync(cancellationToken);

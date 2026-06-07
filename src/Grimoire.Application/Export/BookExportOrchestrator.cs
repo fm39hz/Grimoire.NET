@@ -4,6 +4,7 @@ using System.Threading;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
+using Service.Contract;
 
 /// <summary>
 ///     Assembles all data required for any export format.
@@ -13,7 +14,8 @@ public class BookExportOrchestrator(
 	VolumeResolver volumeResolver,
 	ChapterLoader chapterLoader,
 	CoverResolver coverResolver,
-	ImageAssetCollector imageAssetCollector) {
+	ImageAssetCollector imageAssetCollector,
+	IBookTreeService bookTreeService) {
 
 	public async Task<BookExportContext> BuildContextAsync(
 		SeriesModel series,
@@ -21,6 +23,7 @@ public class BookExportOrchestrator(
 		CancellationToken cancellationToken = default) {
 		var volumes = await volumeResolver.ResolveAsync(series.Id, request, cancellationToken);
 		var chapterMap = await chapterLoader.LoadAsync(volumes, cancellationToken);
+		var tree = await bookTreeService.GetTree(series.Id, includeContent: true, cancellationToken);
 		var (coverAsset, coverStream) = await coverResolver.ResolveAsync(series, cancellationToken);
 		var imageAssets = await imageAssetCollector.CollectAsync(volumes, chapterMap, cancellationToken);
 		var assetFileMap = ImageAssetCollector.GenerateFileMap(imageAssets);
@@ -28,6 +31,7 @@ public class BookExportOrchestrator(
 
 		return new BookExportContext {
 			Series = series,
+			Tree = tree,
 			Volumes = volumes,
 			ChapterMap = chapterMap,
 			CoverAsset = coverAsset,

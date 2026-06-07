@@ -5,6 +5,7 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
+using Service.Contract;
 using Service.Strategy;
 using Microsoft.Extensions.Logging;
 
@@ -21,10 +22,11 @@ public interface IChapterImportHandler {
 }
 
 public sealed class ChapterImportHandler(
-    IChapterRepository chapterRepository,
-    ISourceMaterialRepository sourceRepository,
-    IngestionStrategyFactory strategyFactory,
-    ILogger<ChapterImportHandler> logger) : IChapterImportHandler {
+	IChapterRepository chapterRepository,
+	ISourceMaterialRepository sourceRepository,
+	IBookTreeService bookTreeService,
+	IngestionStrategyFactory strategyFactory,
+	ILogger<ChapterImportHandler> logger) : IChapterImportHandler {
 
     public async Task<ChapterImportResult> ImportAsync(
         Guid volumeId,
@@ -64,18 +66,26 @@ public sealed class ChapterImportHandler(
                     Footnotes = ingest.Content.Footnotes
                 };
             }
-            if (ingest.Source is not null)
-                await sourceRepository.Create(ingest.Source, cancellationToken);
-            await chapterRepository.Update(existing, cancellationToken);
-            return new ChapterImportResult { Created = false };
-        }
+			if (ingest.Source is not null)
+				await sourceRepository.Create(ingest.Source, cancellationToken);
+			await chapterRepository.Update(existing, cancellationToken);
+			await bookTreeService.UpdateNode(existing.Id, existing.Title, existing.Order, cancellationToken);
+			return new ChapterImportResult { Created = false };
+		}
 
         if (ingest.Source is not null)
             await sourceRepository.Create(ingest.Source, cancellationToken);
-        ingest.Chapter.ContentData = ingest.Content;
-        await chapterRepository.Create(ingest.Chapter, cancellationToken);
-        return new ChapterImportResult { Created = true };
-    }
+		ingest.Chapter.ContentData = ingest.Content;
+		await chapterRepository.Create(ingest.Chapter, cancellationToken);
+		await bookTreeService.CreateNode(
+			ingest.Chapter.Id,
+			BookNodeType.Chapter,
+			volumeId,
+			ingest.Chapter.Title,
+			ingest.Chapter.Order,
+			cancellationToken);
+		return new ChapterImportResult { Created = true };
+	}
 
     private static List<SegmentModel> RemapImages(
         List<SegmentModel> segments,

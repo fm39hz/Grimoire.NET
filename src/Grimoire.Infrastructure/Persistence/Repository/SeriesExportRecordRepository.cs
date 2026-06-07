@@ -24,23 +24,23 @@ public sealed class SeriesExportRecordRepository(ApplicationDbContext context)
         ).FirstOrDefaultAsync(cancellationToken);
 
         var volumeDt = await (
-            from v in context.Volumes
-            where v.SeriesId == seriesId
+            from v in context.BookNodes
+            where v.ParentId == seriesId && v.Type == BookNodeType.Volume
             select (DateTime?)v.UpdatedAt
         ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
         var chapterDt = await (
-            from c in context.Chapters
-            join v in context.Volumes on c.VolumeId equals v.Id
-            where v.SeriesId == seriesId
+            from c in context.BookNodes
+            join v in context.BookNodes on c.ParentId equals v.Id
+            where v.ParentId == seriesId && c.Type == BookNodeType.Chapter
             select (DateTime?)c.UpdatedAt
         ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
         var contentDt = await (
             from cc in context.ChapterContents
-            join c in context.Chapters on cc.Id equals c.Id
-            join v in context.Volumes on c.VolumeId equals v.Id
-            where v.SeriesId == seriesId
+            join c in context.BookNodes on cc.Id equals c.Id
+            join v in context.BookNodes on c.ParentId equals v.Id
+            where v.ParentId == seriesId && c.Type == BookNodeType.Chapter
             select (DateTime?)cc.UpdatedAt
         ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
 

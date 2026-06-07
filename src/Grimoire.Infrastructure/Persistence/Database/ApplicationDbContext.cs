@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options) {
 	[UsedImplicitly] public DbSet<SeriesModel> Series { get; set; } = null!;
+	[UsedImplicitly] public DbSet<BookNodeModel> BookNodes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<VolumeModel> Volumes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterModel> Chapters { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterContentModel> ChapterContents { get; set; } = null!;
@@ -55,6 +56,25 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.HasMany(s => s.SourceMaterials)
 				.WithOne(sm => sm.Series)
 				.HasForeignKey(sm => sm.SeriesId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+
+		modelBuilder.Entity<BookNodeModel>(entity => {
+			entity.Property(n => n.Id).ValueGeneratedNever();
+
+			entity.Property(n => n.Title)
+				.HasMaxLength(500)
+				.IsRequired();
+
+			entity.Property(n => n.Type)
+				.HasConversion<int>();
+
+			entity.HasIndex(n => n.ParentId);
+			entity.HasIndex(n => new { n.ParentId, n.Order }).IsUnique();
+
+			entity.HasOne<BookNodeModel>()
+				.WithMany()
+				.HasForeignKey(n => n.ParentId)
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 
@@ -160,9 +180,15 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.IsRequired();
 
 			entity.HasIndex(a => a.SeriesId);
+			entity.HasIndex(a => a.OwnerNodeId);
 			entity.HasIndex(a => a.FileHash);
 			entity.HasIndex(a => new { a.SeriesId, a.FileHash });
 			entity.HasIndex(a => a.RefType);
+
+			entity.HasOne<BookNodeModel>()
+				.WithMany()
+				.HasForeignKey(a => a.OwnerNodeId)
+				.OnDelete(DeleteBehavior.SetNull);
 		});
 
 		modelBuilder.Entity<SeriesExportRecord>(entity => {

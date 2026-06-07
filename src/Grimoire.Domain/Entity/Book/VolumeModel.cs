@@ -9,7 +9,7 @@ public class VolumeModel : BaseModel {
 	/// <summary>
 	///     Foreign key to the series
 	/// </summary>
-	public required Guid SeriesId { get; init; }
+	public required Guid SeriesId { get; set; }
 
 	/// <summary>
 	///     Order of this volume within the series
