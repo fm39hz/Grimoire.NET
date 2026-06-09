@@ -15,6 +15,8 @@ public class ScribanTemplateEngine : ITemplateEngine {
 		_sharedFunctions = new ScribanExportFunctions();
 		_sharedFunctions.Import("is_split_description_enabled",
 			new Func<ExportSectionDto?, bool>(ExportUtilities.IsSplitDescriptionEnabled));
+		_sharedFunctions.Import("should_show_description_in_intro",
+			new Func<ExportSectionDto?, bool>(ScribanExportFunctions.ShouldShowDescriptionInIntro));
 	}
 
 	public string Render<T>(string templateName, T model) where T : class {
