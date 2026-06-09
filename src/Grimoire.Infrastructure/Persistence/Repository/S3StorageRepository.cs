@@ -228,6 +228,24 @@ public sealed partial class S3StorageRepository(
 		}, ct);
 	}
 
+	// ── retry ────────────────────────────────────────────────────────
+
+	private static async Task<T> RetryS3Async<T>(Func<Task<T>> action, ILogger logger, CancellationToken ct, int maxRetries = 3) {
+		var delay = TimeSpan.FromSeconds(1);
+		for (var attempt = 1; ; attempt++) {
+			try {
+				return await action();
+			}
+			catch (AmazonS3Exception ex) when ((int)ex.StatusCode >= 500) {
+				if (attempt >= maxRetries) throw;
+				logger.LogWarning("S3 transient error (attempt {Attempt}/{MaxRetries}): {StatusCode} {ErrorCode}",
+					attempt, maxRetries, (int)ex.StatusCode, ex.ErrorCode);
+				await Task.Delay(delay, ct);
+				delay = TimeSpan.FromSeconds(delay.TotalSeconds * 2);
+			}
+		}
+	}
+
 	// ── logging ──────────────────────────────────────────────────────
 
 	[LoggerMessage(LogLevel.Information, "Uploading to S3: bucket={Bucket} key={Key}")]
