@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>{{ series.title }}</title>
+    {{ if structure.global_css }}
+    <style>
+        {{ structure.global_css }}
+    </style>
+    {{ else }}
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .section { margin: 2em 0; padding: 1em; }
+        .intro { border-bottom: 2px solid #ccc; }
+        .toc { padding: 1em; }
+        .toc ul { list-style: none; }
+        .toc a { text-decoration: none; }
+        .chapter { margin-top: 2em; }
+    </style>
+    {{ end }}
+</head>
+<body>
+    {{ for section in structure.sections }}
+        {{ case section.type }}
+            {{ when "IntroPage", "Intro" }}
+                <div class='section intro' id='intro'>
+                    {{ if section.custom_css }}<style>{{ section.custom_css }}</style>{{ end }}
+                    <h1>{{ series.title }}</h1>
+                    {{ if series.metadata.authors && series.metadata.authors.size > 0 }}
+                        <p><strong>Author:</strong> {{ series.metadata.authors | array.join ", " }}</p>
+                    {{ end }}
+                    {{ if (section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
+                        <div class='description'>
+                            <h2>Description</h2>
+{{ series.metadata.description | to_format "html" null asset_file_map }}
+                        </div>
+                    {{ end }}
+                    {{ if series.metadata.tags && series.metadata.tags.size > 0 }}
+                        <p><strong>Tags:</strong> {{ series.metadata.tags | array.join ", " }}</p>
+                    {{ end }}
+                </div>
+
+            {{ when "Toc", "TableOfContents" }}
+                <div class='section toc' id='toc'>
+                    {{ if section.custom_css }}<style>{{ section.custom_css }}</style>{{ end }}
+                    <h2>Table of Contents</h2>
+                    <ul>
+                        {{ for volume in volumes }}
+                            <li><a href='#volume-{{ volume.id }}'>{{ volume.title }}</a></li>
+                        {{ end }}
+                    </ul>
+                </div>
+
+            {{ when "Content", "Chapters" }}
+                <div class='section content' id='content'>
+                    {{ if section.custom_css }}<style>{{ section.custom_css }}</style>{{ end }}
+                    {{ for volume in volumes }}
+                        <div class='volume' id='volume-{{ volume.id }}'>
+                            <h2>{{ volume.title }}</h2>
+                            {{ chapters = chapter_map[volume.id] }}
+                            {{ for chapter in chapters }}
+                                <div class='chapter' id='chapter-{{ chapter.id }}'>
+                                    <h3>{{ chapter.title }}</h3>
+                                    {{ chapter.content_data.segments | to_format "html" chapter.content_data.footnotes asset_file_map }}
+                                </div>
+                            {{ end }}
+                        </div>
+                    {{ end }}
+                </div>
+
+            {{ when "Description" }}
+                {{ if !(section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
+                    <div class='section description' id='description'>
+                        {{ if section.custom_css }}<style>{{ section.custom_css }}</style>{{ end }}
+                        <h2>Description</h2>
+                        {{ series.metadata.description | to_html null asset_file_map }}
+                    </div>
+                {{ end }}
+        {{ end }}
+    {{ end }}
+</body>
+</html>

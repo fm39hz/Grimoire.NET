@@ -1,0 +1,55 @@
+# {{ series.title }}
+
+{{ for section in structure.sections }}
+    {{ case section.type }}
+        {{ when "IntroPage", "Intro" }}
+            ## Info
+            **Author:** {{ series.metadata.authors | array.join ", " }}
+            {{ if series.metadata.artists && series.metadata.artists.size > 0 }}
+            **Artist:** {{ series.metadata.artists | array.join ", " }}
+            {{ end }}
+            
+            {{ if (section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
+            ### Description
+            {{ series.metadata.description | to_markdown null asset_file_map }}
+            {{ end }}
+            
+            **Tags:** {{ series.metadata.tags | array.join ", " }}
+            
+            ---
+
+        {{ when "Toc", "TableOfContents" }}
+            ## Table of Contents
+            
+            {{ for volume in volumes }}
+                ### {{ volume.title }}
+                {{ chapters = chapter_map[volume.id] }}
+                {{ for chapter in chapters }}
+                    - [{{ chapter.title }}](#{{ chapter.title | generate_anchor }})
+                {{ end }}
+            {{ end }}
+            
+            ---
+
+        {{ when "Content", "Chapters" }}
+            {{ for volume in volumes }}
+                ## {{ volume.title }}
+                
+                {{ chapters = chapter_map[volume.id] }}
+                {{ for chapter in chapters }}
+                    ### {{ chapter.title }}
+                    {{ chapter.content_data.segments | to_format "markdown" chapter.content_data.footnotes asset_file_map }}
+                    
+                    ---
+                {{ end }}
+            {{ end }}
+
+        {{ when "Description" }}
+            {{ if !(section | should_show_description_in_intro) && series.metadata.description && series.metadata.description.size > 0 }}
+                ## Description
+{{ series.metadata.description | to_format "markdown" null asset_file_map }}
+                
+                ---
+            {{ end }}
+    {{ end }}
+{{ end }}

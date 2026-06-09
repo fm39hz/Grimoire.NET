@@ -19,17 +19,8 @@ public record BinderyRequestDto {
 	public List<string>? TargetVolumeIds { get; init; }
 
 	/// <summary>
-	///     Document structure configuration - defines the layout of the export
-	///     Default: Intro -> Description -> Content -> TOC
+	///     Document structure configuration - defines the layout of the export.
+	///     If null, resolves to the standard default (IntroPage -> Description -> Toc -> Content).
 	/// </summary>
-	public ExportStructureDto Structure { get; init; } = new() {
-		Sections = [
-			new ExportSectionDto {
-				Type = "IntroPage", Options = new Dictionary<string, object> { { "splitDescription", false } }
-			},
-			new ExportSectionDto { Type = "Description" },
-			new ExportSectionDto { Type = "Content" },
-			new ExportSectionDto { Type = "TOC" }
-		]
-	};
+	public ExportStructureDto? Structure { get; init; }
 }

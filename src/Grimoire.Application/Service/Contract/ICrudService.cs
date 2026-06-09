@@ -1,6 +1,7 @@
 namespace Grimoire.Application.Service.Contract;
 
-using Common;
+using System.Threading;
+using Domain.Common;
 using Domain.Entity;
 using Dto.Common;
 
@@ -17,27 +18,21 @@ public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
 	/// </summary>
 	/// <param name="id">Id of model</param>
 	/// <returns>Matched model</returns>
-	public Task<TModel?> FindOne(Guid id);
-
-	/// <summary>
-	///     Find all entity in database
-	/// </summary>
-	/// <returns>All matched model</returns>
-	public Task<IEnumerable<TModel>> FindAll();
+	public Task<TModel?> FindOne(Guid id, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	///     Find all entity in database with pagination
 	/// </summary>
 	/// <param name="request">Pagination parameters</param>
 	/// <returns>Paged result</returns>
-	public Task<PagedResult<TModel>> FindAll(PaginationRequest request);
+	public Task<PagedResult<TModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	///     Create new entity in database
 	/// </summary>
 	/// <param name="dto">the entity value</param>
 	/// <returns>Newly created model</returns>
-	public Task<TModel> Create(TCreateDto dto);
+	public Task<TModel> Create(TCreateDto dto, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	///     Update one specify entity
@@ -45,12 +40,12 @@ public interface ICrudService<TModel, in TCreateDto, in TUpdateDto>
 	/// <param name="id">Id of model</param>
 	/// <param name="dto">the entity value</param>
 	/// <returns>Updated model</returns>
-	public Task<TModel> Update(Guid id, TUpdateDto dto);
+	public Task<TModel> Update(Guid id, TUpdateDto dto, CancellationToken cancellationToken = default);
 
 	/// <summary>
 	///     Delete one entity that has id
 	/// </summary>
 	/// <param name="id">Id of model</param>
 	/// <returns>number of deleted model</returns>
-	public Task<int> Delete(Guid id);
+	public Task<int> Delete(Guid id, CancellationToken cancellationToken = default);
 }

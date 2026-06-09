@@ -3,11 +3,16 @@ namespace Grimoire.Domain.Entity.Book;
 /// <summary>
 ///     Represents an asset (file) stored in S3 Compatible
 /// </summary>
-public record AssetModel : BaseModel {
+public class AssetModel : BaseModel {
 	/// <summary>
 	///     Foreign key to the series this asset belongs to
 	/// </summary>
 	public required Guid SeriesId { get; init; }
+
+	/// <summary>
+	///     Canonical tree owner. Null means the asset is shared at the logical BookShelf root.
+	/// </summary>
+	public Guid? OwnerNodeId { get; set; }
 
 	/// <summary>
 	///     Reference to the parent series
@@ -25,7 +30,17 @@ public record AssetModel : BaseModel {
 	public required string FileHash { get; init; }
 
 	/// <summary>
-	///     Type of reference: "Cover" or "Content"
+	///     Type of reference: Cover or Content
 	/// </summary>
-	public required string RefType { get; init; }
+	public required AssetRefType RefType { get; init; }
+
+	/// <summary>
+	///     Original MIME type of the uploaded file (e.g. image/jpeg)
+	/// </summary>
+	public required string ContentType { get; init; }
+
+	/// <summary>
+	///     Original file name at upload time
+	/// </summary>
+	public required string OriginalFileName { get; init; }
 }

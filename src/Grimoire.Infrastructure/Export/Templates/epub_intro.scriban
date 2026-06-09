@@ -1,0 +1,37 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{{ localization.language }}" xml:lang="{{ localization.language }}">
+<head>
+    <title>{{ title }}</title>
+    <link href="style.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<div class="title-page">
+    <div class="book-title">{{ title }}</div>
+    {{ if author }}
+    <div class="book-author">{{ localization.author_label }} {{ author }}</div>
+    {{ end }}
+    {{ if cover_local_path }}
+    <div class="book-cover">
+        <img src="{{ cover_local_path }}" alt="Cover Image" />
+    </div>
+    {{ end }}
+    {{ if tags && tags.size > 0 }}
+    <div class="tags">
+        {{ for tag in tags }}
+        <span class="tag-item">{{ tag }}</span>
+        {{ end }}
+    </div>
+    {{ end }}
+</div>
+
+{{ if rendered_description && rendered_description.size > 0 && (section | should_show_description_in_intro) }}
+<div class="front-matter">
+    <div class="section-title">{{ localization.summary_label }}</div>
+    <div class="description text-justify">
+        {{ rendered_description }}
+    </div>
+</div>
+{{ end }}
+</body>
+</html>

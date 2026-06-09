@@ -1,48 +1,50 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
 using Microsoft.EntityFrameworkCore;
+using System.Threading;
+using Persistence.Database;
 
-public abstract class CrudRepository<T>(DbContext context) : IRepository<T> where T : BaseModel, IModel {
+public abstract class CrudRepository<T>(ApplicationDbContext context) : IRepository<T> where T : BaseModel, IModel {
+	protected ApplicationDbContext Context => context;
 	protected DbSet<T> Entities => context.Set<T>();
 
-	public virtual async Task<T?> FindOne(Guid id) =>
-		await Entities.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == id);
+	public virtual async Task<T?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
+		await Entities.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
 
-	public virtual async Task<IEnumerable<T>> FindAll() =>
-		await Entities.AsNoTracking().ToListAsync();
-
-	public virtual async Task<IEnumerable<T>> FindAll(int pageIndex, int pageSize) {
-		var items = await Entities.AsNoTracking()
-			.OrderBy(e => e.Id)
-			.Skip((pageIndex - 1) * pageSize)
-			.Take(pageSize)
-			.ToListAsync();
-
-		return items;
+	public virtual async Task<PagedResult<T>> FindAll(int pageIndex, int pageSize, CancellationToken cancellationToken = default) {
+		var query = Entities.AsNoTracking().OrderBy(e => e.Id);
+		var count = await query.CountAsync(cancellationToken);
+		var items = await query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
+		return new PagedResult<T>(items, count, pageIndex, pageSize);
 	}
 
-	public virtual async Task<int> CountAll() => await Entities.AsNoTracking().CountAsync();
-
-	public async Task<T> Create(T entity) {
+	public async Task<T> Create(T entity, CancellationToken cancellationToken = default) {
 		var result = Entities.Add(entity);
-		await context.SaveChangesAsync();
+		await context.SaveChangesAsync(cancellationToken);
 		return result.Entity;
 	}
 
-	public async Task<T> Update(T entity) {
+	public async Task<IEnumerable<T>> CreateBulk(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
+		var entityList = entities.ToList();
+		await Entities.AddRangeAsync(entityList, cancellationToken);
+		await context.SaveChangesAsync(cancellationToken);
+		return entityList;
+	}
+
+	public async Task<T> Update(T entity, CancellationToken cancellationToken = default) {
 		var result = Entities.Update(entity);
-		await context.SaveChangesAsync();
+		await context.SaveChangesAsync(cancellationToken);
 		return result.Entity;
 	}
 
-	public async Task<int> Delete(Guid id) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync();
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync(cancellationToken);
 
-	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities) {
-		var baseModels = entities.ToList();
-		Entities.UpdateRange(baseModels);
-		await context.SaveChangesAsync();
-		return baseModels;
+	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
+		Entities.UpdateRange(entities);
+		await context.SaveChangesAsync(cancellationToken);
+		return entities;
 	}
 }

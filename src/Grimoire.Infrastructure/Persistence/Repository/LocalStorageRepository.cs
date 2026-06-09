@@ -1,114 +1,129 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
+using System.Threading;
 using Configuration;
+using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 public partial class LocalStorageRepository(
-	ILogger<LocalStorageRepository> logger,
 	IAssetRepository assetRepository,
 	IOptions<StorageConfiguration> storageOptions)
 	: IStorageRepository {
 	private readonly StorageConfiguration _config = storageOptions.Value;
 
 	private string StoragePath => _config.UseTemporaryDirectory
-		? Path.Combine(Path.GetTempPath(), _config.BasePath)
-		: _config.BasePath;
+		? Path.GetTempPath()
+		: _config.BasePath ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "storage");
 
-	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content, string contentType,
-		string originalFileName, string refType) {
-		var hash = await ComputeHashAsync(content);
+	// ── Asset-bound API ──────────────────────────────────────────────
 
-		var existingAsset = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash);
-		if (existingAsset is not null) {
-			return existingAsset;
-		}
+	public async Task<AssetModel> UploadAssetAsync(Guid seriesId, Stream content,
+		string contentType, string originalFileName, AssetRefType refType, string? prefix = null,
+		CancellationToken cancellationToken = default) {
+		var hash = await ComputeHashAsync(content, cancellationToken);
+
+		var existing = await assetRepository.GetByFileHashAsync(hash, cancellationToken);
+		if (existing is not null) return existing;
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
-		var assetPath = $"{_config.SeriesPath}/{seriesId}/{hash}{extension}";
+		var assetPath = prefix is not null
+			? Path.Combine(prefix, $"{hash}{extension}")
+			: Path.Combine("series", seriesId.ToString(), $"{hash}{extension}");
+
 		var filePath = Path.Combine(StoragePath, assetPath);
+		Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
 
-		var directory = Path.GetDirectoryName(filePath);
-		if (directory is not null) {
-			Directory.CreateDirectory(directory);
-		}
+		content.Seek(0, SeekOrigin.Begin);
+		await using var fileStream = File.Create(filePath);
+		await content.CopyToAsync(fileStream, cancellationToken);
 
-		if (!File.Exists(filePath)) {
-			LogSavingFileToFilepath(logger, filePath);
-			content.Seek(0, SeekOrigin.Begin);
-			await using var fileStream = new FileStream(filePath, FileMode.Create);
-			await content.CopyToAsync(fileStream);
-		}
-
-		var newAsset = new AssetModel {
-			Id = Guid.NewGuid(),
+		var asset = new AssetModel {
+			Id = Guid.CreateVersion7(),
 			SeriesId = seriesId,
+			OwnerNodeId = seriesId,
 			Path = assetPath,
 			FileHash = hash,
-			RefType = refType
+			RefType = refType,
+			ContentType = contentType,
+			OriginalFileName = Path.GetFileName(originalFileName)
 		};
 
-		await assetRepository.Create(newAsset);
-		return newAsset;
+		await assetRepository.Create(asset, cancellationToken);
+		return asset;
 	}
 
-	public async Task<byte[]> GetFileAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
-		if (asset is null) {
-			return [];
-		}
+	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
+		if (asset is null) return null;
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
-		LogGettingFileFromFilepath(logger, filePath);
-		return !File.Exists(filePath)? [] : await File.ReadAllBytesAsync(filePath);
+		if (!File.Exists(filePath)) return null;
+
+		return new AssetFileResult {
+			Stream = File.OpenRead(filePath),
+			ContentType = asset.ContentType,
+			FileName = asset.OriginalFileName
+		};
 	}
 
-	public async Task<Stream?> GetFileStreamAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
-		if (asset is null) {
-			return null;
-		}
+	public async Task<byte[]> GetFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
+		if (asset is null) return [];
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
-		LogGettingFileFromFilepath(logger, filePath);
-
-		if (!File.Exists(filePath)) {
-			return null;
-		}
-
-		return new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, true);
+		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath, cancellationToken);
 	}
 
-	public async Task DeleteFileAsync(Guid assetId) {
-		var asset = await assetRepository.FindOne(assetId);
-		if (asset is null) {
-			return;
-		}
+	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
+		var asset = await assetRepository.FindOne(assetId, cancellationToken);
+		if (asset is null) return;
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
-		LogDeletingFileFromFilepath(logger, filePath);
-		if (File.Exists(filePath)) {
-			File.Delete(filePath);
-		}
-
-		await assetRepository.Delete(assetId);
+		if (File.Exists(filePath)) File.Delete(filePath);
+		await assetRepository.Delete(assetId, cancellationToken);
 	}
 
-	private static async Task<string> ComputeHashAsync(Stream stream) {
+	// ── Raw file API (no AssetModel) ──────────────────────────────────
+
+	public async Task<string> UploadFileAsync(Stream content, string contentType, string fileName,
+		string? prefix = null, CancellationToken cancellationToken = default) {
+		var hash = await ComputeHashAsync(content, cancellationToken);
+		var ext = Path.GetExtension(fileName).ToLowerInvariant();
+		var objectKey = prefix is not null
+			? Path.Combine(prefix, $"{hash}{ext}")
+			: Path.Combine("uploads", $"{hash}{ext}");
+
+		var filePath = Path.Combine(StoragePath, objectKey);
+		Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);
+
+		content.Seek(0, SeekOrigin.Begin);
+		await using var fileStream = File.Create(filePath);
+		await content.CopyToAsync(fileStream, cancellationToken);
+
+		return objectKey;
+	}
+
+	public Task<Stream?> GetFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
+		var fullPath = Path.Combine(StoragePath, filePath);
+		if (!File.Exists(fullPath)) return Task.FromResult<Stream?>(null);
+		return Task.FromResult<Stream?>(File.OpenRead(fullPath));
+	}
+
+	public Task DeleteFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
+		var fullPath = Path.Combine(StoragePath, filePath);
+		if (File.Exists(fullPath)) File.Delete(fullPath);
+		return Task.CompletedTask;
+	}
+
+	// ── helpers ──────────────────────────────────────────────────────
+
+	private static async Task<string> ComputeHashAsync(Stream stream, CancellationToken cancellationToken = default) {
 		using var sha256 = SHA256.Create();
-		var hashBytes = await sha256.ComputeHashAsync(stream);
+		var hashBytes = await sha256.ComputeHashAsync(stream, cancellationToken);
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
-
-	[LoggerMessage(LogLevel.Information, "Saving file to {filePath}")]
-	private static partial void LogSavingFileToFilepath(ILogger<LocalStorageRepository> logger, string filePath);
-
-	[LoggerMessage(LogLevel.Information, "Getting file from {filePath}")]
-	private static partial void LogGettingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
-
-	[LoggerMessage(LogLevel.Information, "Deleting file from {filePath}")]
-	private static partial void LogDeletingFileFromFilepath(ILogger<LocalStorageRepository> logger, string filePath);
 }

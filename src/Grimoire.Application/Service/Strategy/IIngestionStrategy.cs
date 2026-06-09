@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Service.Strategy;
 
+using System.Threading;
 using Dto.Book;
 
 /// <summary>
@@ -14,5 +15,5 @@ public interface IIngestionStrategy {
 	/// <summary>
 	///     Executes the ingestion strategy
 	/// </summary>
-	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto);
+	public Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId, CancellationToken cancellationToken = default);
 }

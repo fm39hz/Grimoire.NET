@@ -1,0 +1,29 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="{{ localization.language }}" xml:lang="{{ localization.language }}">
+<head>
+    <title>{{ localization.table_of_contents_label }}</title>
+    <link href="style.css" rel="stylesheet" type="text/css"/>
+</head>
+<body>
+<nav epub:type="toc" id="toc" role="doc-toc">
+    <h2>{{ localization.table_of_contents_label }}</h2>
+    <ol>
+        {{ for nav in nav_points }}
+            {{ if nav.content_src != "nav.xhtml" }}
+                <li>
+                    <a href="{{ nav.content_src }}">{{ nav.title }}</a>
+                    {{ if nav.children && nav.children.size > 0 }}
+                    <ol>
+                        {{ for child in nav.children }}
+                            <li><a href="{{ child.content_src }}">{{ child.title }}</a></li>
+                        {{ end }}
+                    </ol>
+                    {{ end }}
+                </li>
+            {{ end }}
+        {{ end }}
+    </ol>
+</nav>
+</body>
+</html>

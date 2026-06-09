@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Service.Strategy;
 
-using Domain.Entity.Book;
-using Dto.Book;
+using System.Threading;
+using Export;
 
 /// <summary>
 ///     Strategy interface for exporting series to different formats
@@ -13,8 +13,7 @@ public interface IExportStrategy {
 	public ExportFormat Format { get; }
 
 	/// <summary>
-	///     Exports a series with the specified volumes to the target format
+	///     Exports a series using pre-assembled export context
 	/// </summary>
-	public Task<ExportResult> ExportAsync(SeriesModel series, IEnumerable<VolumeModel> volumes,
-		BinderyRequestDto request);
+	public Task<ExportResult> ExportAsync(BookExportContext context, CancellationToken cancellationToken = default);
 }

@@ -3,7 +3,7 @@ namespace Grimoire.Domain.Entity.Book;
 /// <summary>
 ///     Represents a glossary term for a series
 /// </summary>
-public record GlossaryTerm : BaseModel {
+public class GlossaryTerm : BaseModel {
 	/// <summary>
 	///     Foreign key to the series
 	/// </summary>

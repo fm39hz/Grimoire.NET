@@ -7,5 +7,6 @@ public enum ExportFormat {
 	Epub,
 	Pdf,
 	Mobi,
-	Html
+	Html,
+	Markdown
 }

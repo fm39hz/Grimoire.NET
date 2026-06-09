@@ -1,7 +1,8 @@
 namespace Grimoire.Domain.Common.Repository;
 
+using System.Threading;
 using Entity.Book;
 
 public interface ISourceMaterialRepository : IRepository<SourceMaterial> {
-	Task<IEnumerable<SourceMaterial>> FindBySeriesId(Guid seriesId);
+	public Task<IEnumerable<SourceMaterial>> FindBySeriesId(Guid seriesId, CancellationToken cancellationToken = default);
 }

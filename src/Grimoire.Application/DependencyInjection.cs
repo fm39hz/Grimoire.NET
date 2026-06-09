@@ -1,7 +1,13 @@
 namespace Grimoire.Application;
 
+using Export;
+using Import;
 using Mapper;
 using Microsoft.Extensions.DependencyInjection;
+using Publish.Export;
+using Publish.Export.Steps;
+using Publish.Import;
+using Publish.Import.Steps;
 using Service.Contract;
 using Service.Implementation;
 using Service.Strategy;
@@ -14,15 +20,50 @@ public static class DependencyInjection {
 		services.AddScoped<IChapterService, ChapterService>();
 		services.AddScoped<IBinderyService, BinderyService>();
 		services.AddScoped<IAssetService, AssetService>();
+		services.AddScoped<IAssetOwnershipService, AssetOwnershipService>();
+		services.AddScoped<ISeriesSyncService, SeriesSyncService>();
 		services.AddScoped<IStorageService, StorageService>();
+		services.AddScoped<IBookTreeService, BookTreeService>();
 
 		// Register mappers
 		services.AddScoped<IBookMapper, BookMapper>();
+
+		// Register export collaborators
+		services.AddScoped<VolumeResolver>();
+		services.AddScoped<ChapterLoader>();
+		services.AddScoped<CoverResolver>();
+		services.AddScoped<ImageAssetCollector>();
+		services.AddScoped<BookExportOrchestrator>();
 
 		// Register ingestion strategies in priority order
 		services.AddScoped<IIngestionStrategy, PreProcessedIngestionStrategy>();
 		services.AddScoped<IIngestionStrategy, RawMarkdownIngestionStrategy>();
 		services.AddScoped<IngestionStrategyFactory>();
+
+		// Register import strategies
+		services.AddScoped<IImportStrategy, EpubImportStrategy>();
+		services.AddScoped<ImportStrategyFactory>();
+
+		// Register import collaborators
+		services.AddScoped<IVolumeTreeResolver, VolumeTreeResolver>();
+		services.AddScoped<IChapterImportHandler, ChapterImportHandler>();
+		services.AddScoped<IMediaImportService, MediaImportService>();
+
+		// Register Export Pipeline and Steps
+		services.AddScoped<IExportPipeline, ExportPipeline>();
+		services.AddScoped<IExportPipelineStep, DeduplicationStep>();
+		services.AddScoped<IExportPipelineStep, ContentGenerationStep>();
+		services.AddScoped<IExportPipelineStep, StorageUploadStep>();
+		services.AddScoped<IExportPipelineStep, DatabaseRecordStep>();
+
+		// Register Import Pipeline and Steps
+		services.AddScoped<IImportPipeline, ImportPipeline>();
+		services.AddScoped<IImportPipelineStep, ParseImportStep>();
+		services.AddScoped<IImportPipelineStep, MetadataResolutionStep>();
+		services.AddScoped<IImportPipelineStep, MediaUploadStep>();
+		services.AddScoped<IImportPipelineStep, VolumeTreeResolutionStep>();
+		services.AddScoped<IImportPipelineStep, ChapterImportStep>();
+		services.AddScoped<IImportPipelineStep, ReconcileOwnershipStep>();
 
 		return services;
 	}

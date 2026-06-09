@@ -1,5 +1,6 @@
 namespace Grimoire.Application.Dto.Book;
 
+using System.Text.Json.Serialization;
 using Segment;
 
 public class ChapterResponseDto {
@@ -9,4 +10,10 @@ public class ChapterResponseDto {
 	public List<SegmentDto> Content { get; init; } = [];
 	public List<FootnoteSegmentDto> Footnotes { get; init; } = [];
 	public string Id { get; init; } = string.Empty;
+
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public DateTime? CreatedAt { get; set; }
+
+	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+	public DateTime? UpdatedAt { get; set; }
 }

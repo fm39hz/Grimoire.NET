@@ -5,11 +5,11 @@ using Metadata;
 /// <summary>
 ///     Represents a volume within a series
 /// </summary>
-public record VolumeModel : BaseModel {
+public class VolumeModel : BaseModel {
 	/// <summary>
 	///     Foreign key to the series
 	/// </summary>
-	public required Guid SeriesId { get; init; }
+	public required Guid SeriesId { get; set; }
 
 	/// <summary>
 	///     Order of this volume within the series

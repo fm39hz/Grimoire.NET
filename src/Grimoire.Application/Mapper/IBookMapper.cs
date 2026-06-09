@@ -10,8 +10,8 @@ public interface IBookMapper {
 	public VolumeResponseDto ToVolumeDto(VolumeModel model);
 	public AssetResponseDto ToAssetDto(AssetModel model);
 	public SeriesModel CreateSeries(CreateSeriesRequestDto dto);
-	public VolumeModel CreateVolume(CreateVolumeRequestDto dto);
-	public ChapterModel CreateChapter(CreateChapterRequestDto dto);
+	public VolumeModel CreateVolume(CreateVolumeRequestDto dto, Guid seriesId);
+	public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId);
 	public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model);
 	public void UpdateVolume(UpdateVolumeRequestDto dto, VolumeModel model);
 	public void UpdateSeries(UpdateSeriesRequestDto dto, SeriesModel model);

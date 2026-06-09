@@ -23,7 +23,23 @@ tags:
 
 - **Mô hình:** Vertical Slice Architecture.
 - **Tech Stack:**
-  - **Runtime:** .NET 9.
-  - **Database:** PostgreSQL 16 + EF Core 9 (JSONB).
+  - **Runtime:** .NET 10.
+  - **Database:** PostgreSQL 16 + EF Core 10 (JSONB).
   - **Storage:** MinIO (S3) - Lưu trữ Assets.
   - **Jobs:** Hangfire - Xử lý tác vụ đóng gói (Binding).
+
+## 4\. Unified Book Tree
+
+Từ phase tree refactor, cấu trúc sách có một source of truth chung:
+
+```text
+BookShelf (logic root, không lưu DB)
+└── Series
+    └── Volume
+        └── Chapter
+```
+
+- `BookShelf` chỉ là root logic trong API/DTO, đại diện cho kệ sách hiện tại.
+- `BookNode` là node persistent cho hierarchy thật. `Series`, `Volume`, `Chapter` giữ payload riêng như metadata/content, nhưng quan hệ cha-con, `Title`, và `Order` được điều phối qua tree service.
+- API cũ (`/series`, `/volume`, `/chapter`) vẫn là compatibility facade. Khi tạo/sửa/xóa/list volume/chapter, service phải đi qua `IBookTreeService` để tránh mỗi flow tự dựng hierarchy riêng.
+- Export/import/sync dùng cây canonical làm đường traversal. Các map/list cũ chỉ nên là adapter tạm để giữ renderer hoặc DTO hiện tại không bị breaking.

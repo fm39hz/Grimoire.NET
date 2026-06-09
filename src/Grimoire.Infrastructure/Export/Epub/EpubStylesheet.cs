@@ -4,7 +4,7 @@ namespace Grimoire.Infrastructure.Export.Epub;
 ///     Provides the CSS stylesheet for EPUB styling
 /// </summary>
 public static class EpubStylesheet {
-	public const string DefaultCss = @"
+	public const string DEFAULT_CSS = @"
 @namespace epub ""http://www.idpf.org/2007/ops"";
 
 body {
@@ -192,6 +192,44 @@ em {
     -moz-user-select: none;
     -ms-user-select: none;
     user-select: none;
+}
+
+/* Endnotes */
+.endnotes {
+    margin: 1em 0;
+}
+
+.endnotes h3 {
+    margin-top: 1.5em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #ccc;
+    font-size: 1.1em;
+}
+
+.endnote-entry {
+    margin: 0.5em 0;
+    font-size: 0.9em;
+    text-indent: 0;
+}
+
+.endnote-backref {
+    text-decoration: none;
+    margin-left: 0.3em;
+    font-size: 0.85em;
+}
+
+a.footnote-ref[id] {
+    scroll-margin-top: 2em;
+}
+
+/* Dropcap */
+.dropcap {
+    float: left;
+    font-size: 3.2em;
+    line-height: 0.8em;
+    margin-right: 0.15em;
+    margin-top: 0.15em;
+    font-weight: bold;
 }
 ";
 }

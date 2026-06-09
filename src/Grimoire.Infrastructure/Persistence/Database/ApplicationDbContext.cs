@@ -5,22 +5,34 @@ using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
+using Grimoire.Domain.Entity;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options) {
 	[UsedImplicitly] public DbSet<SeriesModel> Series { get; set; } = null!;
+	[UsedImplicitly] public DbSet<BookNodeModel> BookNodes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<VolumeModel> Volumes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterModel> Chapters { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterContentModel> ChapterContents { get; set; } = null!;
 	[UsedImplicitly] public DbSet<GlossaryTerm> GlossaryTerms { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SourceMaterial> SourceMaterials { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
+	[UsedImplicitly] public DbSet<SeriesExportRecord> SeriesExportRecords { get; set; } = null!;
+
+	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
+		foreach (var entry in ChangeTracker.Entries<BaseModel>().Where(e => e.State == EntityState.Modified)) {
+			entry.Entity.MarkAsUpdated();
+		}
+		return await base.SaveChangesAsync(cancellationToken);
+	}
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 
 		modelBuilder.Entity<SeriesModel>(entity => {
+			entity.Property(s => s.Id).ValueGeneratedOnAdd();
+
 			entity.Property(s => s.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -47,18 +59,39 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 
+		modelBuilder.Entity<BookNodeModel>(entity => {
+			entity.Property(n => n.Id).ValueGeneratedNever();
+
+			entity.Property(n => n.Title)
+				.HasMaxLength(500)
+				.IsRequired();
+
+			entity.Property(n => n.Type)
+				.HasConversion<int>();
+
+			entity.HasIndex(n => n.ParentId);
+			entity.HasIndex(n => new { n.ParentId, n.Order }).IsUnique();
+
+			entity.HasOne<BookNodeModel>()
+				.WithMany()
+				.HasForeignKey(n => n.ParentId)
+				.OnDelete(DeleteBehavior.Cascade);
+		});
+
 		modelBuilder.Entity<VolumeModel>(entity => {
+			entity.Property(v => v.Id).ValueGeneratedOnAdd();
+
 			entity.Property(v => v.Title)
 				.HasMaxLength(500)
 				.IsRequired();
 
-			entity.HasIndex(e => new { e.SeriesId, e.Order });
-			entity.OwnsOne(s => s.Metadata, metaBuilder => {
-				metaBuilder.ToJson();
-			});
+			entity.HasIndex(e => new { e.SeriesId, e.Order }).IsUnique();
+			entity.OwnsOne(s => s.Metadata, metaBuilder => metaBuilder.ToJson());
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {
+			entity.Property(c => c.Id).ValueGeneratedOnAdd();
+
 			entity.Property(c => c.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -66,7 +99,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.Property(c => c.Status)
 				.HasConversion<int>();
 
-			entity.HasIndex(e => new { e.VolumeId, e.Order });
+			entity.HasIndex(e => new { e.VolumeId, e.Order }).IsUnique();
+			entity.HasIndex(c => c.Status); // Add index for Status queries
 
 			entity.HasOne(c => c.ContentData)
 				.WithOne(cc => cc.Chapter)
@@ -76,6 +110,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<ChapterContentModel>(entity => {
 			entity.HasKey(cc => cc.Id);
+			entity.Property(cc => cc.Id).ValueGeneratedOnAdd();
 
 			entity.Property(cc => cc.Segments)
 				.HasColumnType("jsonb")
@@ -96,6 +131,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<GlossaryTerm>(entity => {
+			entity.Property(g => g.Id).ValueGeneratedOnAdd();
+
 			entity.Property(g => g.Term)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -111,6 +148,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<SourceMaterial>(entity => {
+			entity.Property(sm => sm.Id).ValueGeneratedOnAdd();
+
 			entity.Property(sm => sm.Title)
 				.HasMaxLength(500)
 				.IsRequired();
@@ -126,6 +165,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 		});
 
 		modelBuilder.Entity<AssetModel>(entity => {
+			entity.Property(a => a.Id).ValueGeneratedOnAdd();
+
 			entity.Property(a => a.Path)
 				.HasMaxLength(1000)
 				.IsRequired();
@@ -139,9 +180,21 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.IsRequired();
 
 			entity.HasIndex(a => a.SeriesId);
+			entity.HasIndex(a => a.OwnerNodeId);
 			entity.HasIndex(a => a.FileHash);
 			entity.HasIndex(a => new { a.SeriesId, a.FileHash });
 			entity.HasIndex(a => a.RefType);
+
+			entity.HasOne<BookNodeModel>()
+				.WithMany()
+				.HasForeignKey(a => a.OwnerNodeId)
+				.OnDelete(DeleteBehavior.SetNull);
+		});
+
+		modelBuilder.Entity<SeriesExportRecord>(entity => {
+			entity.Property(e => e.Id).ValueGeneratedOnAdd();
+			entity.Property(e => e.Format).HasMaxLength(50).IsRequired();
+			entity.HasIndex(e => new { e.SeriesId, e.Format }).IsUnique();
 		});
 	}
 }

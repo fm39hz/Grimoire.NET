@@ -2,88 +2,103 @@ namespace Grimoire.Infrastructure.Export.Epub;
 
 using System.IO.Compression;
 using System.Text;
-using System.Web;
+using System.Threading;
+using Common;
+using Domain.Entity.Book;
+using Grimoire.Application.Dto.Book;
 
 /// <summary>
-///     Builds EPUB package from HTML content
+///     Builds an EPUB 3 package. All EPUB-specific path layout (OEBPS/, spine
+///     ordering, manifest generation) is encapsulated here.
 /// </summary>
-public class EpubPackageBuilder {
-	private readonly Dictionary<string, byte[]> _binaryFiles = new();
-	private readonly Dictionary<string, Func<Task<Stream?>>> _binaryFileStreamProviders = new();
-	private readonly Dictionary<string, string> _files = new();
-	private readonly List<NavPoint> _navPoints = [];
-	private string? _author;
-	private string? _coverImagePath;
-	private string? _description;
-	private string? _language = "vi";
-	private string? _title;
+public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilder {
+	// Full OEBPS/... path → resource
+	private readonly Dictionary<string, EpubResource> _resources = new();
 
-	public void SetMetadata(string title, string? author = null, string? language = null, string? description = null) {
-		_title = title;
-		_author = author;
-		_language = language ?? "vi";
-		_description = description;
+	// Logical pageId → EPUB-relative filename (e.g. "chapter_001.xhtml")
+	private readonly Dictionary<string, string> _pageIdToPath = new();
+
+	// Resolved NavPoint tree (built in SetNavigation, used by BuildAsync)
+	private readonly List<NavPoint> _navPoints = [];
+
+	private readonly HashSet<string> _nonLinearPageIds = new();
+
+	private int _volumeIndex = 1;
+	private int _chapterIndex = 1;
+	private int _endnotesIndex = 1;
+
+	private string? _title;
+	private string? _author;
+	private string? _description;
+	private string _language = EpubConstants.Defaults.LANGUAGE;
+	private List<string>? _tags;
+	private string? _coverImagePath;
+	private Guid? _sharedIdentifier;
+	private ExportLocalizationDto _localization = new();
+
+	// ── IPackageBuilder ────────────────────────────────────────────────────
+
+	public void SetMetadata(BookPackageMetadata metadata) {
+		_title = metadata.Title;
+		_author = metadata.Author;
+		_language = metadata.Language ?? EpubConstants.Defaults.LANGUAGE;
+		_description = metadata.PlainTextDescription;
+		_tags = metadata.Tags?.ToList();
+		_localization = metadata.Localization ?? new ExportLocalizationDto();
 	}
 
-	public void SetCoverImage(string relativePath) => _coverImagePath = relativePath;
+	public void AddAsset(string resolvedFileName, Func<Task<Stream?>> streamProvider, AssetRefType refType) {
+		var localPath = $"{EpubConstants.Paths.IMAGES_FOLDER}{resolvedFileName}";
+		AddResource(EpubResource.FromStream($"{EpubConstants.Paths.OEBPS_PREFIX}{localPath}", streamProvider));
 
-	public void AddHtmlFile(string path, string content) => _files[path] = content;
+		if (refType == AssetRefType.Cover) {
+			_coverImagePath = localPath;
+		}
+	}
 
-	public void AddImageFile(string path, byte[] content) => _binaryFiles[path] = content;
+	public string AddPage(string pageId, string htmlContent, PageRole role = PageRole.Chapter) {
+		var fileName = ResolveFileName(pageId, role);
+		_pageIdToPath[pageId] = fileName;
 
-	public void AddImageFileStream(string path, Func<Task<Stream?>> streamProvider) =>
-		_binaryFileStreamProviders[path] = streamProvider;
+		// TableOfContents nav document is generated in BuildAsync from the
+		// resolved NavPoint tree — don't add a resource for it now.
+		if (role == PageRole.TableOfContents) {
+			return fileName;
+		}
 
-	public void AddNavPoint(NavPoint navPoint) => _navPoints.Add(navPoint);
+		if (role == PageRole.Endnotes) {
+			_nonLinearPageIds.Add(pageId);
+		}
 
-	public List<NavPoint> GetNavPoints() => _navPoints;
+		AddResource(EpubResource.FromText($"{EpubConstants.Paths.OEBPS_PREFIX}{fileName}", htmlContent));
+		return fileName;
+	}
 
-	public void AddCss(string content) => _files["OEBPS/style.css"] = content;
+	public void AddStylesheet(string css) =>
+		AddResource(EpubResource.FromText(EpubConstants.Paths.STYLE_CSS_FILE, css));
 
-	public async Task<Stream> BuildAsync() {
-		// Generate required EPUB files
+	public void SetNavigation(IReadOnlyList<NavEntry> navEntries) {
+		_navPoints.Clear();
+		foreach (var entry in navEntries) {
+			_navPoints.Add(ResolveNavEntry(entry));
+		}
+	}
+
+	public async Task<Stream> BuildAsync(CancellationToken cancellationToken = default) {
+		GenerateNavXhtml();
 		GenerateContainerXml();
 		GenerateContentOpf();
 		GenerateTocNcx();
 
-		// Create ZIP package
 		var memoryStream = new MemoryStream();
-		using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true)) {
-			// Add mimetype file (uncompressed, first file)
-			var mimetypeEntry = archive.CreateEntry("mimetype", CompressionLevel.NoCompression);
-			using (var writer = new StreamWriter(mimetypeEntry.Open(), Encoding.ASCII)) {
-				writer.Write("application/epub+zip");
+		await using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true)) {
+			var mimetypeEntry = archive.CreateEntry(EpubConstants.Paths.MIME_TYPE_FILE, CompressionLevel.NoCompression);
+			await using (var writer = new StreamWriter(await mimetypeEntry.OpenAsync(cancellationToken), Encoding.ASCII)) {
+				await writer.WriteAsync("application/epub+zip");
 			}
 
-			// Add all text files
-			foreach (var (path, content) in _files) {
-				var entry = archive.CreateEntry(path, CompressionLevel.Optimal);
-				using var writer = new StreamWriter(entry.Open(), Encoding.UTF8);
-				writer.Write(content);
-			}
-
-			// Add all binary files (images from byte arrays)
-			foreach (var (path, content) in _binaryFiles) {
-				var entry = archive.CreateEntry(path, CompressionLevel.Optimal);
-				using var stream = entry.Open();
-				stream.Write(content, 0, content.Length);
-			}
-
-			// Add all binary files (images from streams)
-			foreach (var (path, streamProvider) in _binaryFileStreamProviders) {
-				var sourceStream = await streamProvider();
-				if (sourceStream == null) {
-					continue;
-				}
-
-				try {
-					var entry = archive.CreateEntry(path, CompressionLevel.Optimal);
-					using var entryStream = entry.Open();
-					await sourceStream.CopyToAsync(entryStream);
-				}
-				finally {
-					await sourceStream.DisposeAsync();
-				}
+			foreach (var resource in _resources.Values) {
+				await AddResourceToArchiveAsync(archive, resource, cancellationToken);
 			}
 		}
 
@@ -91,67 +106,77 @@ public class EpubPackageBuilder {
 		return memoryStream;
 	}
 
+	// ── Private helpers ────────────────────────────────────────────────────
+
+	private string ResolveFileName(string pageId, PageRole role) => role switch {
+		PageRole.Intro => "intro.xhtml",
+		PageRole.Description => "description.xhtml",
+		PageRole.TableOfContents => "nav.xhtml",
+		PageRole.VolumeTitle => $"volume_{_volumeIndex++:D3}.xhtml",
+		PageRole.Chapter => $"chapter_{_chapterIndex++:D3}.xhtml",
+		PageRole.Endnotes => $"endnotes_{_endnotesIndex++:D3}.xhtml",
+		_ => $"page_{pageId}.xhtml"
+	};
+
+	private NavPoint ResolveNavEntry(NavEntry entry) {
+		var contentSrc = _pageIdToPath.TryGetValue(entry.PageId, out var path)
+			? path
+			: entry.PageId;
+
+		return new NavPoint {
+			Title = entry.Title,
+			ContentSrc = contentSrc,
+			Children = entry.Children?.Select(ResolveNavEntry).ToList()
+		};
+	}
+
+	private void GenerateNavXhtml() {
+		var html = templateEngine.Render("epub_toc", new { NavPoints = _navPoints, Localization = _localization });
+		AddResource(EpubResource.FromText(EpubConstants.Paths.NAV_FILE, html));
+	}
+
 	private void GenerateContainerXml() {
-		var xml = @"<?xml version=""1.0"" encoding=""UTF-8""?>
-<container version=""1.0"" xmlns=""urn:oasis:names:tc:opendocument:xmlns:container"">
-  <rootfiles>
-    <rootfile full-path=""OEBPS/content.opf"" media-type=""application/oebps-package+xml""/>
-  </rootfiles>
-</container>";
-		_files["META-INF/container.xml"] = xml;
+		const string xml = """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+              <rootfiles>
+                <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+              </rootfiles>
+            </container>
+            """;
+		AddResource(EpubResource.FromText(EpubConstants.Paths.CONTAINER_XML_FILE, xml));
 	}
 
 	private void GenerateContentOpf() {
-		var sb = new StringBuilder();
-		sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-		sb.AppendLine("<package xmlns=\"http://www.idpf.org/2007/opf\" version=\"3.0\" unique-identifier=\"uid\">");
+		var navOrder = FlattenNavPoints();
 
-		// Metadata
-		sb.AppendLine("  <metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">");
-		sb.AppendLine($"    <dc:identifier id=\"uid\">{Guid.NewGuid()}</dc:identifier>");
-		sb.AppendLine($"    <dc:title>{HttpUtility.HtmlEncode(_title ?? "Untitled")}</dc:title>");
-		if (!string.IsNullOrEmpty(_author)) {
-			sb.AppendLine($"    <dc:creator>{HttpUtility.HtmlEncode(_author)}</dc:creator>");
-		}
-
-		if (!string.IsNullOrEmpty(_description)) {
-			sb.AppendLine($"    <dc:description>{HttpUtility.HtmlEncode(_description)}</dc:description>");
-		}
-
-		sb.AppendLine($"    <dc:language>{_language}</dc:language>");
-		sb.AppendLine($"    <meta property=\"dcterms:modified\">{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}</meta>");
-
-		// Add cover image metadata if present
-		if (!string.IsNullOrEmpty(_coverImagePath)) {
-			sb.AppendLine("    <meta name=\"cover\" content=\"cover-image\"/>");
-		}
-
-		sb.AppendLine("  </metadata>");
-
-		// Manifest
-		sb.AppendLine("  <manifest>");
-		sb.AppendLine(
-			"    <item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/>");
-		sb.AppendLine("    <item id=\"ncx\" href=\"toc.ncx\" media-type=\"application/x-dtbncx+xml\"/>");
-		sb.AppendLine("    <item id=\"css\" href=\"style.css\" media-type=\"text/css\"/>");
-
-		// Add HTML files
+		var manifestItems = new List<object>();
 		var fileIndex = 1;
-		foreach (var path in _files.Keys.Where(k => k.StartsWith("OEBPS/") && k.EndsWith(".xhtml"))) {
-			var filename = path.Replace("OEBPS/", "");
-			var id = $"file{fileIndex++}";
-			sb.AppendLine($"    <item id=\"{id}\" href=\"{filename}\" media-type=\"application/xhtml+xml\"/>");
+
+		var htmlFiles = navOrder
+			.Select(src => $"{EpubConstants.Paths.OEBPS_PREFIX}{src}")
+			.Where(_resources.ContainsKey)
+			.Where(p => p != EpubConstants.Paths.NAV_FILE)
+			.ToList();
+
+		foreach (var path in htmlFiles) {
+			manifestItems.Add(new {
+				Id = $"file{fileIndex++}",
+				Href = path.Replace(EpubConstants.Paths.OEBPS_PREFIX, ""),
+				MediaType = "application/xhtml+xml",
+				Properties = (string?)null
+			});
 		}
 
-		// Add image files
 		var imageIndex = 1;
-		var allImagePaths = _binaryFiles.Keys.Concat(_binaryFileStreamProviders.Keys)
-			.Where(k => k.StartsWith("OEBPS/images/"));
+		var imagePaths = _resources.Keys
+			.Where(k => k.StartsWith($"{EpubConstants.Paths.OEBPS_PREFIX}{EpubConstants.Paths.IMAGES_FOLDER}"))
+			.ToList();
 
-		foreach (var path in allImagePaths) {
-			var filename = path.Replace("OEBPS/", "");
-			var extension = Path.GetExtension(filename).ToLowerInvariant();
-			var mediaType = extension switch {
+		foreach (var path in imagePaths) {
+			var filename = path.Replace(EpubConstants.Paths.OEBPS_PREFIX, "");
+			var ext = Path.GetExtension(filename).ToLowerInvariant();
+			var mediaType = ext switch {
 				".jpg" or ".jpeg" => "image/jpeg",
 				".png" => "image/png",
 				".gif" => "image/gif",
@@ -159,66 +184,148 @@ public class EpubPackageBuilder {
 				".svg" => "image/svg+xml",
 				_ => "image/jpeg"
 			};
-
-			// Check if this is the cover image
 			var isCover = !string.IsNullOrEmpty(_coverImagePath) && filename == _coverImagePath;
-			var itemId = isCover? "cover-image" : $"img{imageIndex++}";
-			var properties = isCover? " properties=\"cover-image\"" : "";
-
-			sb.AppendLine($"    <item id=\"{itemId}\" href=\"{filename}\" media-type=\"{mediaType}\"{properties}/>");
+			manifestItems.Add(new {
+				Id = isCover ? "cover-image" : $"img{imageIndex++}",
+				Href = filename,
+				MediaType = mediaType,
+				Properties = isCover ? "cover-image" : null
+			});
 		}
 
-		sb.AppendLine("  </manifest>");
-
-		// Spine
-		sb.AppendLine("  <spine toc=\"ncx\">");
+		var spineItems = new List<object>();
 		fileIndex = 1;
-		foreach (var path in _files.Keys.Where(k => k.StartsWith("OEBPS/") && k.EndsWith(".xhtml")).OrderBy(k => k)) {
-			sb.AppendLine($"    <itemref idref=\"file{fileIndex++}\"/>");
+		foreach (var src in navOrder.Where(src =>
+			_resources.ContainsKey($"{EpubConstants.Paths.OEBPS_PREFIX}{src}"))) {
+			spineItems.Add(new { IdRef = src == "nav.xhtml" ? "nav" : $"file{fileIndex++}", Linear = (string?)null });
 		}
 
-		sb.AppendLine("  </spine>");
+		// Non-linear pages (endnotes): in manifest + spine with linear="no"
+		foreach (var pageId in _nonLinearPageIds) {
+			if (!_pageIdToPath.TryGetValue(pageId, out var nlFileName)) {
+				continue;
+			}
 
-		sb.AppendLine("</package>");
-		_files["OEBPS/content.opf"] = sb.ToString();
+			var fullPath = $"{EpubConstants.Paths.OEBPS_PREFIX}{nlFileName}";
+			if (!_resources.ContainsKey(fullPath)) {
+				continue;
+			}
+
+			var nlId = $"file{fileIndex++}";
+			manifestItems.Add(new {
+				Id = nlId,
+				Href = nlFileName,
+				MediaType = "application/xhtml+xml",
+				Properties = (string?)null
+			});
+			spineItems.Add(new { IdRef = nlId, Linear = (string?)"no" });
+		}
+
+		_sharedIdentifier = Guid.NewGuid();
+
+		var xml = templateEngine.Render("epub_content_opf", new {
+			Uid = _sharedIdentifier.Value,
+			Title = _title ?? EpubConstants.Defaults.UNTITLED_BOOK,
+			Author = _author,
+			Description = _description,
+			Tags = _tags,
+			Language = _language,
+			ModifiedDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+			CoverImagePath = _coverImagePath,
+			ManifestItems = manifestItems,
+			SpineItems = spineItems
+		});
+
+		AddResource(EpubResource.FromText(EpubConstants.Paths.CONTENT_OPF_FILE, xml));
 	}
 
 	private void GenerateTocNcx() {
-		var sb = new StringBuilder();
-		sb.AppendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-		sb.AppendLine("<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">");
-		sb.AppendLine("  <head>");
-		sb.AppendLine($"    <meta name=\"dtb:uid\" content=\"{Guid.NewGuid()}\"/>");
-		sb.AppendLine("    <meta name=\"dtb:depth\" content=\"2\"/>");
-		sb.AppendLine("  </head>");
-		sb.AppendLine($"  <docTitle><text>{HttpUtility.HtmlEncode(_title ?? "Untitled")}</text></docTitle>");
-		sb.AppendLine("  <navMap>");
-
+		var flatNavPoints = new List<object>();
 		var playOrder = 1;
+
 		foreach (var nav in _navPoints) {
-			sb.AppendLine(RenderNavPointNcx(nav, ref playOrder));
+			ProcessNavPoint(nav, flatNavPoints, ref playOrder);
 		}
 
-		sb.AppendLine("  </navMap>");
-		sb.AppendLine("</ncx>");
-		_files["OEBPS/toc.ncx"] = sb.ToString();
+		var xml = templateEngine.Render("epub_toc_ncx", new {
+			Uid = _sharedIdentifier ?? Guid.NewGuid(),
+			Title = _title ?? EpubConstants.Defaults.UNTITLED_BOOK,
+			NavPoints = flatNavPoints
+		});
+
+		AddResource(EpubResource.FromText(EpubConstants.Paths.TOC_NCX_FILE, xml));
 	}
 
-	private string RenderNavPointNcx(NavPoint nav, ref int playOrder) {
-		var sb = new StringBuilder();
-		sb.AppendLine($"    <navPoint id=\"nav{playOrder}\" playOrder=\"{playOrder}\">");
-		sb.AppendLine($"      <navLabel><text>{HttpUtility.HtmlEncode(nav.Title)}</text></navLabel>");
-		sb.AppendLine($"      <content src=\"{nav.ContentSrc}\"/>");
-
-		playOrder++;
-
-		if (nav.Children != null) {
-			foreach (var child in nav.Children) {
-				sb.Append(RenderNavPointNcx(child, ref playOrder));
-			}
+	private static void ProcessNavPoint(NavPoint nav, List<object> target, ref int order) {
+		var assignedOrder = !string.IsNullOrEmpty(nav.ContentSrc) && nav.ContentSrc != "nav.xhtml"
+			? order++
+			: 0;
+		var current = new { nav.Title, nav.ContentSrc, PlayOrder = assignedOrder, Children = new List<object>() };
+		target.Add(current);
+		if (nav.Children == null) {
+			return;
 		}
 
-		sb.AppendLine("    </navPoint>");
-		return sb.ToString();
+		foreach (var child in nav.Children) {
+			ProcessNavPoint(child, current.Children, ref order);
+		}
+	}
+
+	private List<string> FlattenNavPoints() {
+		var result = new List<string>();
+		foreach (var nav in _navPoints) {
+			Flatten(nav, result);
+		}
+
+		return result;
+	}
+
+	private static void Flatten(NavPoint nav, List<string> result) {
+		if (!string.IsNullOrEmpty(nav.ContentSrc)) {
+			result.Add(nav.ContentSrc);
+		}
+
+		if (nav.Children == null) {
+			return;
+		}
+
+		foreach (var child in nav.Children) {
+			Flatten(child, result);
+		}
+	}
+
+	private void AddResource(EpubResource resource) => _resources[resource.Path] = resource;
+
+	private static async Task AddResourceToArchiveAsync(ZipArchive archive, EpubResource resource, CancellationToken cancellationToken = default) {
+		var entry = archive.CreateEntry(resource.Path, CompressionLevel.Optimal);
+		switch (resource.Type) {
+			case EpubResourceType.Text:
+				await using (var writer = new StreamWriter(await entry.OpenAsync(cancellationToken), Encoding.UTF8)) {
+					await writer.WriteAsync(resource.TextContent);
+				}
+				break;
+
+			case EpubResourceType.Binary:
+				await using (var stream = await entry.OpenAsync(cancellationToken)) {
+					await stream.WriteAsync(resource.BinaryContent.AsMemory(), cancellationToken);
+				}
+				break;
+
+			case EpubResourceType.Stream:
+				var src = await resource.StreamProvider!();
+				if (src != null) {
+					try {
+						await using var entryStream = await entry.OpenAsync(cancellationToken);
+						await src.CopyToAsync(entryStream, cancellationToken);
+					}
+					finally {
+						await src.DisposeAsync();
+					}
+				}
+				break;
+
+			default:
+				throw new ArgumentOutOfRangeException(nameof(resource), resource.Type, "Unsupported resource type");
+		}
 	}
 }

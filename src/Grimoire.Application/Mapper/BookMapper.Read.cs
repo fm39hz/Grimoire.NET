@@ -1,6 +1,6 @@
 namespace Grimoire.Application.Mapper;
 
-using Common;
+using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -8,8 +8,10 @@ using Dto.Book.Segment;
 using Riok.Mapperly.Abstractions;
 
 public partial class BookMapper {
+#pragma warning disable RMG012
 	[MapProperty(nameof(SeriesModel.Id), nameof(SeriesResponseDto.Id), Use = nameof(MapSeriesId))]
 	public partial SeriesResponseDto ToSeriesDto(SeriesModel model);
+#pragma warning restore RMG012
 
 	[MapProperty(nameof(VolumeModel.Id), nameof(VolumeResponseDto.Id), Use = nameof(MapVolumeId))]
 	[MapProperty(nameof(VolumeModel.SeriesId), nameof(VolumeResponseDto.SeriesId), Use = nameof(MapSeriesId))]
@@ -22,7 +24,9 @@ public partial class BookMapper {
 			Title = model.Title,
 			Order = (int)model.Order,
 			Content = model.ContentData?.Segments.Select(MapSegment).ToList() ?? [],
-			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? []
+			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? [],
+			CreatedAt = model.CreatedAt,
+			UpdatedAt = model.UpdatedAt
 		};
 
 	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]
@@ -42,9 +46,17 @@ public partial class BookMapper {
 	};
 
 	// ID conversion helpers for Mapperly
-	private static string MapSeriesId(Guid id) => PrefixedId.ToString(EntityPrefix.Series, id);
-	private static string MapVolumeId(Guid id) => PrefixedId.ToString(EntityPrefix.Volume, id);
-	private static string MapChapterId(Guid id) => PrefixedId.ToString(EntityPrefix.Chapter, id);
-	private static string MapSegmentId(Guid id) => PrefixedId.ToString(EntityPrefix.Segment, id);
+	private static string MapSeriesId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Series, id);
+
+	private static string MapVolumeId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Volume, id);
+
+	private static string MapChapterId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Chapter, id);
+
+	private static string MapSegmentId(Guid id) =>
+		PrefixedId.ToString(EntityPrefix.Segment, id);
+
 	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 }

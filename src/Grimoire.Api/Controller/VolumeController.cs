@@ -1,12 +1,12 @@
 namespace Grimoire.Api.Controller;
 
-using Application.Common;
 using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
 using Domain.Common;
 using Dto;
+using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -15,22 +15,26 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(VolumeResponseDto), 200)]
 	[ProducesResponseType(404)]
-	public async Task<IResult> FindOne(string id) {
+	public async Task<IResult> FindOne(string id, CancellationToken cancellationToken, [FromQuery] bool? timestamp = false) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
-		var volume = await service.FindOne(guid);
-		return volume is null? Results.NotFound() : Results.Ok(mapper.ToVolumeDto(volume));
+		var volume = await service.FindOne(guid, cancellationToken);
+		if (volume is null) {
+			return Results.NotFound();
+		}
+
+		var dto = mapper.ToVolumeDto(volume);
+		if (timestamp != true) {
+			dto.CreatedAt = null;
+			dto.UpdatedAt = null;
+		}
+
+		return Results.Ok(dto);
 	}
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<VolumeResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto? pagination) {
-		if (pagination == null) {
-			var volumes = await service.FindAll();
-			var dto = volumes.Select(mapper.ToVolumeDto);
-			return Results.Ok(dto);
-		}
-
-		var pagedVolumes = await service.FindAll(pagination.ToApplicationDto());
+	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination, CancellationToken cancellationToken) {
+		var pagedVolumes = await service.FindAll(pagination.ToApplicationDto(), cancellationToken);
 		var pagedDto = new PagedResult<VolumeResponseDto>(
 			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),
 			pagedVolumes.TotalCount,
@@ -42,39 +46,39 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 
 	[HttpPost]
 	[ProducesResponseType(typeof(VolumeResponseDto), 201)]
-	public async Task<IResult> Create([FromBody] CreateVolumeRequestDto dto) {
-		var createdVolume = await service.Create(dto);
+	public async Task<IResult> Create([FromBody] CreateVolumeRequestDto dto, CancellationToken cancellationToken) {
+		var createdVolume = await service.Create(dto, cancellationToken);
 		var responseDto = mapper.ToVolumeDto(createdVolume);
 		return Results.Created($"{responseDto.Id}", responseDto);
 	}
 
 	[HttpPatch("{id}")]
 	[ProducesResponseType(typeof(VolumeResponseDto), 200)]
-	public async Task<IResult> Update(string id, [FromBody] UpdateVolumeRequestDto dto) {
+	public async Task<IResult> Update(string id, [FromBody] UpdateVolumeRequestDto dto, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
-		var updatedVolume = await service.Update(guid, dto);
+		var updatedVolume = await service.Update(guid, dto, cancellationToken);
 		return Results.Ok(mapper.ToVolumeDto(updatedVolume));
 	}
 
 	[HttpDelete("{id}")]
 	[ProducesResponseType(typeof(bool), 200)]
-	public async Task<IResult> Delete(string id) {
+	public async Task<IResult> Delete(string id, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
-		var result = await service.Delete(guid);
+		var result = await service.Delete(guid, cancellationToken);
 		return Results.Ok(result);
 	}
 
 	[HttpGet("{id}/chapters")]
 	[ProducesResponseType(typeof(IEnumerable<ChapterListResponseDto>), 200)]
-	public async Task<IResult> GetChapters(string id, [FromQuery] PaginationRequestDto? pagination) {
+	public async Task<IResult> GetChapters(string id, [FromQuery] PaginationRequestDto? pagination, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
 		if (pagination == null) {
-			var chapters = await service.FindAllChapters(guid);
+			var chapters = await service.FindAllChapters(guid, cancellationToken);
 			var dto = chapters.Select(mapper.ToChapterListDto);
 			return Results.Ok(dto);
 		}
 
-		var pagedChapters = await service.FindAllChapters(guid, pagination.ToApplicationDto());
+		var pagedChapters = await service.FindAllChapters(guid, pagination.ToApplicationDto(), cancellationToken);
 		var pagedDto = new PagedResult<ChapterListResponseDto>(
 			pagedChapters.Items.Select(mapper.ToChapterListDto).ToList(),
 			pagedChapters.TotalCount,

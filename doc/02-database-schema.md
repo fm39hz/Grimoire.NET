@@ -10,33 +10,57 @@ Thiết kế dữ liệu tập trung vào việc phục vụ cho Engine Render H
 
 ## 1. Relational Entities (Khung xương)
 
-### 1.1. Series (Bộ truyện)
+### 1.1. BookNode (Cây quản lý sách)
+
+`book_nodes` là source of truth cho hierarchy:
+
+- `Id` (PK): dùng chung Guid với payload entity tương ứng.
+- `Type`: `Series`, `Volume`, hoặc `Chapter`.
+- `ParentId`: null với `Series`; trỏ về `Series` với `Volume`; trỏ về `Volume` với `Chapter`.
+- `Order`: thứ tự trong cùng parent.
+- `Title`: title canonical dùng cho traversal/list/export.
+- `CreatedAt`, `UpdatedAt`.
+
+Invariant:
+
+- Root-level persistent node chỉ được là `Series`; `BookShelf` là root logic trong DTO/API, không lưu DB.
+- `Series -> Volume -> Chapter`; `Chapter` không có child.
+- `(ParentId, Order)` unique để không có hai sibling cùng vị trí.
+
+Trong phase compatibility, các bảng `Series`, `Volume`, `Chapter` vẫn giữ cột `Title`, `Order`, `SeriesId`, `VolumeId` để payload/API cũ hoạt động. Write path mới phải đi qua `IBookTreeService` và mirror các cột legacy này.
+
+### 1.2. Series (Bộ truyện)
 
 - `Id` (PK), `Title`.
 - `Metadata` (JSONB): Chứa thông tin cấp độ Bộ (Tác giả gốc, Tóm tắt chung, Ảnh bìa bộ).
-- `Volumes` (Collection).
+- Hierarchy lấy từ `book_nodes`, không tự xem `Volumes` là source of truth.
 
-### 1.2. Volume (Tập)
+### 1.3. Volume (Tập)
 
 - `Id` (PK), `SeriesId` (FK), `Order` (Số thứ tự).
 - `Title` (Tên tập, vd: "Tập 7.5").
 - `Metadata` (JSONB): Chứa thông tin cấp độ Tập (Họa sĩ minh họa tập này, Ảnh bìa tập).
+- `SeriesId`, `Order`, `Title` được mirror từ node để giữ API cũ.
 
-### 1.3. Chapter (Chương)
+### 1.4. Chapter (Chương)
 
 - `Id` (PK), `VolumeId` (FK), `Order`.
 - `Title` (Tên chương).
 - `Content` (JSONB): Chứa danh sách `Segment`.
+- `VolumeId`, `Order`, `Title` được mirror từ node để giữ API cũ.
 
-### 1.4. Assets (Quản lý File)
+### 1.5. Assets (Quản lý File)
 
-Bảng này giúp tracking file nào đang được sử dụng, tránh rác trong MinIO.
+Bảng này tracking file vật lý và ownership logic trên tree.
 
 - `Id` (PK)
-- `SeriesId` (FK) - Để khi xóa Series thì xóa luôn ảnh thuộc về nó.
-- `MinioPath` (Key) - Vd: "covers/uuid.jpg"
-- `FileHash` (String) - MD5/SHA256 của file ảnh (Dùng để check trùng).
+- `SeriesId` (FK) - legacy scope/compatibility, vẫn giữ để API cũ và delete theo series hoạt động trong phase đầu.
+- `OwnerNodeId` (FK nullable -> `book_nodes.Id`) - node sở hữu canonical của asset. `null` nghĩa là asset đã được nâng lên root logic `BookShelf`.
+- `Path` (Key) - Vd: `series/{seriesId}/{hash}.jpg` hoặc staging/import key.
+- `FileHash` (String) - SHA256 của file ảnh. Upload mới dedupe toàn cục theo hash trước khi tạo row mới.
 - `RefType` - "Cover" hoặc "Content".
+
+Ownership được reconcile sau import/sync bằng cách scan reference trong series metadata, volume metadata, và chapter image segments. Nếu cùng một asset được dùng ở nhiều node, `OwnerNodeId` trở thành lowest common ancestor của các node đó: chapter + volume cover -> volume; hai volume khác nhau -> series; nhiều series -> `null`/`BookShelf`.
 
 ## 2. JSONB Structures (Nội dung)
 
