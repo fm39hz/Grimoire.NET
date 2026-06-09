@@ -6,4 +6,5 @@ public enum PageRole {
 	TableOfContents,
 	VolumeTitle,
 	Chapter,
+	Endnotes,
 }

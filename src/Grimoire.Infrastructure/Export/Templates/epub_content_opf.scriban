@@ -22,7 +22,7 @@
 
   <spine toc="ncx">
     {{ for item in spine_items }}
-    <itemref idref="{{ item.id_ref }}"/>
+    <itemref idref="{{ item.id_ref }}"{{ if item.linear }} linear="{{ item.linear }}"{{ end }}/>
     {{ end }}
   </spine>
 </package>

@@ -193,5 +193,33 @@ em {
     -ms-user-select: none;
     user-select: none;
 }
+
+/* Endnotes */
+.endnotes {
+    margin: 1em 0;
+}
+
+.endnotes h3 {
+    margin-top: 1.5em;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #ccc;
+    font-size: 1.1em;
+}
+
+.endnote-entry {
+    margin: 0.5em 0;
+    font-size: 0.9em;
+    text-indent: 0;
+}
+
+.endnote-backref {
+    text-decoration: none;
+    margin-left: 0.3em;
+    font-size: 0.85em;
+}
+
+a.footnote-ref[id] {
+    scroll-margin-top: 2em;
+}
 ";
 }

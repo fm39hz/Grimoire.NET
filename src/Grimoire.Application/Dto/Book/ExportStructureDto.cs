@@ -36,4 +36,14 @@ public record ExportStructureDto {
 	///     Global CSS to apply to the entire document
 	/// </summary>
 	public string? GlobalCss { get; init; }
+
+	/// <summary>
+	///     Controls where footnotes are rendered: inline per-chapter, consolidated per-volume, or global.
+	/// </summary>
+	public FootnoteMode FootnoteMode { get; init; } = FootnoteMode.PerVolume;
+
+	/// <summary>
+	///     Controls how footnotes are grouped within consolidated endnotes pages.
+	/// </summary>
+	public EndnoteGrouping EndnoteGrouping { get; init; } = EndnoteGrouping.ByChapter;
 }

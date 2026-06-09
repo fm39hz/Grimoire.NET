@@ -20,8 +20,11 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 	// Resolved NavPoint tree (built in SetNavigation, used by BuildAsync)
 	private readonly List<NavPoint> _navPoints = [];
 
+	private readonly HashSet<string> _nonLinearPageIds = new();
+
 	private int _volumeIndex = 1;
 	private int _chapterIndex = 1;
+	private int _endnotesIndex = 1;
 
 	private string? _title;
 	private string? _author;
@@ -58,6 +61,10 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		// resolved NavPoint tree — don't add a resource for it now.
 		if (role == PageRole.TableOfContents) {
 			return fileName;
+		}
+
+		if (role == PageRole.Endnotes) {
+			_nonLinearPageIds.Add(pageId);
 		}
 
 		AddResource(EpubResource.FromText($"{EpubConstants.Paths.OEBPS_PREFIX}{fileName}", htmlContent));
@@ -104,6 +111,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		PageRole.TableOfContents => "nav.xhtml",
 		PageRole.VolumeTitle => $"volume_{_volumeIndex++:D3}.xhtml",
 		PageRole.Chapter => $"chapter_{_chapterIndex++:D3}.xhtml",
+		PageRole.Endnotes => $"endnotes_{_endnotesIndex++:D3}.xhtml",
 		_ => $"page_{pageId}.xhtml"
 	};
 
@@ -186,7 +194,28 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		fileIndex = 1;
 		foreach (var src in navOrder.Where(src =>
 			_resources.ContainsKey($"{EpubConstants.Paths.OEBPS_PREFIX}{src}"))) {
-			spineItems.Add(new { IdRef = src == "nav.xhtml" ? "nav" : $"file{fileIndex++}" });
+			spineItems.Add(new { IdRef = src == "nav.xhtml" ? "nav" : $"file{fileIndex++}", Linear = (string?)null });
+		}
+
+		// Non-linear pages (endnotes): in manifest + spine with linear="no"
+		foreach (var pageId in _nonLinearPageIds) {
+			if (!_pageIdToPath.TryGetValue(pageId, out var nlFileName)) {
+				continue;
+			}
+
+			var fullPath = $"{EpubConstants.Paths.OEBPS_PREFIX}{nlFileName}";
+			if (!_resources.ContainsKey(fullPath)) {
+				continue;
+			}
+
+			var nlId = $"file{fileIndex++}";
+			manifestItems.Add(new {
+				Id = nlId,
+				Href = nlFileName,
+				MediaType = "application/xhtml+xml",
+				Properties = (string?)null
+			});
+			spineItems.Add(new { IdRef = nlId, Linear = (string?)"no" });
 		}
 
 		_sharedIdentifier = Guid.NewGuid();
