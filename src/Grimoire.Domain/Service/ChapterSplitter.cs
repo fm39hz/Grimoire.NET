@@ -51,14 +51,15 @@ public static class ChapterSplitter {
 
 			var newSegments = segments.Skip(currentIndex).Take(nextIndex - currentIndex).ToList();
 
+			var newChapterId = Guid.CreateVersion7();
 			var newChapter = new ChapterModel {
-				Id = Guid.CreateVersion7(),
+				Id = newChapterId,
 				VolumeId = original.VolumeId,
 				Title = newTitle,
 				Order = original.Order + (orderIncrement * (i + 1)),
 				Status = original.Status,
 				ContentData = new ChapterContentModel {
-					Id = Guid.CreateVersion7(),
+					Id = newChapterId,
 					Segments = newSegments,
 					Footnotes = footnotes.PartitionFootnotes(newSegments)
 				}
