@@ -55,7 +55,8 @@ public sealed partial class S3StorageRepository(
 			BucketName = _config.BucketName,
 			Key = objectKey,
 			InputStream = content,
-			ContentType = contentType
+			ContentType = contentType,
+			PartSize = 90 * 1024 * 1024
 		}, cancellationToken);
 
 		var asset = new AssetModel {
@@ -115,7 +116,8 @@ public sealed partial class S3StorageRepository(
 			BucketName = _config.BucketName,
 			Key = objectKey,
 			InputStream = content,
-			ContentType = contentType
+			ContentType = contentType,
+			PartSize = 90 * 1024 * 1024
 		}, cancellationToken);
 
 		return objectKey;
@@ -123,10 +125,10 @@ public sealed partial class S3StorageRepository(
 
 	public async Task<Stream?> GetFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
 		try {
-			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
+			var response = await RetryS3Async(() => _s3Client.GetObjectAsync(new GetObjectRequest {
 				BucketName = _config.BucketName,
 				Key = filePath
-			}, cancellationToken);
+			}, cancellationToken), logger, cancellationToken);
 
 			return response.ResponseStream;
 		}
@@ -185,10 +187,10 @@ public sealed partial class S3StorageRepository(
 		LogGettingFromS3(logger, _config.BucketName, key);
 
 		try {
-			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
+			var response = await RetryS3Async(() => _s3Client.GetObjectAsync(new GetObjectRequest {
 				BucketName = _config.BucketName,
 				Key = key
-			}, ct);
+			}, ct), logger, ct);
 
 			return new AssetFileResult {
 				Stream = response.ResponseStream,
@@ -203,10 +205,10 @@ public sealed partial class S3StorageRepository(
 
 	private async Task<byte[]> GetBytesByKeyAsync(string key, CancellationToken ct) {
 		try {
-			var response = await _s3Client.GetObjectAsync(new GetObjectRequest {
+			var response = await RetryS3Async(() => _s3Client.GetObjectAsync(new GetObjectRequest {
 				BucketName = _config.BucketName,
 				Key = key
-			}, ct);
+			}, ct), logger, ct);
 
 			await using var stream = response.ResponseStream;
 			using var memoryStream = new MemoryStream();
