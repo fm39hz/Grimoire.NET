@@ -395,3 +395,6 @@ dotnet_diagnostic.IDE0305.severity = none
 # IDE0305: Simplify collection initialization
 dotnet_style_prefer_collection_expression = never
 
+# Suppress high-performance logging warnings (CA1848, CA1873)
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA1873.severity = none

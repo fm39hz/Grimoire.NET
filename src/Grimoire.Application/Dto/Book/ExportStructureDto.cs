@@ -55,7 +55,7 @@ public record ExportStructureDto {
 	/// <summary>
 	///     Whether to enable a dropcap at the first text segment of a chapter.
 	/// </summary>
-	public bool EnableDropcap { get; init; } = false;
+	public bool EnableDropcap { get; init; }
 
 	/// <summary>
 	///     Localization settings for labels and language metadata.

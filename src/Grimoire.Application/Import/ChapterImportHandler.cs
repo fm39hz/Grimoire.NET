@@ -25,8 +25,7 @@ public sealed class ChapterImportHandler(
 	IChapterRepository chapterRepository,
 	ISourceMaterialRepository sourceRepository,
 	IBookTreeService bookTreeService,
-	IngestionStrategyFactory strategyFactory,
-	ILogger<ChapterImportHandler> logger) : IChapterImportHandler {
+	IngestionStrategyFactory strategyFactory) : IChapterImportHandler {
 
     public async Task<ChapterImportResult> ImportAsync(
         Guid volumeId,

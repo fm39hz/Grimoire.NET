@@ -8,6 +8,7 @@ using System.Threading;
 using Persistence.Database;
 
 public abstract class CrudRepository<T>(ApplicationDbContext context) : IRepository<T> where T : BaseModel, IModel {
+	protected ApplicationDbContext Context => context;
 	protected DbSet<T> Entities => context.Set<T>();
 
 	public virtual async Task<T?> FindOne(Guid id, CancellationToken cancellationToken = default) =>

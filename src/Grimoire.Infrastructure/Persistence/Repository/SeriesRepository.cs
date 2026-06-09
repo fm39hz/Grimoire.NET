@@ -9,5 +9,5 @@ using Microsoft.EntityFrameworkCore;
 public sealed class SeriesRepository(ApplicationDbContext context)
 	: CrudRepository<SeriesModel>(context), ISeriesRepository {
 	public async Task<SeriesModel?> FindOneByTitle(string title, CancellationToken cancellationToken = default) =>
-		await context.Series.AsNoTracking().FirstOrDefaultAsync(s => s.Title == title, cancellationToken);
+		await Context.Series.AsNoTracking().FirstOrDefaultAsync(s => s.Title == title, cancellationToken);
 }

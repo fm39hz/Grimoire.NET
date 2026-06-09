@@ -311,7 +311,7 @@ public sealed class BookTreeService(
 		}
 	}
 
-	private async Task<List<VolumeModel>> LoadVolumes(IReadOnlyList<BookNodeModel> nodes, CancellationToken cancellationToken) {
+	private async Task<List<VolumeModel>> LoadVolumes(List<BookNodeModel> nodes, CancellationToken cancellationToken) {
 		var volumes = new List<VolumeModel>(nodes.Count);
 		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Volume)) {
 			var volume = await volumeRepository.FindOne(node.Id, cancellationToken);
@@ -327,7 +327,7 @@ public sealed class BookTreeService(
 		return volumes;
 	}
 
-	private async Task<List<ChapterModel>> LoadChapters(IReadOnlyList<BookNodeModel> nodes, CancellationToken cancellationToken) {
+	private async Task<List<ChapterModel>> LoadChapters(List<BookNodeModel> nodes, CancellationToken cancellationToken) {
 		var chapters = new List<ChapterModel>(nodes.Count);
 		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Chapter)) {
 			var chapter = await chapterRepository.FindOne(node.Id, cancellationToken);

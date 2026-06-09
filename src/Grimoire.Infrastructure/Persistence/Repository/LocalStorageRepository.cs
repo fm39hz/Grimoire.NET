@@ -10,7 +10,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 public partial class LocalStorageRepository(
-	ILogger<LocalStorageRepository> logger,
 	IAssetRepository assetRepository,
 	IOptions<StorageConfiguration> storageOptions)
 	: IStorageRepository {

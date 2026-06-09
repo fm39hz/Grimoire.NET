@@ -60,9 +60,6 @@ public class Program {
 
 		app.UseCors("AllowAll");
 		
-		// Start Hangfire server (singleton activated here)
-		app.UseHangfireServer();
-		
 		if (app.Environment.IsDevelopment())
 		{
 			app.UseHangfireDashboard("/hangfire", new DashboardOptions

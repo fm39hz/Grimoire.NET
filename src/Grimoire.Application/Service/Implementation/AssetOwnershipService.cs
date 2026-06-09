@@ -69,7 +69,7 @@ public sealed class AssetOwnershipService(
 	private static Guid? ResolveOwner(
 		AssetModel asset,
 		List<Guid> usageNodeIds,
-		IReadOnlyDictionary<Guid, BookNodeModel> nodesById) {
+		Dictionary<Guid, BookNodeModel> nodesById) {
 		if (asset.OwnerNodeId is null) {
 			return null;
 		}
@@ -87,7 +87,7 @@ public sealed class AssetOwnershipService(
 
 	private static Guid? FindLowestCommonAncestor(
 		IReadOnlyList<Guid> nodeIds,
-		IReadOnlyDictionary<Guid, BookNodeModel> nodesById) {
+		Dictionary<Guid, BookNodeModel> nodesById) {
 		var ancestorPaths = nodeIds
 			.Select(id => GetAncestorPath(id, nodesById))
 			.Where(path => path.Count > 0)
@@ -109,7 +109,8 @@ public sealed class AssetOwnershipService(
 		return ancestorPaths[0].FirstOrDefault(common.Contains);
 	}
 
-	private static List<Guid> GetAncestorPath(Guid nodeId, IReadOnlyDictionary<Guid, BookNodeModel> nodesById) {
+	private static List<Guid> GetAncestorPath(Guid nodeId, Dictionary<Guid, BookNodeModel> nodesById) {
+
 		var result = new List<Guid>();
 		var currentId = nodeId;
 		while (nodesById.TryGetValue(currentId, out var node)) {

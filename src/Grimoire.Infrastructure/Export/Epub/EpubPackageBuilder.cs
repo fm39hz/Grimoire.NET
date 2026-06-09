@@ -93,12 +93,12 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		var memoryStream = new MemoryStream();
 		await using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, leaveOpen: true)) {
 			var mimetypeEntry = archive.CreateEntry(EpubConstants.Paths.MIME_TYPE_FILE, CompressionLevel.NoCompression);
-			await using (var writer = new StreamWriter(await mimetypeEntry.OpenAsync(), Encoding.ASCII)) {
+			await using (var writer = new StreamWriter(await mimetypeEntry.OpenAsync(cancellationToken), Encoding.ASCII)) {
 				await writer.WriteAsync("application/epub+zip");
 			}
 
 			foreach (var resource in _resources.Values) {
-				await AddResourceToArchiveAsync(archive, resource);
+				await AddResourceToArchiveAsync(archive, resource, cancellationToken);
 			}
 		}
 
@@ -296,18 +296,18 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 
 	private void AddResource(EpubResource resource) => _resources[resource.Path] = resource;
 
-	private static async Task AddResourceToArchiveAsync(ZipArchive archive, EpubResource resource) {
+	private static async Task AddResourceToArchiveAsync(ZipArchive archive, EpubResource resource, CancellationToken cancellationToken = default) {
 		var entry = archive.CreateEntry(resource.Path, CompressionLevel.Optimal);
 		switch (resource.Type) {
 			case EpubResourceType.Text:
-				await using (var writer = new StreamWriter(await entry.OpenAsync(), Encoding.UTF8)) {
+				await using (var writer = new StreamWriter(await entry.OpenAsync(cancellationToken), Encoding.UTF8)) {
 					await writer.WriteAsync(resource.TextContent);
 				}
 				break;
 
 			case EpubResourceType.Binary:
-				await using (var stream = await entry.OpenAsync()) {
-					await stream.WriteAsync(resource.BinaryContent!, 0, resource.BinaryContent!.Length);
+				await using (var stream = await entry.OpenAsync(cancellationToken)) {
+					await stream.WriteAsync(resource.BinaryContent.AsMemory(), cancellationToken);
 				}
 				break;
 
@@ -315,8 +315,8 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 				var src = await resource.StreamProvider!();
 				if (src != null) {
 					try {
-						await using var entryStream = await entry.OpenAsync();
-						await src.CopyToAsync(entryStream);
+						await using var entryStream = await entry.OpenAsync(cancellationToken);
+						await src.CopyToAsync(entryStream, cancellationToken);
 					}
 					finally {
 						await src.DisposeAsync();
@@ -325,7 +325,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 				break;
 
 			default:
-				throw new ArgumentOutOfRangeException(nameof(resource.Type));
+				throw new ArgumentOutOfRangeException(nameof(resource), resource.Type, "Unsupported resource type");
 		}
 	}
 }

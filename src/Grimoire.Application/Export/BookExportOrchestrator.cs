@@ -39,7 +39,7 @@ public class BookExportOrchestrator(
 			ImageAssets = imageAssets,
 			AssetFileMap = assetFileMap,
 			PlainTextDescription = plainTextDescription,
-			Structure = request.Structure
+			Structure = request.Structure ?? ExportStructureDefaults.Standard()
 		};
 	}
 

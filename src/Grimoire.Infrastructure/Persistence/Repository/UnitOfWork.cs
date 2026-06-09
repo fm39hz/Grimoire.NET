@@ -26,7 +26,7 @@ public sealed class UnitOfWork(ApplicationDbContext context) : IUnitOfWork {
 			await _currentTransaction.CommitAsync(cancellationToken);
 		}
 		catch {
-			await RollbackTransactionAsync();
+			await RollbackTransactionAsync(cancellationToken);
 			throw;
 		}
 		finally {

@@ -146,7 +146,7 @@ public partial class MarkdownSectionRenderer(
 		return [new NavEntry("description", context.Structure.Localization.SummaryLabel)];
 	}
 
-	private static IReadOnlyList<NavEntry> RenderContent(BookExportContext context, IPackageBuilder builder) {
+	private static List<NavEntry> RenderContent(BookExportContext context, IPackageBuilder builder) {
 		var navEntries = new List<NavEntry>();
 
 		foreach (var volume in context.Volumes) {

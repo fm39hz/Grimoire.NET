@@ -351,7 +351,7 @@ public partial class EpubSectionRenderer(
 
 	// ── RenderContent: tree-based traversal with footnote mode support ────
 
-	private IReadOnlyList<NavEntry> RenderContent(BookExportContext context, IPackageBuilder builder) {
+	private List<NavEntry> RenderContent(BookExportContext context, IPackageBuilder builder) {
 		var footnoteMode = context.Structure.FootnoteMode;
 		var navEntries = new List<NavEntry>();
 
@@ -484,7 +484,7 @@ public partial class EpubSectionRenderer(
 
 	// ── Tree helpers ──────────────────────────────────────────────────────
 
-	private static IReadOnlyList<BookTreeNodeDto> GetVolumeNodes(BookTreeDto tree) {
+	private static List<BookTreeNodeDto> GetVolumeNodes(BookTreeDto tree) {
 		var seriesNode = tree.Root.Children.FirstOrDefault();
 		return seriesNode?.Children ?? [];
 	}

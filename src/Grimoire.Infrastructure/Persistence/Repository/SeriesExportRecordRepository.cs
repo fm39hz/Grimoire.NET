@@ -18,28 +18,28 @@ public sealed class SeriesExportRecordRepository(ApplicationDbContext context)
     public async Task<DateTime> GetMaxContentTimestampAsync(Guid seriesId, CancellationToken cancellationToken = default)
     {
         var seriesDt = await (
-            from s in context.Series
+            from s in Context.Series
             where s.Id == seriesId
             select s.UpdatedAt
         ).FirstOrDefaultAsync(cancellationToken);
 
         var volumeDt = await (
-            from v in context.BookNodes
+            from v in Context.BookNodes
             where v.ParentId == seriesId && v.Type == BookNodeType.Volume
             select (DateTime?)v.UpdatedAt
         ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
         var chapterDt = await (
-            from c in context.BookNodes
-            join v in context.BookNodes on c.ParentId equals v.Id
+            from c in Context.BookNodes
+            join v in Context.BookNodes on c.ParentId equals v.Id
             where v.ParentId == seriesId && c.Type == BookNodeType.Chapter
             select (DateTime?)c.UpdatedAt
         ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
         var contentDt = await (
-            from cc in context.ChapterContents
-            join c in context.BookNodes on cc.Id equals c.Id
-            join v in context.BookNodes on c.ParentId equals v.Id
+            from cc in Context.ChapterContents
+            join c in Context.BookNodes on cc.Id equals c.Id
+            join v in Context.BookNodes on c.ParentId equals v.Id
             where v.ParentId == seriesId && c.Type == BookNodeType.Chapter
             select (DateTime?)cc.UpdatedAt
         ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
