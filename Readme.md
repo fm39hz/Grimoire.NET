@@ -102,7 +102,7 @@ For detailed API definitions, refer to the [API Documentation](doc/03-api-featur
 ## Roadmap
 
 - [x] Series/Volume/Chapter CRUD operations
-- [x] S3 Storage (MinIO) & LocalStorage options
+- [x] S3 Storage & LocalStorage options
 - [x] Scriban HTML/Markdown/EPUB Render Engine
 - [x] Hangfire Background Export Jobs
 - [x] Chapter Split & Merge APIs
@@ -158,7 +158,7 @@ Distributed under the MIT License. See `LICENSE` for more information.
 [issues-shield]: https://img.shields.io/github/issues/fm39hz/Grimoire.NET.svg?style=for-the-badge
 [issues-url]: https://github.com/fm39hz/Grimoire.NET/issues
 [license-shield]: https://img.shields.io/github/license/fm39hz/Grimoire.NET.svg?style=for-the-badge
-[license-url]: https://github.com/fm39hz/Grimoire.NET/blob/main/LICENSE
+[license-url]: https://github.com/fm39hz/Grimoire.NET/blob/master/LICENSE
 [dotnet-shield]: https://img.shields.io/badge/.NET%2010-512BD4?style=for-the-badge&logo=dotnet&logoColor=white
 [dotnet-url]: https://dotnet.microsoft.com/
 [postgres-shield]: https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white
