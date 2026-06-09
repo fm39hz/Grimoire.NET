@@ -59,13 +59,15 @@ public sealed class BookTreeService(
 	}
 
 	public async Task<(SeriesModel Series, bool Created)> GetOrCreateSeries(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
-		var existing = await seriesRepository.FindOneByTitle(dto.Title, cancellationToken);
+		var normalizedTitle = dto.Title.Trim();
+		var existing = await seriesRepository.FindOneByTitle(normalizedTitle, cancellationToken);
 		if (existing is not null) {
 			await EnsureNode(existing.Id, BookNodeType.Series, null, existing.Title, 0, cancellationToken);
 			return (existing, false);
 		}
 
-		return (await CreateSeries(dto, cancellationToken), true);
+		var normalizedDto = dto with { Title = normalizedTitle };
+		return (await CreateSeries(normalizedDto, cancellationToken), true);
 	}
 
 	public async Task<SeriesModel> UpdateSeries(Guid seriesId, UpdateSeriesRequestDto dto, CancellationToken cancellationToken = default) {

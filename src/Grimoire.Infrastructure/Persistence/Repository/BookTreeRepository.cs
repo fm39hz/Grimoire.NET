@@ -34,6 +34,7 @@ public sealed class BookTreeRepository(ApplicationDbContext context)
 
 	public async Task<BookNodeModel?> FindChildByOrder(Guid? parentId, float order, CancellationToken cancellationToken = default) =>
 		await Entities
+			.AsNoTracking()
 			.FirstOrDefaultAsync(n => n.ParentId == parentId && n.Order == order, cancellationToken);
 
 	public async Task<IReadOnlyList<BookNodeModel>> FindSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
