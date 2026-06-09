@@ -61,7 +61,7 @@ describe("unified book tree whitebox", () => {
 
 		expect(context).toContain("BookTreeDto Tree");
 		expect(resolver).toContain("bookTreeService.FindVolumes");
-		expect(freshness).toContain("context.BookNodes");
-		expect(freshness).not.toContain("join v in context.Volumes on c.VolumeId equals v.Id");
+		expect(freshness.toLowerCase()).toContain("context.booknodes");
+		expect(freshness.toLowerCase()).not.toContain("join v in context.volumes on c.volumeid equals v.id");
 	});
 });

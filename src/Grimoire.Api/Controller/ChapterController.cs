@@ -1,6 +1,7 @@
 namespace Grimoire.Api.Controller;
 
 using Application.Dto.Book;
+using Application.Export;
 using Application.Mapper;
 using Application.Service.Contract;
 using Application.Service.Strategy;
@@ -10,6 +11,8 @@ using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Dto;
 using Infrastructure.Export.Common;
+using Infrastructure.Export.Epub;
+using Infrastructure.Export.Markdown;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 
@@ -46,7 +49,12 @@ public sealed class ChapterController(
 	[ProducesResponseType(400)]
 	[ProducesResponseType(404)]
 	[ProducesResponseType(501)]
-	public async Task<IResult> GetContent(string id, CancellationToken cancellationToken, [FromQuery] string format = "markdown") {
+	public async Task<IResult> GetContent(
+		string id,
+		CancellationToken cancellationToken,
+		[FromQuery] string format = "markdown",
+		[FromQuery] FootnoteStyle footnoteStyle = FootnoteStyle.Parentheses,
+		[FromQuery] bool enableDropcap = false) {
 		if (!Enum.TryParse<ExportFormat>(format, true, out var exportFormat)) {
 			throw new ArgumentException($"Unsupported format: {format}");
 		}
@@ -70,7 +78,15 @@ public sealed class ChapterController(
 
 		var assets = await ResolveContentAssets(chapter.ContentData.Segments, cancellationToken);
 
-		var content = renderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes);
+		string content;
+		if (renderer is EpubSectionRenderer epubRenderer) {
+			content = epubRenderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, null, footnoteStyle, enableDropcap);
+		} else if (renderer is MarkdownSectionRenderer mdRenderer) {
+			content = mdRenderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, null, footnoteStyle, enableDropcap);
+		} else {
+			content = renderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes);
+		}
+
 		var contentType = exportFormat == ExportFormat.Html ? "text/html" : "text/markdown";
 		return Results.Ok(new ContentResponseDto {
 			Data = content,
