@@ -39,7 +39,7 @@ public static class DependencyInjection
 
         // Register jobs so they can be resolved when this project runs as worker
         services.AddTransient<ExportJob>();
-        services.AddTransient<ImportEpubJob>();
+        services.AddTransient<ImportJob>();
 
         return services;
     }

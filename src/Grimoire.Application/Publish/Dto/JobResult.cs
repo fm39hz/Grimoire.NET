@@ -1,4 +1,4 @@
-namespace Grimoire.Job.Common;
+namespace Grimoire.Application.Publish.Dto;
 
 /// <summary>Standard result returned by all jobs.</summary>
 public sealed record JobResult {

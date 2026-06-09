@@ -1,10 +1,12 @@
+using System;
+using System.Threading;
+using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
-using Grimoire.Application.Service.Contract;
-using Grimoire.Domain.Common.Repository;
-using Grimoire.Domain.Entity.Book;
-using Grimoire.Job.Common;
+using Grimoire.Application.Publish.Export;
+using Grimoire.Application.Publish.Dto;
 using Hangfire;
 using Hangfire.Server;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Grimoire.Job.Jobs;
@@ -43,68 +45,12 @@ public sealed class ExportJob
             using var scope = _scopeFactory.CreateScope();
             var services = scope.ServiceProvider;
 
-            var bindery = services.GetRequiredService<IBinderyService>();
-            var storage = services.GetRequiredService<IStorageRepository>();
-            var exportRecords = services.GetRequiredService<ISeriesExportRecordRepository>();
+            var pipeline = services.GetRequiredService<IExportPipeline>();
+            var pipelineContext = new ExportPipelineContext(seriesId, request, jobId);
 
-            var formatDir = request.Format.ToString().ToLowerInvariant();
+            await pipeline.ExecuteAsync(pipelineContext, cancellationToken);
 
-            // Dedup check: if source content unchanged, return existing asset
-            var prevRecord = await exportRecords.GetBySeriesAndFormatAsync(seriesId, formatDir, cancellationToken);
-            if (prevRecord is not null)
-            {
-                var maxContentDt = await exportRecords.GetMaxContentTimestampAsync(seriesId, cancellationToken);
-                if (prevRecord.LastExportedAt >= maxContentDt)
-                {
-                    _logger.LogInformation(
-                        "Export skipped (unchanged) — JobId={JobId}, SeriesId={SeriesId}, Format={Format}",
-                        jobId, seriesId, formatDir);
-                    return JobResult.Ok(prevRecord.AssetId.ToString(), "", "");
-                }
-            }
-
-            var exportResult = await bindery.ExportSeriesAsync(seriesId, request, cancellationToken);
-
-            if (!exportResult.Success)
-            {
-                _logger.LogWarning(
-                    "ExportJob failed — JobId={JobId}, Error={Error}",
-                    jobId, exportResult.ErrorMessage);
-                return JobResult.Fail(exportResult.ErrorMessage);
-            }
-
-            var asset = await storage.UploadAssetAsync(
-                seriesId,
-                exportResult.ContentStream,
-                exportResult.ContentType,
-                exportResult.FileName,
-                AssetRefType.Export,
-                prefix: $"staging/export/{formatDir}",
-                cancellationToken);
-
-            // Update export record
-            if (prevRecord is not null)
-            {
-                prevRecord.LastExportedAt = DateTime.UtcNow;
-                prevRecord.AssetId = asset.Id;
-                await exportRecords.Update(prevRecord, cancellationToken);
-            }
-            else
-            {
-                await exportRecords.Create(new SeriesExportRecord
-                {
-                    SeriesId = seriesId,
-                    Format = formatDir,
-                    LastExportedAt = DateTime.UtcNow,
-                    AssetId = asset.Id
-                }, cancellationToken);
-            }
-
-            _logger.LogInformation(
-                "ExportJob completed — JobId={JobId}, SeriesId={SeriesId}, AssetId={AssetId}",
-                jobId, seriesId, asset.Id);
-
-            return JobResult.Ok(asset.Id.ToString(), exportResult.FileName, exportResult.ContentType);
+            return pipelineContext.Result;
         }
         catch (OperationCanceledException)
         {
@@ -114,7 +60,7 @@ public sealed class ExportJob
         catch (Exception ex)
         {
             _logger.LogError(ex, "ExportJob crashed — JobId={JobId}, SeriesId={SeriesId}", jobId, seriesId);
-            return null;
+            return JobResult.Fail(ex.Message);
         }
     }
 }

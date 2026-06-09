@@ -4,6 +4,10 @@ using Export;
 using Import;
 using Mapper;
 using Microsoft.Extensions.DependencyInjection;
+using Publish.Export;
+using Publish.Export.Steps;
+using Publish.Import;
+using Publish.Import.Steps;
 using Service.Contract;
 using Service.Implementation;
 using Service.Strategy;
@@ -40,13 +44,26 @@ public static class DependencyInjection {
 		services.AddScoped<IImportStrategy, EpubImportStrategy>();
 		services.AddScoped<ImportStrategyFactory>();
 
-		// Register import orchestrator
-		services.AddScoped<IImportOrchestrator, ImportOrchestrator>();
-
 		// Register import collaborators
 		services.AddScoped<IVolumeTreeResolver, VolumeTreeResolver>();
 		services.AddScoped<IChapterImportHandler, ChapterImportHandler>();
 		services.AddScoped<IMediaImportService, MediaImportService>();
+
+		// Register Export Pipeline and Steps
+		services.AddScoped<IExportPipeline, ExportPipeline>();
+		services.AddScoped<IExportPipelineStep, DeduplicationStep>();
+		services.AddScoped<IExportPipelineStep, ContentGenerationStep>();
+		services.AddScoped<IExportPipelineStep, StorageUploadStep>();
+		services.AddScoped<IExportPipelineStep, DatabaseRecordStep>();
+
+		// Register Import Pipeline and Steps
+		services.AddScoped<IImportPipeline, ImportPipeline>();
+		services.AddScoped<IImportPipelineStep, ParseImportStep>();
+		services.AddScoped<IImportPipelineStep, MetadataResolutionStep>();
+		services.AddScoped<IImportPipelineStep, MediaUploadStep>();
+		services.AddScoped<IImportPipelineStep, VolumeTreeResolutionStep>();
+		services.AddScoped<IImportPipelineStep, ChapterImportStep>();
+		services.AddScoped<IImportPipelineStep, ReconcileOwnershipStep>();
 
 		return services;
 	}
