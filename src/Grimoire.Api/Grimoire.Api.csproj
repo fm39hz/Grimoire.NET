@@ -40,9 +40,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Content Include="..\.dockerignore">
+		<Content Include="../.dockerignore">
 			<Link>.dockerignore</Link>
 		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Watch Remove="logs/**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -52,9 +56,9 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Grimoire.Application\Grimoire.Application.csproj"/>
-		<ProjectReference Include="..\Grimoire.Infrastructure\Grimoire.Infrastructure.csproj"/>
-		<ProjectReference Include="..\Grimoire.Job\Grimoire.Job.csproj"/>
+		<ProjectReference Include="../Grimoire.Application/Grimoire.Application.csproj"/>
+		<ProjectReference Include="../Grimoire.Infrastructure/Grimoire.Infrastructure.csproj"/>
+		<ProjectReference Include="../Grimoire.Job/Grimoire.Job.csproj"/>
 	</ItemGroup>
 
 </Project>

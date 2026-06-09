@@ -28,12 +28,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Export\Templates\*.scriban"/>
+		<EmbeddedResource Include="Export/Templates/*.scriban"/>
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Grimoire.Application\Grimoire.Application.csproj"/>
-		<ProjectReference Include="..\Grimoire.Domain\Grimoire.Domain.csproj"/>
+		<ProjectReference Include="../Grimoire.Application/Grimoire.Application.csproj"/>
+		<ProjectReference Include="../Grimoire.Domain/Grimoire.Domain.csproj"/>
 	</ItemGroup>
 
 </Project>

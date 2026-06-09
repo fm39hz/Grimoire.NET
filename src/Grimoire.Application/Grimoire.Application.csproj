@@ -7,7 +7,7 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="..\Grimoire.Domain\Grimoire.Domain.csproj"/>
+		<ProjectReference Include="../Grimoire.Domain/Grimoire.Domain.csproj"/>
 	</ItemGroup>
 
 	<ItemGroup>
