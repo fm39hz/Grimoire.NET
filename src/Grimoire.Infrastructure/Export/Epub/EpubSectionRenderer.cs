@@ -90,7 +90,9 @@ public partial class EpubSectionRenderer(
 				sb.Append("<hr class=\"divider\" aria-hidden=\"true\" />");
 				break;
 			case FootnoteSegmentModel fs:
-				sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs)}</aside>");
+				if (endnotesFile == null) {
+					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs)}</aside>");
+				}
 				break;
 			default:
 				break;
@@ -151,11 +153,9 @@ public partial class EpubSectionRenderer(
 				var href = endnotesFile != null
 					? $"{endnotesFile}#{run.FootnoteId}"
 					: $"#{run.FootnoteId}";
-				var idAttr = endnotesFile != null
-					? $" id=\"noteref-{run.FootnoteId}\""
-					: "";
+				var idAttr = $" id=\"noteref-{run.FootnoteId}\"";
 				text +=
-					$"<a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">[{footnoteNumber}]</a>";
+					$"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">[{footnoteNumber}]</a></sup>";
 			}
 
 			sb.Append(text);
@@ -190,7 +190,7 @@ public partial class EpubSectionRenderer(
 		}
 
 		var sb = new StringBuilder();
-		sb.AppendLine("<aside class=\"footnotes\" epub:type=\"footnotes\" role=\"doc-footnote\">");
+		sb.AppendLine("<aside class=\"footnotes\" epub:type=\"footnotes\" role=\"doc-footnotes\">");
 
 		foreach (var footnote in footnotes) {
 			var footnoteIdStr = footnote.Id.ToString();
@@ -198,8 +198,8 @@ public partial class EpubSectionRenderer(
 				continue;
 			}
 
-			sb.AppendLine($"<div id=\"{footnoteIdStr}\" epub:type=\"footnote\">");
-			sb.AppendLine($"<p>[{footnoteNumber}] ");
+			sb.AppendLine($"<aside id=\"{footnoteIdStr}\" class=\"footnote-entry\" epub:type=\"footnote\" role=\"doc-footnote\">");
+			sb.Append($"<p><a class=\"endnote-backref\" href=\"#noteref-{footnoteIdStr}\">[{footnoteNumber}]</a> ");
 
 			var contentSb = new StringBuilder();
 			foreach (var textSeg in footnote.Segments) {
@@ -209,7 +209,7 @@ public partial class EpubSectionRenderer(
 			sb.Append(contentSb);
 
 			sb.AppendLine("</p>");
-			sb.AppendLine("</div>");
+			sb.AppendLine("</aside>");
 		}
 
 		sb.AppendLine("</aside>");
@@ -358,6 +358,9 @@ public partial class EpubSectionRenderer(
 				} else {
 					// Consolidated: cross-file href, no inline footnotes
 					var segmentList = segments.ToList();
+					if (footnotes is { Count: > 0 }) {
+						segmentList = StripTrailingFootnoteHeader(segmentList);
+					}
 					ref var counter = ref (footnoteMode == FootnoteMode.Global ? ref globalCounter : ref volumeCounter);
 					var footnoteMap = BuildFootnoteMap(segmentList, ref counter);
 
@@ -445,19 +448,40 @@ public partial class EpubSectionRenderer(
 	}
 
 	private static void AppendEndnoteEntry(StringBuilder sb, EndnoteEntry entry) {
-		sb.AppendLine($"<div id=\"{entry.FootnoteId}\" class=\"endnote-entry\" epub:type=\"footnote\">");
-		sb.Append($"<p>[{entry.Number}] ");
+		sb.AppendLine($"<aside id=\"{entry.FootnoteId}\" class=\"endnote-entry\" epub:type=\"footnote\" role=\"doc-footnote\">");
+		sb.Append($"<p><a class=\"endnote-backref\" href=\"{entry.ChapterFileName}#noteref-{entry.FootnoteId}\">[{entry.Number}]</a> ");
 
 		foreach (var textSeg in entry.Footnote.Segments) {
 			sb.Append(RenderTextRuns(textSeg.Runs));
 		}
 
-		sb.Append($" <a class=\"endnote-backref\" href=\"{entry.ChapterFileName}#noteref-{entry.FootnoteId}\">↩</a>");
 		sb.AppendLine("</p>");
-		sb.AppendLine("</div>");
+		sb.AppendLine("</aside>");
 	}
 
 	// ── Misc helpers ──────────────────────────────────────────────────────
+
+	private static List<SegmentModel> StripTrailingFootnoteHeader(List<SegmentModel> segments) {
+		if (segments.Count == 0) {
+			return segments;
+		}
+
+		var result = new List<SegmentModel>(segments);
+		for (var i = result.Count - 1; i >= 0; i--) {
+			var segment = result[i];
+			if (segment is TextSegmentModel ts) {
+				var combinedText = string.Concat(ts.Runs.Select(r => r.Text)).Trim();
+				if (combinedText.Equals("Ghi chú", StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals("Ghi chú:", StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals("Chú thích", StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals("Chú thích:", StringComparison.OrdinalIgnoreCase)) {
+					result.RemoveAt(i);
+					break; // Only remove the first trailing header we find from the end
+				}
+			}
+		}
+		return result;
+	}
 
 	private static string? ResolveCoverLocalPath(BookExportContext context) {
 		if (context.CoverAsset == null) {
