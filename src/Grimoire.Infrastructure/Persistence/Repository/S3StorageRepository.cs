@@ -45,7 +45,7 @@ public sealed partial class S3StorageRepository(
 			return existing;
 		}
 
-		var objectKey = BuildKey(originalFileName, hash, prefix, seriesId);
+		var objectKey = BuildKey(originalFileName, hash, prefix);
 
 		LogUploadingToS3(logger, _config.BucketName, objectKey);
 		content.Seek(0, SeekOrigin.Begin);
@@ -176,11 +176,11 @@ public sealed partial class S3StorageRepository(
 		return Convert.ToHexString(hashBytes).ToLowerInvariant();
 	}
 
-	private static string BuildKey(string fileName, string hash, string? prefix, Guid seriesId) {
+	private static string BuildKey(string fileName, string hash, string? prefix) {
 		var ext = Path.GetExtension(fileName).ToLowerInvariant();
 		return prefix is not null
 			? $"{prefix.TrimEnd('/')}/{hash}{ext}"
-			: $"series/{seriesId}/{hash}{ext}";
+			: $"assets/{hash}{ext}";
 	}
 
 	private async Task<AssetFileResult?> GetStreamByKeyAsync(string key, string contentType, string fileName, CancellationToken ct) {
