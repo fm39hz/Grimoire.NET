@@ -17,7 +17,6 @@ public static class ChapterSplitter {
 		if (segments.Count == 0) {
 			throw new InvalidOperationException("Cannot split a chapter with no content");
 		}
-		}
 
 		if (splitPoints.Count == 0) {
 			throw new ArgumentException("At least one split point is required", nameof(splitPoints));

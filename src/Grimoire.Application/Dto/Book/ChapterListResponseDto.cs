@@ -5,4 +5,5 @@ public class ChapterListResponseDto {
 	public int Order { get; init; }
 	public string Title { get; init; } = string.Empty;
 	public string Id { get; init; } = string.Empty;
+	public DateTime? UpdatedAt { get; init; }
 }
