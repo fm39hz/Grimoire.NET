@@ -31,6 +31,11 @@ public partial class EpubSectionRenderer(
 
 	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null,
 		IReadOnlyDictionary<string, string>? assetMap = null) {
+		return RenderSegments(segments, footnotes, assetMap, FootnoteStyle.Parentheses, false);
+	}
+
+	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes,
+		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle style, bool enableDropcap) {
 		var segmentList = segments.ToList();
 		if (segmentList.Count == 0) {
 			return string.Empty;
@@ -38,13 +43,14 @@ public partial class EpubSectionRenderer(
 
 		var footnoteMap = BuildFootnoteMap(segmentList);
 		var sb = new StringBuilder();
+		var isFirstText = true;
 
 		foreach (var segment in segmentList) {
-			RenderSegmentBody(sb, segment, footnoteMap, assetMap);
+			RenderSegmentBody(sb, segment, footnoteMap, assetMap, null, ref isFirstText, enableDropcap, style);
 		}
 
 		if (footnotes is { Count: > 0 }) {
-			sb.Append(RenderFootnotesAtEnd(footnotes, footnoteMap));
+			sb.Append(RenderFootnotesAtEnd(footnotes, footnoteMap, style));
 		}
 
 		return sb.ToString();
@@ -69,10 +75,16 @@ public partial class EpubSectionRenderer(
 
 	private static void RenderSegmentBody(StringBuilder sb, SegmentModel segment,
 		Dictionary<string, int> footnoteMap, IReadOnlyDictionary<string, string>? assetMap,
-		string? endnotesFile = null) {
+		string? endnotesFile, ref bool isFirstText, bool enableDropcap, FootnoteStyle style) {
 		switch (segment) {
 			case TextSegmentModel ts:
-				sb.Append($"<p>{RenderTextRuns(ts.Runs, footnoteMap, endnotesFile)}</p>");
+				if (enableDropcap && isFirstText) {
+					sb.Append($"<p>{RenderDropcapTextRuns(ts.Runs, footnoteMap, endnotesFile, style)}</p>");
+					isFirstText = false;
+				} else {
+					sb.Append($"<p>{RenderTextRuns(ts.Runs, footnoteMap, endnotesFile, style)}</p>");
+					isFirstText = false;
+				}
 				break;
 			case ImageSegmentModel ism:
 				var url = assetMap?.TryGetValue(ism.AssetKey, out var fileName) == true
@@ -84,14 +96,14 @@ public partial class EpubSectionRenderer(
 				break;
 			case DividerSegmentModel ds:
 				if (ds.Style != default!) {
-					sb.Append($"<p>{ds}</p");
+					sb.Append($"<p>{ds}</p>");
 				}
 
 				sb.Append("<hr class=\"divider\" aria-hidden=\"true\" />");
 				break;
 			case FootnoteSegmentModel fs:
 				if (endnotesFile == null) {
-					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs)}</aside>");
+					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs, style)}</aside>");
 				}
 				break;
 			default:
@@ -141,8 +153,15 @@ public partial class EpubSectionRenderer(
 		return footnoteMap;
 	}
 
+	private static string FormatFootnoteLabel(int number, FootnoteStyle style) => style switch {
+		FootnoteStyle.Parentheses => $"({number})",
+		FootnoteStyle.Asterisk => new string('*', number),
+		FootnoteStyle.SuperScript => number.ToString(),
+		_ => $"[{number}]"
+	};
+
 	private static string RenderTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null,
-		string? endnotesFile = null) {
+		string? endnotesFile = null, FootnoteStyle style = FootnoteStyle.Parentheses) {
 		var sb = new StringBuilder();
 		foreach (var run in runs) {
 			var text = HttpUtility.HtmlEncode(run.Text);
@@ -154,11 +173,60 @@ public partial class EpubSectionRenderer(
 					? $"{endnotesFile}#{run.FootnoteId}"
 					: $"#{run.FootnoteId}";
 				var idAttr = $" id=\"noteref-{run.FootnoteId}\"";
+				var label = FormatFootnoteLabel(footnoteNumber, style);
 				text +=
-					$"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">[{footnoteNumber}]</a></sup>";
+					$"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">{label}</a></sup>";
 			}
 
 			sb.Append(text);
+		}
+
+		return sb.ToString();
+	}
+
+	private static string RenderDropcapTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null,
+		string? endnotesFile = null, FootnoteStyle style = FootnoteStyle.Parentheses) {
+		var runsList = runs.ToList();
+		if (runsList.Count == 0) return string.Empty;
+
+		var firstTextRunIndex = runsList.FindIndex(r => !string.IsNullOrEmpty(r.Text));
+		if (firstTextRunIndex == -1) {
+			return RenderTextRuns(runsList, footnoteMap, endnotesFile, style);
+		}
+
+		var sb = new StringBuilder();
+		for (int i = 0; i < runsList.Count; i++) {
+			var run = runsList[i];
+			if (i == firstTextRunIndex) {
+				var text = HttpUtility.HtmlEncode(run.Text);
+				int letterIdx = 0;
+				while (letterIdx < text.Length && !char.IsLetterOrDigit(text[letterIdx])) {
+					letterIdx++;
+				}
+				
+				if (letterIdx < text.Length) {
+					var prefix = text.Substring(0, letterIdx);
+					var dropcapChar = text[letterIdx];
+					var suffix = text.Substring(letterIdx + 1);
+					
+					var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic);
+					var dropcapSpan = $"<span class=\"dropcap\">{dropcapChar}</span>";
+					var fullText = prefix + dropcapSpan + formattedSuffix;
+
+					if (!string.IsNullOrEmpty(run.FootnoteId) && footnoteMap != null &&
+						footnoteMap.TryGetValue(run.FootnoteId, out var footnoteNumber)) {
+						var href = endnotesFile != null ? $"{endnotesFile}#{run.FootnoteId}" : $"#{run.FootnoteId}";
+						var idAttr = $" id=\"noteref-{run.FootnoteId}\"";
+						var label = FormatFootnoteLabel(footnoteNumber, style);
+						fullText += $"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">{label}</a></sup>";
+					}
+					sb.Append(fullText);
+				} else {
+					sb.Append(RenderTextRuns(new[] { run }, footnoteMap, endnotesFile, style));
+				}
+			} else {
+				sb.Append(RenderTextRuns(new[] { run }, footnoteMap, endnotesFile, style));
+			}
 		}
 
 		return sb.ToString();
@@ -174,17 +242,17 @@ public partial class EpubSectionRenderer(
 
 	// ── Inline footnotes (current behavior) ───────────────────────────────
 
-	private static string RenderFootnoteContent(FootnoteSegmentModel footnote) {
+	private static string RenderFootnoteContent(FootnoteSegmentModel footnote, FootnoteStyle style) {
 		var sb = new StringBuilder();
 		foreach (var textSegment in footnote.Segments) {
-			sb.Append($"<p>{RenderTextRuns(textSegment.Runs)}</p>");
+			sb.Append($"<p>{RenderTextRuns(textSegment.Runs, null, null, style)}</p>");
 		}
 
 		return sb.ToString();
 	}
 
 	private static string RenderFootnotesAtEnd(List<FootnoteSegmentModel> footnotes,
-		Dictionary<string, int> footnoteMap) {
+		Dictionary<string, int> footnoteMap, FootnoteStyle style) {
 		if (footnotes == null || footnotes.Count == 0) {
 			return string.Empty;
 		}
@@ -199,11 +267,12 @@ public partial class EpubSectionRenderer(
 			}
 
 			sb.AppendLine($"<aside id=\"{footnoteIdStr}\" class=\"footnote-entry\" epub:type=\"footnote\" role=\"doc-footnote\">");
-			sb.Append($"<p><a class=\"endnote-backref\" href=\"#noteref-{footnoteIdStr}\">[{footnoteNumber}]</a> ");
+			var label = FormatFootnoteLabel(footnoteNumber, style);
+			sb.Append($"<p><a class=\"endnote-backref\" href=\"#noteref-{footnoteIdStr}\">{label}</a> ");
 
 			var contentSb = new StringBuilder();
 			foreach (var textSeg in footnote.Segments) {
-				contentSb.Append(RenderTextRuns(textSeg.Runs));
+				contentSb.Append(RenderTextRuns(textSeg.Runs, null, null, style));
 			}
 
 			sb.Append(contentSb);
@@ -223,7 +292,7 @@ public partial class EpubSectionRenderer(
 		ExportSectionDto section,
 		IPackageBuilder builder) => section.Type switch {
 			BookSection.Intro or BookSection.IntroPage => RenderIntro(context, section, builder),
-			BookSection.Toc or BookSection.TableOfContents => RenderToc(builder),
+			BookSection.Toc or BookSection.TableOfContents => RenderToc(builder, context.Structure),
 			BookSection.Description => RenderDescription(context, section, builder),
 			BookSection.Content or BookSection.Chapters => RenderContent(context, builder),
 			BookSection.Unknown => throw new NotImplementedException(),
@@ -244,17 +313,18 @@ public partial class EpubSectionRenderer(
 				RenderedDescription = renderedDescription,
 				Section = section,
 				CoverLocalPath = ResolveCoverLocalPath(context),
-				ImageFileMap = context.AssetFileMap
+				ImageFileMap = context.AssetFileMap,
+				Localization = context.Structure.Localization
 			});
 
 		builder.AddPage("intro", html, PageRole.Intro);
-		return [new NavEntry("intro", EpubConstants.LocalizedText.INTRODUCTION)];
+		return [new NavEntry("intro", context.Structure.Localization.IntroductionLabel)];
 	}
 
-	private static IReadOnlyList<NavEntry> RenderToc(IPackageBuilder builder) {
+	private static IReadOnlyList<NavEntry> RenderToc(IPackageBuilder builder, ExportStructureDto structure) {
 		// Content is empty because IPackageBuilder generates the nav.xhtml automatically
 		builder.AddPage("toc", string.Empty, PageRole.TableOfContents);
-		return [new NavEntry("toc", EpubConstants.LocalizedText.TABLE_OF_CONTENTS)];
+		return [new NavEntry("toc", structure.Localization.TableOfContentsLabel)];
 	}
 
 	private IReadOnlyList<NavEntry> RenderDescription(BookExportContext context, ExportSectionDto section,
@@ -268,14 +338,15 @@ public partial class EpubSectionRenderer(
 
 		var html = templateEngine.Render("epub_intro",
 			new {
-				Title = EpubConstants.LocalizedText.SUMMARY,
+				Title = context.Structure.Localization.SummaryLabel,
 				context.Series.Metadata?.Description,
 				Section = section,
-				ImageFileMap = context.AssetFileMap
+				ImageFileMap = context.AssetFileMap,
+				Localization = context.Structure.Localization
 			});
 
 		builder.AddPage("description", html, PageRole.Description);
-		return [new NavEntry("description", EpubConstants.LocalizedText.SUMMARY)];
+		return [new NavEntry("description", context.Structure.Localization.SummaryLabel)];
 	}
 
 	// ── RenderContent: tree-based traversal with footnote mode support ────
@@ -310,7 +381,8 @@ public partial class EpubSectionRenderer(
 							? path
 							: null,
 					volume.Metadata?.PublicationDate,
-					volume.Metadata?.Isbn
+					volume.Metadata?.Isbn,
+					Localization = context.Structure.Localization
 				});
 			var volFileName = builder.AddPage(volId, volHtml, PageRole.VolumeTitle);
 
@@ -351,28 +423,29 @@ public partial class EpubSectionRenderer(
 
 				if (footnoteMode == FootnoteMode.Inline) {
 					// Current behavior: footnotes inline at end of chapter
-					renderedContent = RenderSegments(segments, footnotes, context.AssetFileMap);
+					renderedContent = RenderSegments(segments, footnotes, context.AssetFileMap, context.Structure.FootnoteStyle, context.Structure.EnableDropcap);
 					var chHtml = templateEngine.Render("epub_chapter",
-						new { chapter.Title, RenderedContent = renderedContent });
+						new { chapter.Title, RenderedContent = renderedContent, Localization = context.Structure.Localization });
 					chFileName = builder.AddPage(chId, chHtml);
 				} else {
 					// Consolidated: cross-file href, no inline footnotes
 					var segmentList = segments.ToList();
 					if (footnotes is { Count: > 0 }) {
-						segmentList = StripTrailingFootnoteHeader(segmentList);
+						segmentList = StripTrailingFootnoteHeader(segmentList, context.Structure.Localization);
 					}
 					ref var counter = ref (footnoteMode == FootnoteMode.Global ? ref globalCounter : ref volumeCounter);
 					var footnoteMap = BuildFootnoteMap(segmentList, ref counter);
 
 					// Render segments with cross-file noteref links
 					var sb = new StringBuilder();
+					var isFirstText = true;
 					foreach (var segment in segmentList) {
-						RenderSegmentBody(sb, segment, footnoteMap, context.AssetFileMap, endnotesFileName);
+						RenderSegmentBody(sb, segment, footnoteMap, context.AssetFileMap, endnotesFileName, ref isFirstText, context.Structure.EnableDropcap, context.Structure.FootnoteStyle);
 					}
 
 					renderedContent = sb.ToString();
 					var chHtml = templateEngine.Render("epub_chapter",
-						new { chapter.Title, RenderedContent = renderedContent });
+						new { chapter.Title, RenderedContent = renderedContent, Localization = context.Structure.Localization });
 					chFileName = builder.AddPage(chId, chHtml);
 
 					// Collect footnotes into accumulator
@@ -392,7 +465,7 @@ public partial class EpubSectionRenderer(
 			// Emit endnotes page for this volume
 			if (footnoteMode == FootnoteMode.PerVolume && volumeEndnotes.Count > 0) {
 				EmitEndnotesPage(builder, endnotesPageId, volumeEndnotes, context.Structure.EndnoteGrouping,
-					$"{EpubConstants.LocalizedText.FOOTNOTE} {volume.Title}");
+					$"{context.Structure.Localization.FootnoteLabel} {volume.Title}", context.Structure.FootnoteStyle, context.Structure.Localization);
 			} else if (footnoteMode == FootnoteMode.Global) {
 				globalEndnotes.AddRange(volumeEndnotes);
 			}
@@ -403,7 +476,7 @@ public partial class EpubSectionRenderer(
 		// Emit single global endnotes page
 		if (footnoteMode == FootnoteMode.Global && globalEndnotes.Count > 0) {
 			EmitEndnotesPage(builder, "endnotes_global", globalEndnotes, context.Structure.EndnoteGrouping,
-				EpubConstants.LocalizedText.FOOTNOTE);
+				context.Structure.Localization.FootnoteLabel, context.Structure.FootnoteStyle, context.Structure.Localization);
 		}
 
 		return navEntries;
@@ -419,14 +492,14 @@ public partial class EpubSectionRenderer(
 	// ── Consolidated endnotes rendering ───────────────────────────────────
 
 	private void EmitEndnotesPage(IPackageBuilder builder, string pageId,
-		List<EndnoteEntry> entries, EndnoteGrouping grouping, string title) {
-		var renderedContent = RenderEndnotesContent(entries, grouping);
+		List<EndnoteEntry> entries, EndnoteGrouping grouping, string title, FootnoteStyle style, ExportLocalizationDto localization) {
+		var renderedContent = RenderEndnotesContent(entries, grouping, style);
 		var html = templateEngine.Render("epub_endnotes",
-			new { Title = title, RenderedContent = renderedContent });
+			new { Title = title, RenderedContent = renderedContent, Localization = localization });
 		builder.AddPage(pageId, html, PageRole.Endnotes);
 	}
 
-	private static string RenderEndnotesContent(List<EndnoteEntry> entries, EndnoteGrouping grouping) {
+	private static string RenderEndnotesContent(List<EndnoteEntry> entries, EndnoteGrouping grouping, FootnoteStyle style) {
 		var sb = new StringBuilder();
 
 		if (grouping == EndnoteGrouping.ByChapter) {
@@ -435,24 +508,25 @@ public partial class EpubSectionRenderer(
 			foreach (var (chapterTitle, chapterEntries) in groups) {
 				sb.AppendLine($"<h3>{HttpUtility.HtmlEncode(chapterTitle)}</h3>");
 				foreach (var entry in chapterEntries) {
-					AppendEndnoteEntry(sb, entry);
+					AppendEndnoteEntry(sb, entry, style);
 				}
 			}
 		} else {
 			foreach (var entry in entries) {
-				AppendEndnoteEntry(sb, entry);
+				AppendEndnoteEntry(sb, entry, style);
 			}
 		}
 
 		return sb.ToString();
 	}
 
-	private static void AppendEndnoteEntry(StringBuilder sb, EndnoteEntry entry) {
+	private static void AppendEndnoteEntry(StringBuilder sb, EndnoteEntry entry, FootnoteStyle style) {
 		sb.AppendLine($"<aside id=\"{entry.FootnoteId}\" class=\"endnote-entry\" epub:type=\"footnote\" role=\"doc-footnote\">");
-		sb.Append($"<p><a class=\"endnote-backref\" href=\"{entry.ChapterFileName}#noteref-{entry.FootnoteId}\">[{entry.Number}]</a> ");
+		var label = FormatFootnoteLabel(entry.Number, style);
+		sb.Append($"<p><a class=\"endnote-backref\" href=\"{entry.ChapterFileName}#noteref-{entry.FootnoteId}\">{label}</a> ");
 
 		foreach (var textSeg in entry.Footnote.Segments) {
-			sb.Append(RenderTextRuns(textSeg.Runs));
+			sb.Append(RenderTextRuns(textSeg.Runs, null, null, style));
 		}
 
 		sb.AppendLine("</p>");
@@ -461,7 +535,7 @@ public partial class EpubSectionRenderer(
 
 	// ── Misc helpers ──────────────────────────────────────────────────────
 
-	private static List<SegmentModel> StripTrailingFootnoteHeader(List<SegmentModel> segments) {
+	private static List<SegmentModel> StripTrailingFootnoteHeader(List<SegmentModel> segments, ExportLocalizationDto localization) {
 		if (segments.Count == 0) {
 			return segments;
 		}
@@ -474,7 +548,9 @@ public partial class EpubSectionRenderer(
 				if (combinedText.Equals("Ghi chú", StringComparison.OrdinalIgnoreCase) ||
 					combinedText.Equals("Ghi chú:", StringComparison.OrdinalIgnoreCase) ||
 					combinedText.Equals("Chú thích", StringComparison.OrdinalIgnoreCase) ||
-					combinedText.Equals("Chú thích:", StringComparison.OrdinalIgnoreCase)) {
+					combinedText.Equals("Chú thích:", StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals(localization.FootnoteLabel.TrimEnd(':'), StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals(localization.FootnoteLabel, StringComparison.OrdinalIgnoreCase)) {
 					result.RemoveAt(i);
 					break; // Only remove the first trailing header we find from the end
 				}

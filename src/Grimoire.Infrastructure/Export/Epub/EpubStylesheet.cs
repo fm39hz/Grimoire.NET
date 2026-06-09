@@ -221,5 +221,15 @@ em {
 a.footnote-ref[id] {
     scroll-margin-top: 2em;
 }
+
+/* Dropcap */
+.dropcap {
+    float: left;
+    font-size: 3.2em;
+    line-height: 0.8em;
+    margin-right: 0.15em;
+    margin-top: 0.15em;
+    font-weight: bold;
+}
 ";
 }

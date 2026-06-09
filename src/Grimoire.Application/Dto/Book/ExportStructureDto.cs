@@ -46,4 +46,19 @@ public record ExportStructureDto {
 	///     Controls how footnotes are grouped within consolidated endnotes pages.
 	/// </summary>
 	public EndnoteGrouping EndnoteGrouping { get; init; } = EndnoteGrouping.ByChapter;
+
+	/// <summary>
+	///     Style of the footnote markers (Parentheses, SquareBrackets, Asterisk, SuperScript).
+	/// </summary>
+	public FootnoteStyle FootnoteStyle { get; init; } = FootnoteStyle.Parentheses;
+
+	/// <summary>
+	///     Whether to enable a dropcap at the first text segment of a chapter.
+	/// </summary>
+	public bool EnableDropcap { get; init; } = false;
+
+	/// <summary>
+	///     Localization settings for labels and language metadata.
+	/// </summary>
+	public ExportLocalizationDto Localization { get; init; } = new();
 }

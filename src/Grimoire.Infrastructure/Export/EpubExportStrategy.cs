@@ -28,7 +28,9 @@ public partial class EpubExportStrategy(
 			builder.SetMetadata(new BookPackageMetadata(
 				context.Series.Title,
 				context.Series.Metadata?.Authors?.FirstOrDefault(),
-				PlainTextDescription: context.PlainTextDescription
+				Language: context.Structure.Localization.Language,
+				PlainTextDescription: context.PlainTextDescription,
+				Localization: context.Structure.Localization
 			));
 
 			// 2. Global CSS

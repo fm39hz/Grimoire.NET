@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading;
 using Common;
 using Domain.Entity.Book;
+using Grimoire.Application.Dto.Book;
 
 /// <summary>
 ///     Builds an EPUB 3 package. All EPUB-specific path layout (OEBPS/, spine
@@ -33,6 +34,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 	private List<string>? _tags;
 	private string? _coverImagePath;
 	private Guid? _sharedIdentifier;
+	private ExportLocalizationDto _localization = new();
 
 	// ── IPackageBuilder ────────────────────────────────────────────────────
 
@@ -42,6 +44,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		_language = metadata.Language ?? EpubConstants.Defaults.LANGUAGE;
 		_description = metadata.PlainTextDescription;
 		_tags = metadata.Tags?.ToList();
+		_localization = metadata.Localization ?? new ExportLocalizationDto();
 	}
 
 	public void AddAsset(string resolvedFileName, Func<Task<Stream?>> streamProvider, AssetRefType refType) {
@@ -128,7 +131,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 	}
 
 	private void GenerateNavXhtml() {
-		var html = templateEngine.Render("epub_toc", new { NavPoints = _navPoints });
+		var html = templateEngine.Render("epub_toc", new { NavPoints = _navPoints, Localization = _localization });
 		AddResource(EpubResource.FromText(EpubConstants.Paths.NAV_FILE, html));
 	}
 

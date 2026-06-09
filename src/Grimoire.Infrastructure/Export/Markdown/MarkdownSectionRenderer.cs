@@ -73,7 +73,7 @@ public partial class MarkdownSectionRenderer(
 		sb.AppendLine();
 
 		if (context.Series.Metadata?.Authors != null && context.Series.Metadata.Authors.Count > 0) {
-			sb.AppendLine($"**Author:** {string.Join(", ", context.Series.Metadata.Authors)}");
+			sb.AppendLine($"**{context.Structure.Localization.AuthorLabel}** {string.Join(", ", context.Series.Metadata.Authors)}");
 			sb.AppendLine();
 		}
 
@@ -93,13 +93,13 @@ public partial class MarkdownSectionRenderer(
 		}
 
 		builder.AddPage("intro", sb.ToString(), PageRole.Intro);
-		return [new NavEntry("intro", "Introduction")];
+		return [new NavEntry("intro", context.Structure.Localization.IntroductionLabel)];
 	}
 
 	private static IReadOnlyList<NavEntry> RenderToc(BookExportContext context, IPackageBuilder builder) {
 		var sb = new StringBuilder();
 
-		sb.AppendLine("# Table of Contents");
+		sb.AppendLine($"# {context.Structure.Localization.TableOfContentsLabel}");
 		sb.AppendLine();
 
 		foreach (var volume in context.Volumes) {
@@ -116,7 +116,7 @@ public partial class MarkdownSectionRenderer(
 		}
 
 		builder.AddPage("toc", sb.ToString(), PageRole.TableOfContents);
-		return [new NavEntry("toc", "Table of Contents")];
+		return [new NavEntry("toc", context.Structure.Localization.TableOfContentsLabel)];
 	}
 
 	private IReadOnlyList<NavEntry> RenderDescriptionSection(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
@@ -129,7 +129,7 @@ public partial class MarkdownSectionRenderer(
 
 		var sb = new StringBuilder();
 
-		sb.AppendLine("# Summary");
+		sb.AppendLine($"# {context.Structure.Localization.SummaryLabel}");
 		sb.AppendLine();
 
 		if (context.Series.Metadata?.Description is { Count: > 0 }) {
@@ -143,7 +143,7 @@ public partial class MarkdownSectionRenderer(
 		}
 
 		builder.AddPage("description", sb.ToString(), PageRole.Description);
-		return [new NavEntry("description", "Summary")];
+		return [new NavEntry("description", context.Structure.Localization.SummaryLabel)];
 	}
 
 	private static IReadOnlyList<NavEntry> RenderContent(BookExportContext context, IPackageBuilder builder) {
@@ -161,7 +161,7 @@ public partial class MarkdownSectionRenderer(
 			}
 
 			if (volume.Metadata?.PublicationDate != null) {
-				volSb.AppendLine($"**Publication Date:** {volume.Metadata.PublicationDate.Value:yyyy-MM-dd}");
+				volSb.AppendLine($"**{context.Structure.Localization.PublicationDateLabel}** {volume.Metadata.PublicationDate.Value:yyyy-MM-dd}");
 				volSb.AppendLine();
 			}
 
