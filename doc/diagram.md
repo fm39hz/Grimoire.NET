@@ -3,20 +3,20 @@
 ```mermaid
 graph LR
     %% Actors
-    User("👤 The Keeper<br/>(User)"****)
+    User("👤 The Keeper<br/>(User)")
     Scraper("🤖 Scraper Tool<br/>(Client Script)")
 
     %% Packages as Subgraphs
     subgraph Collector ["The Collector (Nhập liệu)"]
         direction TB
-        UC1(["Upload Assets<br/>(Images/Covers)"])
+        UC1(["Upload Assets<br/>(File Upload)"])
         UC2(["Import Chapter Data<br/>(JSON with AssetKeys)"])
     end
 
     subgraph Librarian ["The Librarian (Quản lý Metadata)"]
         direction TB
-        UC3(["Update Series Metadata<br/>(Title, Author, Tags)"])
-        UC4(["Update Volume Metadata<br/>(Cover, Illustrator)"])
+        UC3(["Update Series Metadata<br/>(Title, Authors, Tags)"])
+        UC4(["Update Volume Metadata<br/>(Cover, PublicationDate)"])
     end
 
     subgraph Bindery ["The Bindery (Xuất bản)"]
@@ -57,21 +57,21 @@ sequenceDiagram
     
     loop For Each Image in Chapter
         Tool->>Tool: Download Image from Web
-        Tool->>API: POST /assets/upload (File Stream)
+        Tool->>API: POST /api/v1/file/upload/{seriesId} (File Stream)
         activate API
         API->>MinIO: PutObjectAsync()
         MinIO-->>API: Success
-        API-->>Tool: Return AssetKey<br/>(e.g., "vol1/chap1/img01.jpg")
+        API-->>Tool: Return AssetResponseDto<br/>(contains AssetKey)
         deactivate API
     end
 
     note over Tool, DB: Giai đoạn 2: Submit Content
     
     Tool->>Tool: Replace Image URLs with AssetKeys in JSON
-    Tool->>API: POST /import/chapter (Clean JSON)
+    Tool->>API: POST /api/v1/chapter (CreateChapterRequestDto)
     activate API
     API->>API: Validate JSON
-    API->>DB: Save Chapter (JSONB)
+    API->>DB: Save Chapter & Content (JSONB)
     DB-->>API: Success
     API-->>Tool: 201 Created
     deactivate API
@@ -88,7 +88,7 @@ sequenceDiagram
 
     %% Scenario: Update Series
     note over User, DB: Cập nhật thông tin Series
-    User->>API: PUT /series/{id}/metadata<br/>{Author: "...", Tags: ["Dark", "Fantasy"]}
+    User->>API: PATCH /api/v1/series/{id}<br/>{Authors: ["..."], Tags: ["Dark", "Fantasy"]}
     activate API
     API->>DB: Load Series
     API->>API: Update Metadata JSONB Column
@@ -98,7 +98,7 @@ sequenceDiagram
 
     %% Scenario: Update Volume
     note over User, DB: Cập nhật thông tin Volume
-    User->>API: PUT /volumes/{id}/metadata<br/>{Illustrator: "...", Description: "..."}
+    User->>API: PATCH /api/v1/volume/{id}<br/>{Isbn: "...", PublicationDate: "..."}
     activate API
     API->>DB: Load Volume
     API->>API: Update Metadata JSONB Column
@@ -118,16 +118,16 @@ sequenceDiagram
     participant DB
     participant MinIO
 
-    User->>API: POST /bindery/series/{id}/bind (Mode=Anthology)
+    User->>API: POST /api/v1/publish/export?seriesId={id} (BinderyRequestDto)
     API->>Hangfire: Enqueue Job
     
     activate Hangfire
-    Hangfire->>DB: Get Series Metadata (Title, Author, CoverKey)
+    Hangfire->>DB: Get Series Metadata (Title, Authors, CoverImage)
     Hangfire->>DB: Get All Volumes + Chapters
     
     note right of Hangfire: Bắt đầu đóng sách
     
-    Hangfire->>MinIO: Download Cover Image (using CoverKey)
+    Hangfire->>MinIO: Download Cover Image (using CoverImage path)
     Hangfire->>Hangfire: Add Cover Page
     
     loop Each Volume
@@ -154,8 +154,8 @@ graph TD
     Browser["Web Dashboard"]
   end
 
-  %% LAYER 2 — GRIMOIRE CORE (.NET 9)
-  subgraph L2["GRIMOIRE Core (.NET 9)"]
+  %% LAYER 2 — GRIMOIRE CORE (.NET 10)
+  subgraph L2["GRIMOIRE Core (.NET 10)"]
     direction TB
     API["API Controllers<br/>(Entry Point)"]
 
@@ -172,7 +172,7 @@ graph TD
   subgraph L3["Infrastructure"]
     direction TB
     DB[(PostgreSQL)]
-    Sto[(MinIO)]
+    Sto[(MinIO / LocalStorage)]
   end
 
   %% FLOWS
