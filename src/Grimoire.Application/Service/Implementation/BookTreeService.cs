@@ -177,7 +177,18 @@ public sealed class BookTreeService(
 		}
 
 		await treeRepository.Update(node, cancellationToken);
-		return await volumeRepository.Update(volume, cancellationToken);
+		var result = await volumeRepository.Update(volume, cancellationToken);
+
+		if (dto.SeriesId is not null) {
+			var newParentId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
+			await MoveNode(volumeId, newParentId, dto.Order ?? volume.Order, cancellationToken);
+			var refreshed = await volumeRepository.FindOne(volumeId, cancellationToken);
+			if (refreshed is not null) {
+				result = refreshed;
+			}
+		}
+
+		return result;
 	}
 
 	public async Task<IEnumerable<VolumeModel>> FindVolumes(Guid seriesId, CancellationToken cancellationToken = default) {
