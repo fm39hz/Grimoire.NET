@@ -9,6 +9,7 @@ using Constant;
 using Application.Dto.Book;
 using Application.Publish;
 using Domain.Common;
+using Grimoire.Infrastructure.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -64,7 +65,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
         CreateSeriesRequestDto? seriesDto;
         try
         {
-            seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(series);
+            seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(series, JsonConfiguration.JsonOptions);
         }
         catch (JsonException)
         {
@@ -79,7 +80,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
         {
             try
             {
-                volumesOverride = JsonSerializer.Deserialize<List<ImportVolumeDto>>(volumes);
+                volumesOverride = JsonSerializer.Deserialize<List<ImportVolumeDto>>(volumes, JsonConfiguration.JsonOptions);
             }
             catch (JsonException)
             {

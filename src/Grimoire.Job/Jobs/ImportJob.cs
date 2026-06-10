@@ -12,6 +12,7 @@ using Hangfire;
 using Hangfire.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Grimoire.Infrastructure.Configuration;
 
 namespace Grimoire.Job.Jobs;
 
@@ -43,12 +44,12 @@ public sealed class ImportJob
 
         try
         {
-            var seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(seriesDtoJson)
+            var seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(seriesDtoJson, JsonConfiguration.JsonOptions)
                 ?? throw new InvalidOperationException("Failed to deserialize series DTO");
 
             List<ImportVolumeDto>? volumesOverride = null;
             if (!string.IsNullOrEmpty(volumesJson))
-                volumesOverride = JsonSerializer.Deserialize<List<ImportVolumeDto>>(volumesJson);
+                volumesOverride = JsonSerializer.Deserialize<List<ImportVolumeDto>>(volumesJson, JsonConfiguration.JsonOptions);
 
             using var scope = _scopeFactory.CreateScope();
             var services = scope.ServiceProvider;

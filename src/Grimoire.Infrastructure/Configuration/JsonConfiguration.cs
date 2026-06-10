@@ -6,14 +6,17 @@ using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using System.Linq;
 
 public static class JsonConfiguration {
 	public static readonly JsonSerializerOptions JsonOptions = new() {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+		PropertyNameCaseInsensitive = true,
 		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 		ReferenceHandler = ReferenceHandler.IgnoreCycles,
 		AllowOutOfOrderMetadataProperties = true,
-		WriteIndented = false
+		WriteIndented = false,
+		Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) }
 	};
 
 	public static readonly ValueComparer<SeriesMetadata> MetadataComparer = new(
@@ -42,4 +45,19 @@ public static class JsonConfiguration {
 				JsonSerializer.Serialize(c, JsonOptions),
 				JsonOptions)!
 			);
+
+	public static void ApplyTo(JsonSerializerOptions target) {
+		target.PropertyNamingPolicy = JsonOptions.PropertyNamingPolicy;
+		target.PropertyNameCaseInsensitive = JsonOptions.PropertyNameCaseInsensitive;
+		target.DefaultIgnoreCondition = JsonOptions.DefaultIgnoreCondition;
+		target.ReferenceHandler = JsonOptions.ReferenceHandler;
+		target.AllowOutOfOrderMetadataProperties = JsonOptions.AllowOutOfOrderMetadataProperties;
+		target.WriteIndented = JsonOptions.WriteIndented;
+
+		foreach (var converter in JsonOptions.Converters) {
+			if (!target.Converters.Any(c => c.GetType() == converter.GetType())) {
+				target.Converters.Add(converter);
+			}
+		}
+	}
 }

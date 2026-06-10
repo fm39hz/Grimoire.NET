@@ -100,17 +100,12 @@ public class Program {
 			options.WorkerCount = Math.Max(1, Environment.ProcessorCount);
 		});
 		
+		builder.Services.ConfigureHttpJsonOptions(options => JsonConfiguration.ApplyTo(options.SerializerOptions));
+
 		builder.Services
 			.AddControllers(options =>
 				options.Conventions.Add(new RouteTokenTransformerConvention(new EndpointRouteTransformer())))
-			.AddJsonOptions(options => {
-				options.JsonSerializerOptions.PropertyNamingPolicy = JsonConfiguration.JsonOptions.PropertyNamingPolicy;
-				options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
-				options.JsonSerializerOptions.ReferenceHandler = JsonConfiguration.JsonOptions.ReferenceHandler;
-				options.JsonSerializerOptions.WriteIndented = JsonConfiguration.JsonOptions.WriteIndented;
-				options.JsonSerializerOptions.AllowOutOfOrderMetadataProperties =
-					JsonConfiguration.JsonOptions.AllowOutOfOrderMetadataProperties;
-			});
+			.AddJsonOptions(options => JsonConfiguration.ApplyTo(options.JsonSerializerOptions));
 		builder.Services.AddMvc();
 		builder.Services.AddValidation();
 		builder.Services.AddServices(builder);

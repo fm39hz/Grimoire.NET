@@ -90,6 +90,26 @@ public sealed class PublishService : IPublishService
 
         if (state == "Succeeded")
         {
+            var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
+            if (succeeded?.Data is not null && succeeded.Data.TryGetValue("Result", out var resultValue) && !string.IsNullOrEmpty(resultValue))
+            {
+                try
+                {
+                    var result = SerializationHelper.Deserialize<JobResult>(resultValue);
+                    if (result is { Success: false })
+                    {
+                        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
+                            jobId,
+                            "Failed",
+                            Error: result.ErrorMessage ?? "Job execution failed"));
+                    }
+                }
+                catch
+                {
+                    // Fallback to completed on deserialization failure
+                }
+            }
+
             return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
                 jobId,
                 "Completed",

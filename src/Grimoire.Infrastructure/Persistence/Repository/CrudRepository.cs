@@ -35,6 +35,11 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 	}
 
 	public async Task<T> Update(T entity, CancellationToken cancellationToken = default) {
+		var trackedEntry = context.ChangeTracker.Entries<T>()
+			.FirstOrDefault(e => e.Entity.Id == entity.Id);
+		if (trackedEntry is not null) {
+			trackedEntry.State = EntityState.Detached;
+		}
 		var result = Entities.Update(entity);
 		await context.SaveChangesAsync(cancellationToken);
 		return result.Entity;
@@ -43,8 +48,16 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync(cancellationToken);
 
 	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
-		Entities.UpdateRange(entities);
+		var entityList = entities.ToList();
+		foreach (var entity in entityList) {
+			var trackedEntry = context.ChangeTracker.Entries<T>()
+				.FirstOrDefault(e => e.Entity.Id == entity.Id);
+			if (trackedEntry is not null) {
+				trackedEntry.State = EntityState.Detached;
+			}
+		}
+		Entities.UpdateRange(entityList);
 		await context.SaveChangesAsync(cancellationToken);
-		return entities;
+		return entityList;
 	}
 }
