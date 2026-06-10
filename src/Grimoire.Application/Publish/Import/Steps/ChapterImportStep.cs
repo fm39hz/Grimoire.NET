@@ -1,12 +1,19 @@
 namespace Grimoire.Application.Publish.Import.Steps;
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Grimoire.Application.Import;
+using Grimoire.Application.Service.Contract;
+using Grimoire.Application.Dto.Book;
+using Grimoire.Domain.Common;
+using Grimoire.Domain.Entity.Book;
+using Grimoire.Domain.Entity.Book.Segment;
 
 public sealed class ChapterImportStep(
-    IChapterImportHandler chapterHandler) : IImportPipelineStep
+    IChapterService chapterService) : IImportPipelineStep
 {
     public int Order => 50;
 
@@ -14,13 +21,7 @@ public sealed class ChapterImportStep(
     {
         if (context.Series is null) return;
 
-        var chaptersCreated = 0;
-        var chaptersUpdated = 0;
-
-        var totalChapters = context.ResolvedVolumes.Sum(v => v.Chapters.Count);
-        if (totalChapters == 0) return;
-
-        var processedChapters = 0;
+        var chaptersToImport = new List<(Guid VolumeId, CreateChapterRequestDto Dto)>();
 
         foreach (var vol in context.ResolvedVolumes)
         {
@@ -29,26 +30,43 @@ public sealed class ChapterImportStep(
             foreach (var ch in vol.Chapters)
             {
                 var chEntry = volEntry.Chapters.FirstOrDefault(c => c.Order == ch.Order);
-                if (chEntry is null)
-                {
-                    processedChapters++;
-                    continue;
-                }
+                if (chEntry is null) continue;
 
-                var result = await chapterHandler.ImportAsync(
-                    vol.Id, chEntry, context.FileMap, cancellationToken);
+                var segments = RemapImages(chEntry.Segments, context.FileMap);
 
-                if (result.Created) chaptersCreated++;
-                else chaptersUpdated++;
+                var dto = new CreateChapterRequestDto(
+                    PrefixedId.ToString(EntityPrefix.Volume, vol.Id),
+                    chEntry.Order,
+                    chEntry.Title,
+                    segments,
+                    chEntry.Footnotes,
+                    null);
 
-                processedChapters++;
-
-                var progress = (int)((double)processedChapters / totalChapters * 100);
-                context.OnProgress?.Invoke(progress);
+                chaptersToImport.Add((vol.Id, dto));
             }
         }
 
-        context.ChaptersCreated = chaptersCreated;
-        context.ChaptersUpdated = chaptersUpdated;
+        if (chaptersToImport.Count == 0) return;
+
+        var (chapters, createdCount, updatedCount) = await chapterService.UpsertBulkAsync(
+            context.Series.Id,
+            chaptersToImport,
+            context.OnProgress,
+            cancellationToken);
+
+        context.ChaptersCreated = createdCount;
+        context.ChaptersUpdated = updatedCount;
+    }
+
+    private static List<SegmentModel> RemapImages(
+        List<SegmentModel> segments,
+        Dictionary<string, string> assetMap) {
+
+        return segments.Select(s =>
+        {
+            if (s is ImageSegmentModel img && assetMap.TryGetValue(img.AssetKey, out var key))
+                return img with { AssetKey = key };
+            return s;
+        }).ToList();
     }
 }

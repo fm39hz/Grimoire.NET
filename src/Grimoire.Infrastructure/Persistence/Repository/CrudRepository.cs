@@ -47,7 +47,7 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 
 	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync(cancellationToken);
 
-	public async Task<IEnumerable<T>> Update(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
+	public async Task<IEnumerable<T>> UpdateBulk(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
 		var entityList = entities.ToList();
 		foreach (var entity in entityList) {
 			var trackedEntry = context.ChangeTracker.Entries<T>()

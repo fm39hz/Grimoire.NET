@@ -208,4 +208,84 @@ public sealed class ChapterService(
 			throw;
 		}
 	}
+
+	public async Task<(IEnumerable<ChapterModel> Chapters, int CreatedCount, int UpdatedCount)> UpsertBulkAsync(
+		Guid seriesId,
+		System.Collections.Generic.List<(Guid VolumeId, CreateChapterRequestDto Dto)> chapters,
+		System.Action<int>? onProgress = null,
+		CancellationToken cancellationToken = default) {
+
+		var volumes = await volumeRepository.FindBySeriesId(seriesId, cancellationToken);
+		var volumeIds = System.Linq.Enumerable.Select(volumes, v => v.Id).ToList();
+
+		var existingChapters = (await chapterRepository.FindByVolumeIdsWithContent(volumeIds, cancellationToken))
+			.ToDictionary(c => (c.VolumeId, c.Order));
+
+		var toCreate = new System.Collections.Generic.List<ChapterModel>();
+		var toUpdate = new System.Collections.Generic.List<ChapterModel>();
+		var nodes = new System.Collections.Generic.List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, float Order)>();
+
+		var createdCount = 0;
+		var updatedCount = 0;
+		var processed = 0;
+
+		foreach (var item in chapters) {
+			var volumeId = item.VolumeId;
+			var dto = item.Dto;
+
+			var strategy = strategyFactory.GetStrategy(dto);
+			var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
+
+			if (existingChapters.TryGetValue((volumeId, dto.Order), out var existing)) {
+				existing.Title = result.Chapter.Title;
+				existing.Status = result.Chapter.Status;
+
+				if (existing.ContentData != null) {
+					existing.ContentData.Segments = result.Content.Segments;
+					existing.ContentData.Footnotes = result.Content.Footnotes;
+				}
+				else {
+					existing.ContentData = new ChapterContentModel {
+						Id = existing.Id,
+						Segments = result.Content.Segments,
+						Footnotes = result.Content.Footnotes
+					};
+				}
+
+				if (result.Source is not null) {
+					await sourceRepository.Create(result.Source, cancellationToken);
+				}
+
+				toUpdate.Add(existing);
+				updatedCount++;
+				nodes.Add((existing.Id, BookNodeType.Chapter, volumeId, existing.Title, existing.Order));
+			}
+			else {
+				if (result.Source is not null) {
+					await sourceRepository.Create(result.Source, cancellationToken);
+				}
+
+				result.Chapter.ContentData = result.Content;
+				toCreate.Add(result.Chapter);
+				createdCount++;
+				nodes.Add((result.Chapter.Id, BookNodeType.Chapter, volumeId, result.Chapter.Title, result.Chapter.Order));
+			}
+
+			processed++;
+			onProgress?.Invoke((int)((double)processed / chapters.Count * 100));
+		}
+
+		if (toCreate.Count > 0) {
+			await chapterRepository.CreateBulk(toCreate, cancellationToken);
+		}
+		if (toUpdate.Count > 0) {
+			await chapterRepository.UpdateBulk(toUpdate, cancellationToken);
+		}
+
+		// Bulk reconcile book nodes
+		await bookTreeService.ReconcileNodesBulk(seriesId, nodes, cancellationToken);
+
+		var allProcessed = System.Linq.Enumerable.Concat(toCreate, toUpdate);
+		return (allProcessed, createdCount, updatedCount);
+	}
 }

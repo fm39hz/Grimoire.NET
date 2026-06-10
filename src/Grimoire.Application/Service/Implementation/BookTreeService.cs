@@ -372,4 +372,41 @@ public sealed class BookTreeService(
 			_ => node.Id.ToString()
 		};
 
+	public async Task ReconcileNodesBulk(
+		Guid seriesId,
+		List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, float Order)> nodes,
+		CancellationToken cancellationToken = default) {
+
+		var existingNodes = (await treeRepository.FindSeriesTree(seriesId, cancellationToken))
+			.ToDictionary(n => n.Id);
+
+		var toCreate = new List<BookNodeModel>();
+		var toUpdate = new List<BookNodeModel>();
+
+		foreach (var item in nodes) {
+			if (existingNodes.TryGetValue(item.Id, out var existing)) {
+				existing.Title = item.Title;
+				existing.Order = item.Order;
+				existing.ParentId = item.ParentId;
+				toUpdate.Add(existing);
+			}
+			else {
+				toCreate.Add(new BookNodeModel {
+					Id = item.Id,
+					Type = item.Type,
+					ParentId = item.ParentId,
+					Title = item.Title,
+					Order = item.Order
+				});
+			}
+		}
+
+		if (toCreate.Count > 0) {
+			await treeRepository.CreateBulk(toCreate, cancellationToken);
+		}
+		if (toUpdate.Count > 0) {
+			await treeRepository.UpdateBulk(toUpdate, cancellationToken);
+		}
+	}
+
 }

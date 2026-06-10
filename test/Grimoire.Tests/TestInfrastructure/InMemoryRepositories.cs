@@ -37,6 +37,17 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 		return Task.FromResult(entity);
 	}
 
+	public Task<IEnumerable<T>> UpdateBulk(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
+		var list = entities.ToList();
+		foreach (var entity in list) {
+			var index = Items.FindIndex(i => i.Id == entity.Id);
+			if (index >= 0) {
+				Items[index] = entity;
+			}
+		}
+		return Task.FromResult<IEnumerable<T>>(list);
+	}
+
 	public virtual Task<int> Delete(Guid id, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.RemoveAll(i => i.Id == id));
 }
