@@ -6,7 +6,7 @@ using Segment;
 
 public class ChapterResponseDto : ITimestampedDto {
 	public string VolumeId { get; init; } = string.Empty;
-	public int Order { get; init; }
+	public float Order { get; init; }
 	public string Title { get; init; } = string.Empty;
 	public List<SegmentDto> Content { get; init; } = [];
 	public List<FootnoteSegmentDto> Footnotes { get; init; } = [];

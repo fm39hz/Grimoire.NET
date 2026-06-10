@@ -6,14 +6,14 @@ using Metadata;
 public record SyncSeriesRequestDto(List<SyncVolumeDto> Volumes);
 
 public record SyncVolumeDto(
-	int Order,
+	float Order,
 	string Title,
 	VolumeMetadataDto? Metadata,
 	List<SyncChapterDto> Chapters
 );
 
 public record SyncChapterDto(
-	int Order,
+	float Order,
 	string Title,
 	List<SegmentModel>? Content,
 	List<ImportFootnoteDto>? Footnotes,

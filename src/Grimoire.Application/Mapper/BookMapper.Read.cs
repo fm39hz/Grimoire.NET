@@ -22,7 +22,7 @@ public partial class BookMapper {
 			Id = MapChapterId(model.Id),
 			VolumeId = MapVolumeId(model.VolumeId),
 			Title = model.Title,
-			Order = (int)model.Order,
+			Order = model.Order,
 			Content = model.ContentData?.Segments.Select(MapSegment).ToList() ?? [],
 			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? [],
 			CreatedAt = model.CreatedAt,
