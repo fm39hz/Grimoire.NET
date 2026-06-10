@@ -41,9 +41,39 @@ test-blackbox: ## Run Bun tests against a live API
 	fi
 	cd test && GRIMOIRE_BLACKBOX_BASE_URL="$(GRIMOIRE_BLACKBOX_BASE_URL)" bun test
 
-# === Verify ===
+# === Verify (full end-to-end) ===
 
-verify: build test ## Build and run all tests
+verify: ## Full verification: start DB+API, run all tests (incl. blackbox), clean up
+	@$(MAKE) db-clear 2>/dev/null
+	@$(MAKE) db-up
+	@sleep 3
+	@echo "=== Starting API ==="
+	dotnet run --project src/Grimoire.Api -c $(CONFIGURATION) > /tmp/grimoire-api.log 2>&1 & \
+	API_PID=$$!; \
+	echo "API PID: $$API_PID (logs: /tmp/grimoire-api.log)"; \
+	echo "Waiting for API..."; \
+	for i in $$(seq 1 30); do \
+		if curl -sf http://localhost:5062/api/v1/series?pageIndex=0 > /dev/null 2>&1; then \
+			echo "API ready after $$((i))s"; \
+			break; \
+		fi; \
+		if [ $$i -eq 30 ]; then \
+			echo "API failed to start (timeout). Last logs:"; \
+			tail -20 /tmp/grimoire-api.log; \
+			kill $$API_PID 2>/dev/null; \
+			$(MAKE) db-down; \
+			exit 1; \
+		fi; \
+		sleep 1; \
+	done; \
+	echo "=== Running tests ==="; \
+	$(MAKE) test-unit test-bun; \
+	R=$$?; \
+	echo "=== Cleaning up ==="; \
+	kill $$API_PID 2>/dev/null || true; \
+	wait $$API_PID 2>/dev/null || true; \
+	$(MAKE) db-down; \
+	exit $$R
 
 # === Run / Debug ===
 
@@ -102,7 +132,7 @@ help: ## Show this help
 	@echo "  make db-clear       Remove data and stop"
 	@echo ""
 	@echo "Utility:"
-	@echo "  make verify         Build + run all tests"
+	@echo "  make verify         Full E2E: start DB+API, run all tests, clean up"
 	@echo "  make clean          Remove DB + build + NuGet cache"
 	@echo "  make help           Show this message"
 	@echo ""
