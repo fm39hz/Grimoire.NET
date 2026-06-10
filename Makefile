@@ -1,34 +1,35 @@
 # Grimoire.NET Makefile
 
-.PHONY: help build run debug test test-unit test-bun test-blackbox verify init db-up db-down db-clear clean
+# === Configuration ===
+# Create .env file to override these defaults
+-include .env
 
-# Default target
-help: ## Show this help message
-	@echo "Grimoire.NET Makefile"
-	@echo ""
-	@echo "Usage:"
-	@echo "  make build     - Build the application"
-	@echo "  make test      - Run all default tests"
-	@echo "  make test-unit - Run .NET unit tests"
-	@echo "  make test-bun  - Run Bun whitebox/blackbox contract tests"
-	@echo "  make test-blackbox GRIMOIRE_BLACKBOX_BASE_URL=http://localhost:5062/api/v1"
-	@echo "  make verify    - Build and run default tests"
-	@echo "  make init      - Initialize the application"
-	@echo "  make run       - Run the application"
-	@echo "  make debug     - Debug the application"
-	@echo "  make db-up     - Start PostgreSQL database with Docker"
-	@echo "  make db-down   - Stop PostgreSQL database"
-	@echo "  make db-clear 	- Clear database and stop PostgreSQL database"
-	@echo "  make clean     - Clean build artifacts"
-	@echo ""
+CONFIGURATION ?= Debug
+COMPOSE_FILE  ?= docker-compose.yml
+
+# === Targets ===
+
+.PHONY: help build run debug \
+	test test-unit test-bun test-blackbox \
+	verify init \
+	db-up db-down db-clear \
+	clean
+
+.DEFAULT_GOAL := help
+
+# === Build ===
 
 build: ## Build the application
-	dotnet build Grimoire.NET.slnx
+	dotnet build Grimoire.NET.slnx -c $(CONFIGURATION)
 
-test: test-unit test-bun ## Run all default tests
+# === Test ===
+
+test: build ## Run all default tests
+	dotnet test Grimoire.NET.slnx -c $(CONFIGURATION) --no-build
+	cd test && bun test
 
 test-unit: ## Run .NET unit tests
-	dotnet test Grimoire.NET.slnx
+	dotnet test Grimoire.NET.slnx -c $(CONFIGURATION)
 
 test-bun: ## Run Bun whitebox and blackbox contract tests
 	cd test && bun test
@@ -40,40 +41,71 @@ test-blackbox: ## Run Bun tests against a live API
 	fi
 	cd test && GRIMOIRE_BLACKBOX_BASE_URL="$(GRIMOIRE_BLACKBOX_BASE_URL)" bun test
 
-verify: build test ## Build and run default tests
+# === Verify ===
+
+verify: build test ## Build and run all tests
+
+# === Run / Debug ===
 
 run: build ## Run the API
-	clear
-	dotnet run --project src/Grimoire.Api
+	dotnet run --project src/Grimoire.Api -c $(CONFIGURATION)
 
-init: db-clear db-up debug ## Initialize debug session
+debug: build ## Debug the API with hot reload
+	dotnet watch --project src/Grimoire.Api -c $(CONFIGURATION)
 
-debug: build ## Debug application
-	clear
-	dotnet watch --project src/Grimoire.Api
+init: db-clear db-up debug ## Initialize dev environment (reset DB + start debug)
 
-db-up: ## Start PostgreSQL database with Docker
-	docker run --name grimoire-db \
-		-e POSTGRES_USER=admin \
-		-e POSTGRES_PASSWORD=admin \
-		-e POSTGRES_DB=grimoire \
-		-v pgdata:/var/lib/postgresql/data \
-		-p 5432:5432 \
-		-d postgres:16-alpine
-	@echo "PostgreSQL database started. Wait a few seconds for it to be ready."
+# === Database (via Docker Compose) ===
 
-db-down: ## Stop PostgreSQL database
-	docker stop grimoire-db || true
-	docker rm grimoire-db || true
-	@echo "PostgreSQL database stopped and removed."
+db-up: ## Start PostgreSQL
+	docker compose -f $(COMPOSE_FILE) up -d postgres
+	@echo "PostgreSQL started. Wait a few seconds for it to be ready."
 
-db-clear: ## Clear database and stop PostgreSQL database
-	docker exec grimoire-db psql -U admin -d grimoire -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public; GRANT ALL ON SCHEMA public TO admin; GRANT ALL ON SCHEMA public TO public;" || true
-	docker stop grimoire-db || true
-	docker rm grimoire-db || true
+db-down: ## Stop PostgreSQL
+	docker compose -f $(COMPOSE_FILE) down
+
+db-clear: ## Remove DB data and stop
+	docker compose -f $(COMPOSE_FILE) down -v
 	rm -rf /tmp/grimoire-files/
-	@echo "PostgreSQL database cleared, stopped and removed."
+	@echo "Database cleared and removed."
 
-clean: db-clear ## Clean build artifacts
-	dotnet clean
+# === Cleanup ===
+
+clean: db-clear ## Clean everything (DB + build + NuGet cache)
+	dotnet clean Grimoire.NET.slnx -c $(CONFIGURATION)
 	dotnet nuget locals all --clear
+
+# === Help ===
+
+help: ## Show this help
+	@echo "Grimoire.NET Makefile"
+	@echo ""
+	@echo "Usage: make [target] [CONFIGURATION=Release]"
+	@echo ""
+	@echo "Build:"
+	@echo "  make build          Build the application"
+	@echo ""
+	@echo "Test:"
+	@echo "  make test           Build and run all tests"
+	@echo "  make test-unit      Run .NET unit tests"
+	@echo "  make test-bun       Run Bun contract tests"
+	@echo "  make test-blackbox  Run Bun tests against live API"
+	@echo ""
+	@echo "Run:"
+	@echo "  make run            Run the API"
+	@echo "  make debug          Debug with hot reload"
+	@echo "  make init           Reset DB and start debugging"
+	@echo ""
+	@echo "Database:"
+	@echo "  make db-up          Start PostgreSQL (docker compose)"
+	@echo "  make db-down        Stop PostgreSQL"
+	@echo "  make db-clear       Remove data and stop"
+	@echo ""
+	@echo "Utility:"
+	@echo "  make verify         Build + run all tests"
+	@echo "  make clean          Remove DB + build + NuGet cache"
+	@echo "  make help           Show this message"
+	@echo ""
+	@echo "Override defaults via .env or make args, e.g.:"
+	@echo "  make build CONFIGURATION=Release"
+	@echo "  make db-up COMPOSE_FILE=docker-compose.prod.yml"
