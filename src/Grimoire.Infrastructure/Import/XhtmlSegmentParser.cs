@@ -76,10 +76,7 @@ public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
         switch (tag) {
             case "p":
             case "div" when IsBlockTextDiv(el):
-                var runs = ExtractTextRuns(el, imageRefs, footnoteAsides);
-                if (runs.Count > 0) {
-                    segments.Add(new TextSegmentModel { Runs = runs });
-                }
+                ProcessBlockContent(el, segments, imageRefs, footnoteAsides, images);
                 break;
 
             case "img":
@@ -107,15 +104,11 @@ public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
             case "h4":
             case "h5":
             case "h6":
-                var headingRuns = ExtractTextRuns(el, imageRefs, footnoteAsides);
-                if (headingRuns.Count > 0)
-                    segments.Add(new TextSegmentModel { Runs = headingRuns });
+                ProcessBlockContent(el, segments, imageRefs, footnoteAsides, images);
                 break;
 
             case "blockquote":
-                var quoteRuns = ExtractTextRuns(el, imageRefs, footnoteAsides);
-                if (quoteRuns.Count > 0)
-                    segments.Add(new TextSegmentModel { Runs = quoteRuns });
+                ProcessBlockContent(el, segments, imageRefs, footnoteAsides, images);
                 break;
 
             case "div":
@@ -128,11 +121,63 @@ public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
 
             case "aside":
                 if (el.GetAttribute("epub:type") == "footnote") break;
-                var asideRuns = ExtractTextRuns(el, imageRefs, footnoteAsides);
-                if (asideRuns.Count > 0)
-                    segments.Add(new TextSegmentModel { Runs = asideRuns });
+                ProcessBlockContent(el, segments, imageRefs, footnoteAsides, images);
                 break;
         }
+    }
+
+    private static void ProcessBlockContent(
+        IElement parent,
+        List<SegmentModel> segments,
+        List<TempImageReference> imageRefs,
+        Dictionary<string, IElement> footnoteAsides,
+        IReadOnlyDictionary<string, byte[]> images) {
+
+        var currentRuns = new List<TextRun>();
+
+        foreach (var node in parent.ChildNodes) {
+            if (node is IElement childEl && IsImageOrContainsOnlyImage(childEl, out var imgEl)) {
+                if (currentRuns.Count > 0) {
+                    segments.Add(new TextSegmentModel { Runs = currentRuns });
+                    currentRuns = new List<TextRun>();
+                }
+
+                var src = imgEl.GetAttribute("src");
+                if (!string.IsNullOrEmpty(src)) {
+                    var normalizedSrc = NormalizeImagePath(src);
+                    imageRefs.Add(new TempImageReference {
+                        SourceHref = normalizedSrc,
+                        AssetKey = images.ContainsKey(normalizedSrc) ? normalizedSrc : src
+                    });
+                    segments.Add(new ImageSegmentModel {
+                        AssetKey = images.ContainsKey(normalizedSrc) ? normalizedSrc : src,
+                        Caption = imgEl.GetAttribute("alt")
+                    });
+                }
+            }
+            else {
+                var runs = ExtractTextRunsFromSingleNode(node, imageRefs, footnoteAsides);
+                currentRuns.AddRange(runs);
+            }
+        }
+
+        if (currentRuns.Count > 0) {
+            segments.Add(new TextSegmentModel { Runs = currentRuns });
+        }
+    }
+
+    private static bool IsImageOrContainsOnlyImage(IElement el, out IElement imgEl) {
+        if (el.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+            imgEl = el;
+            return true;
+        }
+
+        if (el.ChildNodes.Length == 1 && el.ChildNodes[0] is IElement child) {
+            return IsImageOrContainsOnlyImage(child, out imgEl);
+        }
+
+        imgEl = null!;
+        return false;
     }
 
     private static List<TextRun> ExtractTextRuns(
@@ -142,58 +187,68 @@ public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
 
         var runs = new List<TextRun>();
         foreach (var node in parent.ChildNodes) {
-            switch (node) {
-                case IText text:
-                    var content = text.Text.Trim();
-                    if (content.Length > 0)
-                        runs.Add(new TextRun(content));
-                    break;
+            runs.AddRange(ExtractTextRunsFromSingleNode(node, imageRefs, footnoteAsides));
+        }
+        return runs;
+    }
 
-                case IElement child:
-                    var childTag = child.TagName.ToLowerInvariant();
-                    switch (childTag) {
-                        case "em":
-                        case "i":
-                            AddRichRuns(child, runs, imageRefs, footnoteAsides, isItalic: true);
-                            break;
-                        case "strong":
-                        case "b":
-                            AddRichRuns(child, runs, imageRefs, footnoteAsides, isBold: true);
-                            break;
-                        case "a":
-                            var href = child.GetAttribute("href") ?? string.Empty;
-                            var refType = child.GetAttribute("epub:type");
-                            if (refType == "noteref" && href.StartsWith('#')) {
-                                var noteId = href.TrimStart('#');
-                                var text = child.TextContent.Trim();
-                                if (text.Length > 0)
-                                    runs.Add(new TextRun(text, FootnoteId: noteId));
-                            }
-                            else {
-                                var linkText = child.TextContent.Trim();
-                                if (linkText.Length > 0)
-                                    runs.Add(new TextRun(linkText));
-                            }
-                            break;
-                        case "sup":
-                            var supText = child.TextContent.Trim();
-                            if (supText.Length > 0)
-                                runs.Add(new TextRun(supText));
-                            break;
-                        case "span":
-                            runs.AddRange(ExtractTextRuns(child, imageRefs, footnoteAsides));
-                            break;
-                        case "img":
-                            var src = child.GetAttribute("src");
-                            if (!string.IsNullOrEmpty(src))
-                                imageRefs?.Add(new TempImageReference {
-                                    SourceHref = NormalizeImagePath(src),
-                                    AssetKey = NormalizeImagePath(src)
-                                });
-                            break;
-                    }
-                    break;
-            }
+    private static List<TextRun> ExtractTextRunsFromSingleNode(
+        INode node,
+        List<TempImageReference>? imageRefs,
+        Dictionary<string, IElement>? footnoteAsides) {
+
+        var runs = new List<TextRun>();
+        switch (node) {
+            case IText text:
+                var content = text.Text.Trim();
+                if (content.Length > 0)
+                    runs.Add(new TextRun(content));
+                break;
+
+            case IElement child:
+                var childTag = child.TagName.ToLowerInvariant();
+                switch (childTag) {
+                    case "em":
+                    case "i":
+                        AddRichRuns(child, runs, imageRefs, footnoteAsides, isItalic: true);
+                        break;
+                    case "strong":
+                    case "b":
+                        AddRichRuns(child, runs, imageRefs, footnoteAsides, isBold: true);
+                        break;
+                    case "a":
+                        var href = child.GetAttribute("href") ?? string.Empty;
+                        var refType = child.GetAttribute("epub:type");
+                        if (refType == "noteref" && href.StartsWith('#')) {
+                            var noteId = href.TrimStart('#');
+                            var text = child.TextContent.Trim();
+                            if (text.Length > 0)
+                                runs.Add(new TextRun(text, FootnoteId: noteId));
+                        }
+                        else {
+                            var linkText = child.TextContent.Trim();
+                            if (linkText.Length > 0)
+                                runs.Add(new TextRun(linkText));
+                        }
+                        break;
+                    case "sup":
+                        var supText = child.TextContent.Trim();
+                        if (supText.Length > 0)
+                            runs.Add(new TextRun(supText));
+                        break;
+                    case "span":
+                        runs.AddRange(ExtractTextRuns(child, imageRefs, footnoteAsides));
+                        break;
+                    case "img":
+                        var src = child.GetAttribute("src");
+                        if (!string.IsNullOrEmpty(src))
+                            imageRefs?.Add(new TempImageReference {
+                                SourceHref = NormalizeImagePath(src),
+                                AssetKey = NormalizeImagePath(src)
+                            });
+                        break;
+                }
+                break;
         }
         return runs;
     }
