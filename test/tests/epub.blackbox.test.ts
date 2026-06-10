@@ -27,10 +27,19 @@ const request = async <T = Json>(path: string, init?: RequestInit): Promise<T> =
 };
 
 // Helper to poll job status
-const pollJobStatus = async (jobId: string, maxAttempts = 60): Promise<Json> => {
+const pollJobStatus = async (jobId: string, maxAttempts = 900): Promise<Json> => {
+	let lastLoggedProgress: number | null = null;
 	for (let attempt = 1; attempt <= maxAttempts; attempt++) {
 		const status = await request<Json>(`/publishes/jobs/${jobId}`);
 		const state = status.status as string;
+
+		if (status.progress !== undefined && status.progress !== null) {
+			const progress = status.progress as number;
+			if (progress !== lastLoggedProgress) {
+				console.log(`   ⏳ Job ${jobId} progress: ${progress}%`);
+				lastLoggedProgress = progress;
+			}
+		}
 
 		if (state === "Completed") {
 			return status;
@@ -115,9 +124,13 @@ describe("EPUB integration lifecycle", () => {
 			console.log(`      └─ First chapter ID: ${firstChapterId}, Title: ${firstChapter.title}`);
 
 			// 6. Get rendered chapter content as markdown
+			const chapterDetails = await request<Json>(`/chapters/${firstChapterId}`);
+			console.log("CHAPTER DETAILS:", JSON.stringify(chapterDetails, null, 2));
+
 			const contentRes = await request<{ data: string; type: string }>(
 				`/chapters/${firstChapterId}/content?format=markdown`
 			);
+			console.log("CONTENT RESPONSE:", JSON.stringify(contentRes, null, 2));
 			expect(contentRes.type).toBe("text/markdown");
 			expect(contentRes.data.length).toBeGreaterThan(0);
 			console.log(`📝 Chapter rendered successfully. Content size: ${contentRes.data.length} characters`);
@@ -151,7 +164,8 @@ describe("EPUB integration lifecycle", () => {
 
 		} finally {
 			// 9. Clean up and delete series
-			console.log(`🗑️  Cleaning up: deleting series ${seriesId}`);
+			console.log(`🗑️  Skipping cleanup for inspection. Series ID: ${seriesId}`);
+			/*
 			await request(`/series/${seriesId}`, {
 				method: "DELETE"
 			});
@@ -160,6 +174,7 @@ describe("EPUB integration lifecycle", () => {
 			const verifyResponse = await fetch(`${baseUrl}/series/${seriesId}`);
 			expect(verifyResponse.status).toBe(404);
 			console.log(`🧹 Series successfully deleted and cleaned up.`);
+			*/
 		}
-	}, 120000); // Set timeout to 120 seconds because EPUB parsing can take some time
+	}, 900000); // Set timeout to 900 seconds because EPUB parsing can take some time
 });

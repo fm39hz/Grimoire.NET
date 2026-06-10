@@ -17,6 +17,11 @@ public sealed class ChapterImportStep(
         var chaptersCreated = 0;
         var chaptersUpdated = 0;
 
+        var totalChapters = context.ResolvedVolumes.Sum(v => v.Chapters.Count);
+        if (totalChapters == 0) return;
+
+        var processedChapters = 0;
+
         foreach (var vol in context.ResolvedVolumes)
         {
             var volEntry = context.MergedVolumes.First(v => v.Order == vol.VolumeOrder);
@@ -24,13 +29,22 @@ public sealed class ChapterImportStep(
             foreach (var ch in vol.Chapters)
             {
                 var chEntry = volEntry.Chapters.FirstOrDefault(c => c.Order == ch.Order);
-                if (chEntry is null) continue;
+                if (chEntry is null)
+                {
+                    processedChapters++;
+                    continue;
+                }
 
                 var result = await chapterHandler.ImportAsync(
                     vol.Id, chEntry, context.FileMap, cancellationToken);
 
                 if (result.Created) chaptersCreated++;
                 else chaptersUpdated++;
+
+                processedChapters++;
+
+                var progress = (int)((double)processedChapters / totalChapters * 100);
+                context.OnProgress?.Invoke(progress);
             }
         }
 

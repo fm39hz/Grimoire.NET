@@ -62,7 +62,21 @@ public sealed class ImportJob
                 ?? throw new InvalidOperationException($"Source file not found: {fileKey}");
 
             var pipeline = services.GetRequiredService<IImportPipeline>();
-            var pipelineContext = new ImportPipelineContext(strategy, seriesDto, volumesOverride, sourceStream, jobId);
+            var pipelineContext = new ImportPipelineContext(strategy, seriesDto, volumesOverride, sourceStream, jobId)
+            {
+                OnProgress = progress =>
+                {
+                    try
+                    {
+                        using var connection = JobStorage.Current.GetConnection();
+                        connection.SetJobParameter(jobId, "Progress", progress.ToString());
+                    }
+                    catch
+                    {
+                        // Suppress progress reporting errors to not block the main pipeline
+                    }
+                }
+            };
 
             await pipeline.ExecuteAsync(pipelineContext, cancellationToken);
 

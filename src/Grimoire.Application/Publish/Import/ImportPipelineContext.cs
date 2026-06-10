@@ -15,6 +15,7 @@ public sealed class ImportPipelineContext
     public List<ImportVolumeDto>? VolumesOverride { get; }
     public Stream SourceStream { get; }
     public string JobId { get; }
+    public System.Action<int>? OnProgress { get; set; }
 
     // Inter-step State
     public NormalizedImport? Normalized { get; set; }

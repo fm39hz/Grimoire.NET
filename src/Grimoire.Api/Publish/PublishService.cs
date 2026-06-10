@@ -125,7 +125,22 @@ public sealed class PublishService : IPublishService
             return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, "Failed", Error: error));
         }
 
-        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state));
+        int? progress = null;
+        try
+        {
+            using var connection = _jobStorage.GetConnection();
+            var progressStr = connection.GetJobParameter(jobId, "Progress");
+            if (!string.IsNullOrEmpty(progressStr) && int.TryParse(progressStr, out var prog))
+            {
+                progress = prog;
+            }
+        }
+        catch
+        {
+            // Suppress errors reading progress
+        }
+
+        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state, Progress: progress));
     }
 
     public async Task<PublishDownloadResultDto?> GetDownloadStreamAsync(string jobId, CancellationToken cancellationToken = default)
