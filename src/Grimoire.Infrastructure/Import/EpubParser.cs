@@ -1,5 +1,6 @@
 namespace Grimoire.Infrastructure.Import;
 
+using System.Linq;
 using Application.Import;
 using Microsoft.Extensions.Logging;
 using VersOne.Epub;
@@ -66,42 +67,144 @@ public sealed class EpubParser(ILogger<EpubParser> logger) : IEpubParser {
         var volumes = new List<EpubVolumeEntry>();
         var volOrder = 1;
 
+        // 1. If the TOC has no nesting at all (flat list of chapters)
+        var hasAnyNesting = navItems.Any(item => item.NestedItems.Count > 0);
+        if (!hasAnyNesting) {
+            var singleVol = new EpubVolumeEntry {
+                Order = volOrder++,
+                Title = fallbackTitle,
+                Chapters = []
+            };
+            var chOrder = 1;
+            foreach (var item in navItems) {
+                singleVol.Chapters.Add(new EpubChapterEntry {
+                    Order = chOrder++,
+                    Title = item.Title ?? $"Chapter {chOrder}",
+                    HtmlContent = item.HtmlContentFile?.Content ?? string.Empty,
+                    SourceHref = item.Link?.ContentFileUrl
+                });
+            }
+            volumes.Add(singleVol);
+            return volumes;
+        }
+
+        // 2. If there is nesting, recursively discover Volumes and Chapters
+        var orphanRootChapters = new List<EpubChapterEntry>();
+        var orphanChOrder = 1;
+
         foreach (var item in navItems) {
             if (item.NestedItems.Count > 0) {
-                var volume = new EpubVolumeEntry {
-                    Order = volOrder++,
-                    Title = item.Title ?? fallbackTitle,
-                    Chapters = []
-                };
-
-                var chOrder = 1;
-                foreach (var child in item.NestedItems) {
-                    volume.Chapters.Add(new EpubChapterEntry {
-                        Order = chOrder++,
-                        Title = child.Title ?? $"Chapter {volume.Chapters.Count + 1}",
-                        HtmlContent = child.HtmlContentFile?.Content ?? string.Empty,
-                        SourceHref = child.Link?.ContentFileUrl
-                    });
-                }
-                volumes.Add(volume);
+                FindVolumeRoots(item, volumes, ref volOrder, "");
             }
             else {
-                volumes.Add(new EpubVolumeEntry {
-                    Order = volOrder++,
-                    Title = item.Title ?? fallbackTitle,
-                    Chapters = [
-                        new EpubChapterEntry {
-                            Order = 1,
-                            Title = item.Title ?? "Chapter 1",
-                            HtmlContent = item.HtmlContentFile?.Content ?? string.Empty,
-                            SourceHref = item.Link?.ContentFileUrl
-                        }
-                    ]
+                orphanRootChapters.Add(new EpubChapterEntry {
+                    Order = orphanChOrder++,
+                    Title = item.Title ?? $"Chapter {orphanChOrder}",
+                    HtmlContent = item.HtmlContentFile?.Content ?? string.Empty,
+                    SourceHref = item.Link?.ContentFileUrl
                 });
             }
         }
 
+        // If there were any leaf nodes at the root level, group them into a Front Matter volume
+        if (orphanRootChapters.Count > 0) {
+            var frontMatterVol = new EpubVolumeEntry {
+                Order = 1,
+                Title = $"{fallbackTitle} - Front Matter",
+                Chapters = orphanRootChapters
+            };
+            volumes.Insert(0, frontMatterVol);
+            
+            // Re-adjust order values by reconstructing volumes to bypass init-only restriction
+            for (int i = 0; i < volumes.Count; i++) {
+                var v = volumes[i];
+                volumes[i] = new EpubVolumeEntry {
+                    Order = i + 1,
+                    Title = v.Title,
+                    Chapters = v.Chapters
+                };
+            }
+        }
+
         return volumes;
+    }
+
+    private static void FindVolumeRoots(
+        EpubNavigationItem node,
+        List<EpubVolumeEntry> volumes,
+        ref int volOrder,
+        string parentTitlePrefix) {
+
+        var title = string.IsNullOrEmpty(parentTitlePrefix)
+            ? (node.Title ?? "Untitled")
+            : $"{parentTitlePrefix} - {node.Title}";
+
+        // Check if any of this node's children have children of their own
+        var hasSubGroups = node.NestedItems.Any(child => child.NestedItems.Count > 0);
+
+        if (hasSubGroups) {
+            // This node is a group container.
+            // Group any direct leaf children of this node into a Front Matter volume.
+            var leafChildren = new List<EpubChapterEntry>();
+            var chOrder = 1;
+            foreach (var child in node.NestedItems) {
+                if (child.NestedItems.Count == 0) {
+                    leafChildren.Add(new EpubChapterEntry {
+                        Order = chOrder++,
+                        Title = child.Title ?? $"Chapter {chOrder}",
+                        HtmlContent = child.HtmlContentFile?.Content ?? string.Empty,
+                        SourceHref = child.Link?.ContentFileUrl
+                    });
+                }
+            }
+
+            if (leafChildren.Count > 0) {
+                volumes.Add(new EpubVolumeEntry {
+                    Order = volOrder++,
+                    Title = $"{title} - Front Matter",
+                    Chapters = leafChildren
+                });
+            }
+
+            // Recurse into children that have sub-items
+            foreach (var child in node.NestedItems) {
+                if (child.NestedItems.Count > 0) {
+                    FindVolumeRoots(child, volumes, ref volOrder, title);
+                }
+            }
+        }
+        else {
+            // This node is a leaf-parent (a Volume Root). All its children are chapters.
+            var volume = new EpubVolumeEntry {
+                Order = volOrder++,
+                Title = title,
+                Chapters = []
+            };
+
+            // Also check if the node itself has content (like a volume intro/cover page)
+            var hasContent = !string.IsNullOrEmpty(node.HtmlContentFile?.Content) ||
+                             !string.IsNullOrEmpty(node.Link?.ContentFileUrl);
+            var chOrder = 1;
+            if (hasContent) {
+                volume.Chapters.Add(new EpubChapterEntry {
+                    Order = chOrder++,
+                    Title = node.Title ?? "Intro",
+                    HtmlContent = node.HtmlContentFile?.Content ?? string.Empty,
+                    SourceHref = node.Link?.ContentFileUrl
+                });
+            }
+
+            foreach (var child in node.NestedItems) {
+                volume.Chapters.Add(new EpubChapterEntry {
+                    Order = chOrder++,
+                    Title = child.Title ?? $"Chapter {chOrder}",
+                    HtmlContent = child.HtmlContentFile?.Content ?? string.Empty,
+                    SourceHref = child.Link?.ContentFileUrl
+                });
+            }
+
+            volumes.Add(volume);
+        }
     }
 
     private static string? ExtractTitleFromHtml(string html) {
