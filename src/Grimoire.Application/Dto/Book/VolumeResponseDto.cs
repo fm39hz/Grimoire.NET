@@ -1,9 +1,10 @@
 namespace Grimoire.Application.Dto.Book;
 
 using System.Text.Json.Serialization;
+using Common;
 using Domain.Entity.Book.Metadata;
 
-public class VolumeResponseDto {
+public class VolumeResponseDto : ITimestampedDto {
 	public string SeriesId { get; init; } = string.Empty;
 	public int Order { get; init; }
 	public string Title { get; init; } = string.Empty;

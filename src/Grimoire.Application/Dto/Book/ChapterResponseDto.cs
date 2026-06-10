@@ -1,9 +1,10 @@
 namespace Grimoire.Application.Dto.Book;
 
 using System.Text.Json.Serialization;
+using Common;
 using Segment;
 
-public class ChapterResponseDto {
+public class ChapterResponseDto : ITimestampedDto {
 	public string VolumeId { get; init; } = string.Empty;
 	public int Order { get; init; }
 	public string Title { get; init; } = string.Empty;

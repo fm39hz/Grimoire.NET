@@ -46,10 +46,10 @@ describe("unified book tree whitebox", () => {
 		expect(treeService).toContain("Volume ? BookNodeType.Series : BookNodeType.Volume");
 		expect(treeService).toContain("FindChildByOrder(newParentId, newOrder");
 		expect(treeService).toContain("DeleteSubtree");
-		expect(seriesService).toContain("bookTreeService.CreateSeries");
-		expect(seriesService).toContain("bookTreeService.FindVolumes");
-		expect(volumeService).toContain("bookTreeService.CreateVolume");
-		expect(volumeService).toContain("bookTreeService.FindChapters");
+		expect(seriesService).toContain("seriesNodeService.CreateSeries");
+		expect(seriesService).toContain("volumeNodeService.FindVolumes");
+		expect(volumeService).toContain("volumeNodeService.CreateVolume");
+		expect(volumeService).toContain("chapterNodeService.FindChapters");
 		expect(chapterService).toContain("bookTreeService.CreateNode");
 		expect(chapterService).toContain("bookTreeService.MoveNode");
 	});

@@ -24,6 +24,10 @@ public static class DependencyInjection {
 		services.AddScoped<ISeriesSyncService, SeriesSyncService>();
 		services.AddScoped<IStorageService, StorageService>();
 		services.AddScoped<IBookTreeService, BookTreeService>();
+		services.AddScoped<ISeriesNodeService>(sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<IVolumeNodeService>(sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<IChapterNodeService>(sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<INodeManagerService>(sp => sp.GetRequiredService<IBookTreeService>());
 
 		// Register mappers
 		services.AddScoped<IBookMapper, BookMapper>();
@@ -38,7 +42,7 @@ public static class DependencyInjection {
 		// Register ingestion strategies in priority order
 		services.AddScoped<IIngestionStrategy, PreProcessedIngestionStrategy>();
 		services.AddScoped<IIngestionStrategy, RawMarkdownIngestionStrategy>();
-		services.AddScoped<IngestionStrategyFactory>();
+		services.AddScoped<IIngestionStrategyFactory, IngestionStrategyFactory>();
 
 		// Register import strategies
 		services.AddScoped<IImportStrategy, EpubImportStrategy>();

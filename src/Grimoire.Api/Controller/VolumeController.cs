@@ -8,6 +8,7 @@ using Domain.Common;
 using Dto;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
+using Extension;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -22,12 +23,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 			return Results.NotFound();
 		}
 
-		var dto = mapper.ToVolumeDto(volume);
-		if (timestamp != true) {
-			dto.CreatedAt = null;
-			dto.UpdatedAt = null;
-		}
-
+		var dto = mapper.ToVolumeDto(volume).ApplyTimestampOption(timestamp);
 		return Results.Ok(dto);
 	}
 
@@ -61,11 +57,11 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	}
 
 	[HttpDelete("{id}")]
-	[ProducesResponseType(typeof(bool), 200)]
+	[ProducesResponseType(204)]
 	public async Task<IResult> Delete(string id, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Volume);
-		var result = await service.Delete(guid, cancellationToken);
-		return Results.Ok(result);
+		_ = await service.Delete(guid, cancellationToken);
+		return Results.NoContent();
 	}
 
 	[HttpGet("{id}/chapters")]

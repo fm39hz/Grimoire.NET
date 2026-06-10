@@ -15,6 +15,7 @@ using Infrastructure.Export.Epub;
 using Infrastructure.Export.Markdown;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
+using Extension;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -33,14 +34,7 @@ public sealed class ChapterController(
 			return Results.NotFound();
 		}
 
-		var dto = mapper.ToChapterDto(chapter);
-		if (timestamp == true) {
-			return Results.Ok(dto);
-		}
-
-		dto.CreatedAt = null;
-		dto.UpdatedAt = null;
-
+		var dto = mapper.ToChapterDto(chapter).ApplyTimestampOption(timestamp);
 		return Results.Ok(dto);
 	}
 
@@ -55,15 +49,7 @@ public sealed class ChapterController(
 		[FromQuery] string format = "markdown",
 		[FromQuery] FootnoteStyle footnoteStyle = FootnoteStyle.Parentheses,
 		[FromQuery] bool enableDropcap = false) {
-		if (!Enum.TryParse<ExportFormat>(format, true, out var exportFormat)) {
-			throw new ArgumentException($"Unsupported format: {format}");
-		}
-
-		if (exportFormat is not (ExportFormat.Markdown or ExportFormat.Html)) {
-			throw new ArgumentException($"Content format must be 'markdown' or 'html', got: {format}");
-		}
-
-		var renderer = rendererFactory.Resolve(exportFormat) ?? throw new UnsupportedOperationException($"Renderer for format {format} is not implemented");
+		var renderer = rendererFactory.ResolveAndValidate(format, out var exportFormat);
 
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var chapter = await service.FindOne(guid, cancellationToken)
@@ -78,14 +64,7 @@ public sealed class ChapterController(
 
 		var assets = await ResolveContentAssets(chapter.ContentData.Segments, cancellationToken);
 
-		string content;
-		if (renderer is EpubSectionRenderer epubRenderer) {
-			content = epubRenderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, null, footnoteStyle, enableDropcap);
-		} else if (renderer is MarkdownSectionRenderer mdRenderer) {
-			content = mdRenderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, null, footnoteStyle, enableDropcap);
-		} else {
-			content = renderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes);
-		}
+		var content = renderer.RenderSegments(chapter.ContentData.Segments, chapter.ContentData.Footnotes, null, footnoteStyle, enableDropcap);
 
 		var contentType = exportFormat == ExportFormat.Html ? "text/html" : "text/markdown";
 		return Results.Ok(new ContentResponseDto {
@@ -111,7 +90,7 @@ public sealed class ChapterController(
 	[HttpPost]
 	[ProducesResponseType(typeof(ChapterResponseDto), 201)]
 	public async Task<IResult> Create([FromBody] CreateChapterRequestDto dto, CancellationToken cancellationToken) {
-		var createdChapter = await service.CreateFromImportAsync(dto, cancellationToken);
+		var createdChapter = await service.Create(dto, cancellationToken);
 		var responseDto = mapper.ToChapterDto(createdChapter);
 		return Results.Created($"{responseDto.Id}", responseDto);
 	}
@@ -125,11 +104,11 @@ public sealed class ChapterController(
 	}
 
 	[HttpDelete("{id}")]
-	[ProducesResponseType(typeof(bool), 200)]
+	[ProducesResponseType(204)]
 	public async Task<IResult> Delete(string id, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
-		var result = await service.Delete(guid, cancellationToken);
-		return Results.Ok(result);
+		_ = await service.Delete(guid, cancellationToken);
+		return Results.NoContent();
 	}
 
 	[HttpPost("merge")]

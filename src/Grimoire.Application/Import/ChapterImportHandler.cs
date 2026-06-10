@@ -21,20 +21,16 @@ public interface IChapterImportHandler {
         CancellationToken cancellationToken = default);
 }
 
-public sealed class ChapterImportHandler(
-	IChapterRepository chapterRepository,
-	ISourceMaterialRepository sourceRepository,
-	IBookTreeService bookTreeService,
-	IngestionStrategyFactory strategyFactory) : IChapterImportHandler {
-
+public sealed class ChapterImportHandler(IChapterService chapterService) : IChapterImportHandler {
+ 
     public async Task<ChapterImportResult> ImportAsync(
         Guid volumeId,
         NormalizedChapter chapter,
         Dictionary<string, string> imageFileMap,
         CancellationToken cancellationToken = default) {
-
+ 
         var segments = RemapImages(chapter.Segments, imageFileMap);
-
+ 
         var dto = new CreateChapterRequestDto(
             PrefixedId.ToString(EntityPrefix.Volume, volumeId),
             chapter.Order,
@@ -42,48 +38,9 @@ public sealed class ChapterImportHandler(
             segments,
             chapter.Footnotes,
             null);
-
-        var strategy = strategyFactory.GetStrategy(dto);
-        var ingest = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
-
-        var existing = await chapterRepository.FindByVolumeIdAndOrder(volumeId, chapter.Order, cancellationToken);
-        if (existing is not null)
-        {
-            existing.Title = ingest.Chapter.Title;
-            existing.Status = ingest.Chapter.Status;
-            if (existing.ContentData != null)
-            {
-                existing.ContentData.Segments = ingest.Content.Segments;
-                existing.ContentData.Footnotes = ingest.Content.Footnotes;
-            }
-            else
-            {
-                existing.ContentData = new ChapterContentModel
-                {
-                    Id = existing.Id,
-                    Segments = ingest.Content.Segments,
-                    Footnotes = ingest.Content.Footnotes
-                };
-            }
-			if (ingest.Source is not null)
-				await sourceRepository.Create(ingest.Source, cancellationToken);
-			await chapterRepository.Update(existing, cancellationToken);
-			await bookTreeService.UpdateNode(existing.Id, existing.Title, existing.Order, cancellationToken);
-			return new ChapterImportResult { Created = false };
-		}
-
-        if (ingest.Source is not null)
-            await sourceRepository.Create(ingest.Source, cancellationToken);
-		ingest.Chapter.ContentData = ingest.Content;
-		await chapterRepository.Create(ingest.Chapter, cancellationToken);
-		await bookTreeService.CreateNode(
-			ingest.Chapter.Id,
-			BookNodeType.Chapter,
-			volumeId,
-			ingest.Chapter.Title,
-			ingest.Chapter.Order,
-			cancellationToken);
-		return new ChapterImportResult { Created = true };
+ 
+        var (_, created) = await chapterService.UpsertAsync(volumeId, dto, cancellationToken);
+        return new ChapterImportResult { Created = created };
 	}
 
     private static List<SegmentModel> RemapImages(

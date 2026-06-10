@@ -12,6 +12,7 @@ using Dto;
 using Infrastructure.Export.Common;
 using System.Threading;
 using Microsoft.AspNetCore.Mvc;
+using Extension;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -31,14 +32,7 @@ public sealed class SeriesController(
 			return Results.NotFound();
 		}
 
-		var dto = mapper.ToSeriesDto(series);
-		if (timestamp == true) {
-			return Results.Ok(dto);
-		}
-
-		dto.CreatedAt = null;
-		dto.UpdatedAt = null;
-
+		var dto = mapper.ToSeriesDto(series).ApplyTimestampOption(timestamp);
 		return Results.Ok(dto);
 	}
 
@@ -48,15 +42,7 @@ public sealed class SeriesController(
 	[ProducesResponseType(404)]
 	[ProducesResponseType(501)]
 	public async Task<IResult> GetContent(string id, CancellationToken cancellationToken, [FromQuery] string format = "markdown") {
-		if (!Enum.TryParse<ExportFormat>(format, true, out var exportFormat)) {
-			throw new ArgumentException($"Unsupported format: {format}");
-		}
-
-		if (exportFormat is not (ExportFormat.Markdown or ExportFormat.Html)) {
-			throw new ArgumentException($"Content format must be 'markdown' or 'html', got: {format}");
-		}
-
-		var renderer = rendererFactory.Resolve(exportFormat) ?? throw new UnsupportedOperationException($"Renderer for format {format} is not implemented");
+		var renderer = rendererFactory.ResolveAndValidate(format, out var exportFormat);
 
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
 		var series = await service.FindOne(guid, cancellationToken)
@@ -130,11 +116,11 @@ public sealed class SeriesController(
 	}
 
 	[HttpDelete("{id}")]
-	[ProducesResponseType(typeof(bool), 200)]
+	[ProducesResponseType(204)]
 	public async Task<IResult> Delete(string id, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
-		var result = await service.Delete(guid, cancellationToken);
-		return Results.Ok(result);
+		_ = await service.Delete(guid, cancellationToken);
+		return Results.NoContent();
 	}
 
 	[HttpGet("{id}/volumes")]
@@ -157,30 +143,5 @@ public sealed class SeriesController(
 		return Results.Ok(pagedDto);
 	}
 
-	// [HttpPost("import/epub")]
-	// [Consumes("multipart/form-data")]
-	// [ProducesResponseType(typeof(SeriesResponseDto), 201)]
-	// [ProducesResponseType(400)]
-	// [ProducesResponseType(500)]
-	// public async Task<IResult> ImportEpub(
-	// 	IFormFile file,
-	// 	[FromQuery] string? existingSeriesId) {
-	// 	if (file == null || file.Length == 0) {
-	// 		return Results.BadRequest("EPUB file is required");
-	// 	}
-	//
-	// 	if (!file.FileName.EndsWith(".epub", StringComparison.OrdinalIgnoreCase)) {
-	// 		return Results.BadRequest("File must be an EPUB file (.epub)");
-	// 	}
-	//
-	// 	// Build options - auto-detect based on existingSeriesId
-	// 	var importOptions = new ImportEpubRequestDto {
-	// 		ExistingSeriesId = existingSeriesId
-	// 	};
-	//
-	// 	await using var stream = file.OpenReadStream();
-	// 	var series = await service.ImportFromEpubAsync(stream, importOptions);
-	// 	var responseDto = mapper.ToSeriesDto(series);
-	// 	return Results.Created($"{responseDto.Id}", responseDto);
-	// }
+
 }

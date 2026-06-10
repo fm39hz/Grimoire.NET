@@ -35,7 +35,7 @@ public partial class EpubSectionRenderer(
 	}
 
 	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes,
-		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle style, bool enableDropcap) {
+		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle footnoteStyle, bool enableDropcap) {
 		var segmentList = segments.ToList();
 		if (segmentList.Count == 0) {
 			return string.Empty;
@@ -46,11 +46,11 @@ public partial class EpubSectionRenderer(
 		var isFirstText = true;
 
 		foreach (var segment in segmentList) {
-			RenderSegmentBody(sb, segment, footnoteMap, assetMap, null, ref isFirstText, enableDropcap, style);
+			RenderSegmentBody(sb, segment, footnoteMap, assetMap, null, ref isFirstText, enableDropcap, footnoteStyle);
 		}
 
 		if (footnotes is { Count: > 0 }) {
-			sb.Append(RenderFootnotesAtEnd(footnotes, footnoteMap, style));
+			sb.Append(RenderFootnotesAtEnd(footnotes, footnoteMap, footnoteStyle));
 		}
 
 		return sb.ToString();
@@ -114,22 +114,8 @@ public partial class EpubSectionRenderer(
 	// ── Footnote map & text run rendering ─────────────────────────────────
 
 	private static Dictionary<string, int> BuildFootnoteMap(List<SegmentModel> segments) {
-		var footnoteMap = new Dictionary<string, int>();
-		var footnoteCounter = 1;
-
-		foreach (var segment in segments) {
-			if (segment is not TextSegmentModel textSeg) {
-				continue;
-			}
-
-			foreach (var run in textSeg.Runs) {
-				if (!string.IsNullOrEmpty(run.FootnoteId) && !footnoteMap.ContainsKey(run.FootnoteId)) {
-					footnoteMap[run.FootnoteId] = footnoteCounter++;
-				}
-			}
-		}
-
-		return footnoteMap;
+		var counter = 1;
+		return BuildFootnoteMap(segments, ref counter);
 	}
 
 	/// <summary>
@@ -153,13 +139,6 @@ public partial class EpubSectionRenderer(
 		return footnoteMap;
 	}
 
-	private static string FormatFootnoteLabel(int number, FootnoteStyle style) => style switch {
-		FootnoteStyle.Parentheses => $"({number})",
-		FootnoteStyle.Asterisk => new string('*', number),
-		FootnoteStyle.SuperScript => number.ToString(),
-		_ => $"[{number}]"
-	};
-
 	private static string RenderTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null,
 		string? endnotesFile = null, FootnoteStyle style = FootnoteStyle.Parentheses) {
 		var sb = new StringBuilder();
@@ -173,7 +152,7 @@ public partial class EpubSectionRenderer(
 					? $"{endnotesFile}#{run.FootnoteId}"
 					: $"#{run.FootnoteId}";
 				var idAttr = $" id=\"noteref-{run.FootnoteId}\"";
-				var label = FormatFootnoteLabel(footnoteNumber, style);
+				var label = ExportUtilities.FormatFootnoteLabel(footnoteNumber, style);
 				text +=
 					$"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">{label}</a></sup>";
 			}
@@ -199,16 +178,7 @@ public partial class EpubSectionRenderer(
 			var run = runsList[i];
 			if (i == firstTextRunIndex) {
 				var text = HttpUtility.HtmlEncode(run.Text);
-				int letterIdx = 0;
-				while (letterIdx < text.Length && !char.IsLetterOrDigit(text[letterIdx])) {
-					letterIdx++;
-				}
-				
-				if (letterIdx < text.Length) {
-					var prefix = text.Substring(0, letterIdx);
-					var dropcapChar = text[letterIdx];
-					var suffix = text.Substring(letterIdx + 1);
-					
+				if (ExportUtilities.TryExtractDropcapParts(text, out var prefix, out var dropcapChar, out var suffix)) {
 					var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic);
 					var dropcapSpan = $"<span class=\"dropcap\">{dropcapChar}</span>";
 					var fullText = prefix + dropcapSpan + formattedSuffix;
@@ -217,7 +187,7 @@ public partial class EpubSectionRenderer(
 						footnoteMap.TryGetValue(run.FootnoteId, out var footnoteNumber)) {
 						var href = endnotesFile != null ? $"{endnotesFile}#{run.FootnoteId}" : $"#{run.FootnoteId}";
 						var idAttr = $" id=\"noteref-{run.FootnoteId}\"";
-						var label = FormatFootnoteLabel(footnoteNumber, style);
+						var label = ExportUtilities.FormatFootnoteLabel(footnoteNumber, style);
 						fullText += $"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">{label}</a></sup>";
 					}
 					sb.Append(fullText);
@@ -267,7 +237,7 @@ public partial class EpubSectionRenderer(
 			}
 
 			sb.AppendLine($"<aside id=\"{footnoteIdStr}\" class=\"footnote-entry\" epub:type=\"footnote\" role=\"doc-footnote\">");
-			var label = FormatFootnoteLabel(footnoteNumber, style);
+			var label = ExportUtilities.FormatFootnoteLabel(footnoteNumber, style);
 			sb.Append($"<p><a class=\"endnote-backref\" href=\"#noteref-{footnoteIdStr}\">{label}</a> ");
 
 			var contentSb = new StringBuilder();
@@ -522,7 +492,7 @@ public partial class EpubSectionRenderer(
 
 	private static void AppendEndnoteEntry(StringBuilder sb, EndnoteEntry entry, FootnoteStyle style) {
 		sb.AppendLine($"<aside id=\"{entry.FootnoteId}\" class=\"endnote-entry\" epub:type=\"footnote\" role=\"doc-footnote\">");
-		var label = FormatFootnoteLabel(entry.Number, style);
+		var label = ExportUtilities.FormatFootnoteLabel(entry.Number, style);
 		sb.Append($"<p><a class=\"endnote-backref\" href=\"{entry.ChapterFileName}#noteref-{entry.FootnoteId}\">{label}</a> ");
 
 		foreach (var textSeg in entry.Footnote.Segments) {
@@ -541,16 +511,14 @@ public partial class EpubSectionRenderer(
 		}
 
 		var result = new List<SegmentModel>(segments);
+		var labelTrimmed = localization.FootnoteLabel.TrimEnd(':');
 		for (var i = result.Count - 1; i >= 0; i--) {
 			var segment = result[i];
 			if (segment is TextSegmentModel ts) {
 				var combinedText = string.Concat(ts.Runs.Select(r => r.Text)).Trim();
-				if (combinedText.Equals("Ghi chú", StringComparison.OrdinalIgnoreCase) ||
-					combinedText.Equals("Ghi chú:", StringComparison.OrdinalIgnoreCase) ||
-					combinedText.Equals("Chú thích", StringComparison.OrdinalIgnoreCase) ||
-					combinedText.Equals("Chú thích:", StringComparison.OrdinalIgnoreCase) ||
-					combinedText.Equals(localization.FootnoteLabel.TrimEnd(':'), StringComparison.OrdinalIgnoreCase) ||
-					combinedText.Equals(localization.FootnoteLabel, StringComparison.OrdinalIgnoreCase)) {
+				if (combinedText.Equals(labelTrimmed, StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals(localization.FootnoteLabel, StringComparison.OrdinalIgnoreCase) ||
+					combinedText.Equals(labelTrimmed + ":", StringComparison.OrdinalIgnoreCase)) {
 					result.RemoveAt(i);
 					break; // Only remove the first trailing header we find from the end
 				}

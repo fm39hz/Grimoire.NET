@@ -10,30 +10,32 @@ using System.Threading;
 
 public sealed class SeriesService(
 	ISeriesRepository repository,
-	IBookTreeService bookTreeService)
+	ISeriesNodeService seriesNodeService,
+	IVolumeNodeService volumeNodeService,
+	INodeManagerService nodeManagerService)
 	: CrudServiceBase<SeriesModel>, ISeriesService {
 	public async Task<SeriesModel?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
-		await bookTreeService.FindSeries(id, cancellationToken);
+		await seriesNodeService.FindSeries(id, cancellationToken);
 
 	public async Task<PagedResult<SeriesModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default) =>
 		await GetPagedResultAsync(repository, request, cancellationToken);
 
 	public async Task<SeriesModel> Create(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
-		return await bookTreeService.CreateSeries(dto, cancellationToken);
+		return await seriesNodeService.CreateSeries(dto, cancellationToken);
 	}
 
 	public async Task<(SeriesModel Series, bool Created)> GetOrCreate(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) =>
-		await bookTreeService.GetOrCreateSeries(dto, cancellationToken);
+		await seriesNodeService.GetOrCreateSeries(dto, cancellationToken);
 
 	public async Task<SeriesModel> Update(Guid id, UpdateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
-		return await bookTreeService.UpdateSeries(id, dto, cancellationToken);
+		return await seriesNodeService.UpdateSeries(id, dto, cancellationToken);
 	}
 
-	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await bookTreeService.DeleteSubtree(id, cancellationToken);
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await nodeManagerService.DeleteSubtree(id, cancellationToken);
 
 	public async Task<IEnumerable<VolumeModel>> FindAllVolumes(Guid seriesId, CancellationToken cancellationToken = default) =>
-		await bookTreeService.FindVolumes(seriesId, cancellationToken);
+		await volumeNodeService.FindVolumes(seriesId, cancellationToken);
 
 	public async Task<PagedResult<VolumeModel>> FindAllVolumes(Guid seriesId, PaginationRequest pagination, CancellationToken cancellationToken = default) =>
-		await bookTreeService.FindVolumes(seriesId, pagination, cancellationToken);
+		await volumeNodeService.FindVolumes(seriesId, pagination, cancellationToken);
 }

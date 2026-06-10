@@ -16,9 +16,9 @@ public sealed class ChapterService(
 	IChapterRepository chapterRepository,
 	IVolumeRepository volumeRepository,
 	ISourceMaterialRepository sourceRepository,
-	IBookTreeService bookTreeService,
+	INodeManagerService bookTreeService,
 	IBookMapper mapper,
-	IngestionStrategyFactory strategyFactory,
+	IIngestionStrategyFactory strategyFactory,
 	IUnitOfWork unitOfWork) : CrudServiceBase<ChapterModel>, IChapterService {
 	public async Task<ChapterModel?> FindOne(Guid id, CancellationToken cancellationToken = default) => await chapterRepository.FindOne(id, cancellationToken);
 
@@ -32,43 +32,7 @@ public sealed class ChapterService(
 			_ = await volumeRepository.FindOne(volumeId, cancellationToken) ??
 				throw new EntityNotFoundException($"Volume with id {dto.VolumeId} not found");
 
-			var strategy = strategyFactory.GetStrategy(dto);
-			var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
-
-			var existing = await chapterRepository.FindByVolumeIdAndOrder(volumeId, dto.Order, cancellationToken);
-			if (existing is not null) {
-				existing.Title = result.Chapter.Title;
-				existing.Status = result.Chapter.Status;
-
-				if (existing.ContentData != null) {
-					existing.ContentData.Segments = result.Content.Segments;
-					existing.ContentData.Footnotes = result.Content.Footnotes;
-				}
-				else {
-					existing.ContentData = new ChapterContentModel {
-						Id = existing.Id,
-						Segments = result.Content.Segments,
-						Footnotes = result.Content.Footnotes
-					};
-				}
-
-				if (result.Source is not null) {
-					await sourceRepository.Create(result.Source, cancellationToken);
-				}
-
-				await chapterRepository.Update(existing, cancellationToken);
-				await bookTreeService.UpdateNode(existing.Id, existing.Title, existing.Order, cancellationToken);
-				await unitOfWork.CommitTransactionAsync(cancellationToken);
-				return existing;
-			}
-
-			if (result.Source is not null) {
-				await sourceRepository.Create(result.Source, cancellationToken);
-			}
-
-			result.Chapter.ContentData = result.Content;
-			var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
-			await bookTreeService.CreateNode(chapter.Id, BookNodeType.Chapter, volumeId, chapter.Title, chapter.Order, cancellationToken);
+			var (chapter, _) = await UpsertAsync(volumeId, dto, cancellationToken);
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 			return chapter;
 		}
@@ -78,7 +42,49 @@ public sealed class ChapterService(
 		}
 	}
 
-	public async Task<ChapterModel> CreateFromImportAsync(CreateChapterRequestDto dto, CancellationToken cancellationToken = default) => await Create(dto, cancellationToken);
+	public async Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, CancellationToken cancellationToken = default) {
+		var existing = await chapterRepository.FindByVolumeIdAndOrder(volumeId, dto.Order, cancellationToken);
+		return await UpsertAsync(volumeId, dto, existing, cancellationToken);
+	}
+
+	public async Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, ChapterModel? existing, CancellationToken cancellationToken = default) {
+		var strategy = strategyFactory.GetStrategy(dto);
+		var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
+
+		if (existing is not null) {
+			existing.Title = result.Chapter.Title;
+			existing.Status = result.Chapter.Status;
+
+			if (existing.ContentData != null) {
+				existing.ContentData.Segments = result.Content.Segments;
+				existing.ContentData.Footnotes = result.Content.Footnotes;
+			}
+			else {
+				existing.ContentData = new ChapterContentModel {
+					Id = existing.Id,
+					Segments = result.Content.Segments,
+					Footnotes = result.Content.Footnotes
+				};
+			}
+
+			if (result.Source is not null) {
+				await sourceRepository.Create(result.Source, cancellationToken);
+			}
+
+			await chapterRepository.Update(existing, cancellationToken);
+			await bookTreeService.UpdateNode(existing.Id, existing.Title, existing.Order, cancellationToken);
+			return (existing, false);
+		}
+
+		if (result.Source is not null) {
+			await sourceRepository.Create(result.Source, cancellationToken);
+		}
+
+		result.Chapter.ContentData = result.Content;
+		var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
+		await bookTreeService.CreateNode(chapter.Id, BookNodeType.Chapter, volumeId, chapter.Title, chapter.Order, cancellationToken);
+		return (chapter, true);
+	}
 
 	public async Task<ChapterModel> Update(Guid id, UpdateChapterRequestDto dto, CancellationToken cancellationToken = default) {
 		var chapter = await chapterRepository.FindOne(id, cancellationToken) ??

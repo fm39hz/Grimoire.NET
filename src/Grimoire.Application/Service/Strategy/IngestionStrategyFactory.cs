@@ -5,7 +5,7 @@ using Dto.Book;
 /// <summary>
 ///     Factory for selecting the appropriate ingestion strategy
 /// </summary>
-public class IngestionStrategyFactory {
+public class IngestionStrategyFactory : IIngestionStrategyFactory {
 	private readonly IEnumerable<IIngestionStrategy> _strategies;
 
 	public IngestionStrategyFactory(IEnumerable<IIngestionStrategy> strategies) {

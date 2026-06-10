@@ -18,7 +18,7 @@ public partial class MarkdownSectionRenderer(
 	}
 
 	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes,
-		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle style, bool enableDropcap) {
+		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle footnoteStyle, bool enableDropcap) {
 		var segmentList = segments.ToList();
 		if (segmentList.Count == 0) {
 			return string.Empty;
@@ -29,7 +29,7 @@ public partial class MarkdownSectionRenderer(
 		var isFirstText = true;
 
 		foreach (var segment in segmentList) {
-			var markdown = ConvertSegmentToMarkdown(segment, footnoteMap, style, enableDropcap, ref isFirstText);
+			var markdown = ConvertSegmentToMarkdown(segment, footnoteMap, footnoteStyle, enableDropcap, ref isFirstText);
 			if (!string.IsNullOrWhiteSpace(markdown)) {
 				sb.AppendLine(markdown);
 				sb.AppendLine();
@@ -38,7 +38,7 @@ public partial class MarkdownSectionRenderer(
 
 		if (footnotes is { Count: > 0 }) {
 			sb.AppendLine();
-			AppendFootnotes(sb, footnotes, footnoteMap, style);
+			AppendFootnotes(sb, footnotes, footnoteMap, footnoteStyle);
 		}
 
 		return sb.ToString();
@@ -229,12 +229,7 @@ public partial class MarkdownSectionRenderer(
 		return map;
 	}
 
-	private static string FormatFootnoteLabel(int number, FootnoteStyle style) => style switch {
-		FootnoteStyle.Parentheses => $"({number})",
-		FootnoteStyle.Asterisk => new string('*', number),
-		FootnoteStyle.SuperScript => number.ToString(),
-		_ => $"[{number}]"
-	};
+
 
 	private static string ConvertSegmentToMarkdown(SegmentModel segment, Dictionary<string, int> footnoteMap, FootnoteStyle style, bool enableDropcap, ref bool isFirstText) =>
 		segment switch {
@@ -268,16 +263,7 @@ public partial class MarkdownSectionRenderer(
 				var run = runsList[i];
 				if (i == firstTextRunIndex) {
 					var text = run.Text;
-					int letterIdx = 0;
-					while (letterIdx < text.Length && !char.IsLetterOrDigit(text[letterIdx])) {
-						letterIdx++;
-					}
-
-					if (letterIdx < text.Length) {
-						var prefix = text.Substring(0, letterIdx);
-						var dropcapChar = text[letterIdx];
-						var suffix = text.Substring(letterIdx + 1);
-
+					if (ExportUtilities.TryExtractDropcapParts(text, out var prefix, out var dropcapChar, out var suffix)) {
 						var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic);
 						var dropcapSpan = $"<span class=\"dropcap\">{dropcapChar}</span>";
 						var fullText = prefix + dropcapSpan + formattedSuffix;
@@ -347,7 +333,7 @@ public partial class MarkdownSectionRenderer(
 			}
 
 			var content = ConvertFootnoteContent(footnote.Segments);
-			var label = FormatFootnoteLabel(index, style);
+			var label = ExportUtilities.FormatFootnoteLabel(index, style);
 			sb.AppendLine($"[^{index}]: {label} {content}");
 		}
 	}

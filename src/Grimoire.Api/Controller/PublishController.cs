@@ -5,10 +5,10 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Grimoire.Api.Constant;
-using Grimoire.Application.Dto.Book;
-using Grimoire.Application.Publish;
-using Grimoire.Domain.Common;
+using Constant;
+using Application.Dto.Book;
+using Application.Publish;
+using Domain.Common;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -19,7 +19,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
     [HttpPost("export")]
     [ProducesResponseType(202)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> ExportSeries(
+    public async Task<IResult> ExportSeries(
         [FromQuery] string seriesId,
         [FromBody] BinderyRequestDto request,
         CancellationToken cancellationToken)
@@ -31,16 +31,17 @@ public sealed class PublishController(IPublishService publishService) : Controll
         }
         catch (Exception)
         {
-            return BadRequest("Invalid seriesId format");
+            return Results.BadRequest("Invalid seriesId format");
         }
 
         var jobId = await publishService.EnqueueExportAsync(guid, request, cancellationToken);
+        var statusUrl = $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}";
 
-        return Accepted($"/api/v1/publish/jobs/{jobId}", new
+        return Results.Accepted(statusUrl, new
         {
             jobId,
             status = "Queued",
-            statusUrl = $"/api/v1/publish/jobs/{jobId}"
+            statusUrl
         });
     }
 
@@ -48,17 +49,17 @@ public sealed class PublishController(IPublishService publishService) : Controll
     [Consumes("multipart/form-data")]
     [ProducesResponseType(202)]
     [ProducesResponseType(400)]
-    public async Task<IActionResult> ImportBook(
+    public async Task<IResult> ImportBook(
         [FromForm] string series,
         [FromForm] string? volumes,
         IFormFile file,
         CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
-            return BadRequest("EPUB file is required");
+            return Results.BadRequest("EPUB file is required");
 
         if (!file.FileName.EndsWith(".epub", StringComparison.OrdinalIgnoreCase))
-            return BadRequest("File must be an EPUB file (.epub)");
+            return Results.BadRequest("File must be an EPUB file (.epub)");
 
         CreateSeriesRequestDto? seriesDto;
         try
@@ -67,11 +68,11 @@ public sealed class PublishController(IPublishService publishService) : Controll
         }
         catch (JsonException)
         {
-            return BadRequest("Invalid series metadata JSON");
+            return Results.BadRequest("Invalid series metadata JSON");
         }
 
         if (seriesDto is null)
-            return BadRequest("Invalid series metadata JSON");
+            return Results.BadRequest("Invalid series metadata JSON");
 
         List<ImportVolumeDto>? volumesOverride = null;
         if (!string.IsNullOrEmpty(volumes))
@@ -82,7 +83,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
             }
             catch (JsonException)
             {
-                return BadRequest("Invalid volumes metadata JSON");
+                return Results.BadRequest("Invalid volumes metadata JSON");
             }
         }
 
@@ -94,26 +95,27 @@ public sealed class PublishController(IPublishService publishService) : Controll
             file.FileName,
             file.ContentType,
             cancellationToken);
+        var statusUrl = $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}";
 
-        return Accepted($"/api/v1/publish/jobs/{jobId}", new
+        return Results.Accepted(statusUrl, new
         {
             jobId,
             status = "Queued",
-            statusUrl = $"/api/v1/publish/jobs/{jobId}"
+            statusUrl
         });
     }
 
     [HttpGet("jobs/{jobId}")]
     [ProducesResponseType(200)]
     [ProducesResponseType(404)]
-    public async Task<IActionResult> GetStatus(string jobId, CancellationToken cancellationToken)
+    public async Task<IResult> GetStatus(string jobId, CancellationToken cancellationToken)
     {
         var status = await publishService.GetJobStatusAsync(jobId, cancellationToken);
-        if (status.Status == "NotFound")
+        if (status is null)
         {
-            return Ok(new { jobId, status = "NotFound" });
+            return Results.NotFound(new { jobId, status = "NotFound" });
         }
-        return Ok(status);
+        return Results.Ok(status);
     }
 
     [HttpGet("jobs/{jobId}/download")]

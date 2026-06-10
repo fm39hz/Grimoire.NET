@@ -27,6 +27,16 @@ public interface ISectionRenderer {
 		IReadOnlyDictionary<string, string>? assetMap = null);
 
 	/// <summary>
+	/// Renders a list of segments with custom footnote styling and dropcap options.
+	/// </summary>
+	public string RenderSegments(
+		IEnumerable<SegmentModel> segments,
+		List<FootnoteSegmentModel>? footnotes,
+		IReadOnlyDictionary<string, string>? assetMap,
+		FootnoteStyle footnoteStyle,
+		bool enableDropcap);
+
+	/// <summary>
 	/// Renders description text segments to the format string.
 	/// </summary>
 	public string RenderDescription(

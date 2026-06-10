@@ -10,26 +10,28 @@ using Dto.Common;
 
 public sealed class VolumeService(
 	IVolumeRepository repository,
-	IBookTreeService bookTreeService) : CrudServiceBase<VolumeModel>, IVolumeService {
+	IVolumeNodeService volumeNodeService,
+	IChapterNodeService chapterNodeService,
+	INodeManagerService nodeManagerService) : CrudServiceBase<VolumeModel>, IVolumeService {
 	public async Task<VolumeModel?> FindOne(Guid id, CancellationToken cancellationToken = default) => await repository.FindOne(id, cancellationToken);
 
 	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default) =>
 		await GetPagedResultAsync(repository, request, cancellationToken);
 
 	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		return await bookTreeService.CreateVolume(dto, cancellationToken);
+		return await volumeNodeService.CreateVolume(dto, cancellationToken);
 	}
 
 	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		return await bookTreeService.UpdateVolume(id, dto, cancellationToken);
+		return await volumeNodeService.UpdateVolume(id, dto, cancellationToken);
 	}
 
-	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await bookTreeService.DeleteSubtree(id, cancellationToken);
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await nodeManagerService.DeleteSubtree(id, cancellationToken);
 
 	public async Task<IEnumerable<ChapterModel>> FindAllChapters(Guid volumeId, CancellationToken cancellationToken = default) =>
-		await bookTreeService.FindChapters(volumeId, cancellationToken);
+		await chapterNodeService.FindChapters(volumeId, cancellationToken);
 
 	public async Task<PagedResult<ChapterModel>> FindAllChapters(Guid volumeId,
 		PaginationRequest pagination, CancellationToken cancellationToken = default) =>
-		await bookTreeService.FindChapters(volumeId, pagination, cancellationToken);
+		await chapterNodeService.FindChapters(volumeId, pagination, cancellationToken);
 }

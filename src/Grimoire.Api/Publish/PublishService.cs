@@ -14,6 +14,8 @@ using Grimoire.Job.Jobs;
 using Hangfire;
 using Hangfire.Common;
 
+using Grimoire.Api.Constant;
+
 public sealed class PublishService : IPublishService
 {
     private readonly IBackgroundJobClient _backgroundJobs;
@@ -72,14 +74,14 @@ public sealed class PublishService : IPublishService
         return jobId;
     }
 
-    public Task<PublishJobStatusDto> GetJobStatusAsync(string jobId, CancellationToken cancellationToken = default)
+    public Task<PublishJobStatusDto?> GetJobStatusAsync(string jobId, CancellationToken cancellationToken = default)
     {
         var monitor = _jobStorage.GetMonitoringApi();
         var jobDetails = monitor.JobDetails(jobId);
 
         if (jobDetails is null)
         {
-            return Task.FromResult(new PublishJobStatusDto(jobId, "NotFound"));
+            return Task.FromResult<PublishJobStatusDto?>(null);
         }
 
         var state = jobDetails.History
@@ -88,10 +90,10 @@ public sealed class PublishService : IPublishService
 
         if (state == "Succeeded")
         {
-            return Task.FromResult(new PublishJobStatusDto(
+            return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
                 jobId,
                 "Completed",
-                DownloadUrl: $"/api/v1/publish/jobs/{jobId}/download"));
+                DownloadUrl: $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}/download"));
         }
 
         if (state == "Failed")
@@ -100,10 +102,10 @@ public sealed class PublishService : IPublishService
                 .Select(h => h.Data?.TryGetValue("ErrorMessage", out var msg) == true ? msg : null)
                 .LastOrDefault(msg => msg != null) ?? "Unknown error";
 
-            return Task.FromResult(new PublishJobStatusDto(jobId, "Failed", Error: error));
+            return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, "Failed", Error: error));
         }
 
-        return Task.FromResult(new PublishJobStatusDto(jobId, state));
+        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state));
     }
 
     public async Task<PublishDownloadResultDto?> GetDownloadStreamAsync(string jobId, CancellationToken cancellationToken = default)
