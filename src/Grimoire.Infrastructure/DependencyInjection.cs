@@ -64,6 +64,12 @@ public static class DependencyInjection {
 		services.AddScoped<IExportStrategy, MarkdownExportStrategy>();
 
 		// Import infrastructure
+		services.AddScoped<IInlineTagHandler, BrTagHandler>();
+		services.AddScoped<IInlineTagHandler, ImgTagHandler>();
+		services.AddScoped<IInlineTagHandler, EmphasisTagHandler>();
+		services.AddScoped<IInlineTagHandler, StrongTagHandler>();
+		services.AddScoped<IInlineTagHandler, AnchorTagHandler>();
+		services.AddScoped<IInlineTagHandler, SpanTagHandler>();
 		services.AddScoped<IEpubParser, EpubParser>();
 		services.AddScoped<IXhtmlSegmentParser, XhtmlSegmentParser>();
 
