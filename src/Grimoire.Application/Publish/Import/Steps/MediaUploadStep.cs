@@ -16,9 +16,27 @@ public sealed class MediaUploadStep(
 
         var seriesId = context.Series.Id;
         var prefix = $"staging/import/{seriesId}";
-        context.FileMap = await mediaService.UploadFilesAsync(context.Normalized.Files, seriesId, prefix, cancellationToken);
+
+        var totalFiles = context.Normalized.Files.Count;
+        context.FileMap = await mediaService.UploadFilesAsync(
+            context.Normalized.Files,
+            seriesId,
+            prefix,
+            onProgress: uploadedCount =>
+            {
+                if (totalFiles > 0)
+                {
+                    int progress = 5 + (int)((double)uploadedCount / totalFiles * 30);
+                    context.OnProgress?.Invoke(progress);
+                }
+            },
+            cancellationToken);
 
         if (context.Normalized.Cover is not null)
+        {
             await mediaService.UploadCoverAsync(context.SeriesDto, seriesId, context.Normalized.Cover, cancellationToken);
+        }
+
+        context.OnProgress?.Invoke(40);
     }
 }

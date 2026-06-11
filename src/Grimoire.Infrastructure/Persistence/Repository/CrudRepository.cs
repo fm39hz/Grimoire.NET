@@ -10,9 +10,11 @@ using Persistence.Database;
 public abstract class CrudRepository<T>(ApplicationDbContext context) : IRepository<T> where T : BaseModel, IModel {
 	protected ApplicationDbContext Context => context;
 	protected DbSet<T> Entities => context.Set<T>();
-
 	public virtual async Task<T?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
 		await Entities.AsNoTracking().FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
+
+	public virtual async Task<T?> FindOneTracked(Guid id, CancellationToken cancellationToken = default) =>
+		await Entities.FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
 
 	public virtual async Task<PagedResult<T>> FindAll(int pageIndex, int pageSize, CancellationToken cancellationToken = default) {
 		var query = Entities.AsNoTracking().OrderBy(e => e.Id);
@@ -37,12 +39,14 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 	public async Task<T> Update(T entity, CancellationToken cancellationToken = default) {
 		var trackedEntry = context.ChangeTracker.Entries<T>()
 			.FirstOrDefault(e => e.Entity.Id == entity.Id);
-		if (trackedEntry is not null) {
+		if (trackedEntry is null) {
+			Entities.Update(entity);
+		} else if (trackedEntry.Entity != entity) {
 			trackedEntry.State = EntityState.Detached;
+			Entities.Update(entity);
 		}
-		var result = Entities.Update(entity);
 		await context.SaveChangesAsync(cancellationToken);
-		return result.Entity;
+		return entity;
 	}
 
 	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync(cancellationToken);

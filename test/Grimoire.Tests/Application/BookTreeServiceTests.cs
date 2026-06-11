@@ -178,6 +178,54 @@ public sealed class BookTreeServiceTests {
 		Assert.Null(assetRepository.Items.Single().OwnerNodeId);
 	}
 
+	[Fact]
+	public async Task UpdateSeries_MetadataPartialUpdate_PreservesExistingFields() {
+		var fixture = Fixture.Create();
+		var series = await fixture.Service.CreateSeries(new CreateSeriesRequestDto("Series", new SeriesMetadataDto {
+			Authors = ["Author 1"],
+			Artists = ["Artist 1"],
+			Tags = ["Tag 1"],
+			CoverImage = "old_cover.png"
+		}));
+
+		await fixture.Service.UpdateSeries(series.Id, new UpdateSeriesRequestDto(null, new SeriesMetadataDto {
+			CoverImage = "new_cover.png"
+		}));
+
+		var updated = await fixture.Series.FindOne(series.Id);
+		Assert.NotNull(updated);
+		Assert.Equal("new_cover.png", updated.Metadata.CoverImage);
+		Assert.Equal(["Author 1"], updated.Metadata.Authors);
+		Assert.Equal(["Artist 1"], updated.Metadata.Artists);
+		Assert.Equal(["Tag 1"], updated.Metadata.Tags);
+	}
+
+	[Fact]
+	public async Task UpdateVolume_MetadataPartialUpdate_PreservesExistingFields() {
+		var fixture = Fixture.Create();
+		var series = await fixture.Service.CreateSeries(new CreateSeriesRequestDto("Series", new SeriesMetadataDto()));
+		var volume = await fixture.Service.CreateVolume(new CreateVolumeRequestDto(
+			PrefixedId.ToString(EntityPrefix.Series, series.Id),
+			1,
+			"Volume",
+			new VolumeMetadataDto {
+				CoverImage = "old_cover.png",
+				PublicationDate = new DateTime(2020, 1, 1),
+				Isbn = "12345"
+			}));
+
+		await fixture.Service.UpdateVolume(volume.Id, new UpdateVolumeRequestDto(null, null, new VolumeMetadataDto {
+			Isbn = "67890"
+		}));
+
+		var updated = await fixture.Volumes.FindOne(volume.Id);
+		Assert.NotNull(updated);
+		Assert.NotNull(updated.Metadata);
+		Assert.Equal("67890", updated.Metadata.Isbn);
+		Assert.Equal("old_cover.png", updated.Metadata.CoverImage);
+		Assert.Equal(new DateTime(2020, 1, 1), updated.Metadata.PublicationDate);
+	}
+
 	private sealed record Fixture(
 		BookTreeService Service,
 		InMemoryBookTreeRepository Tree,
@@ -213,10 +261,10 @@ public sealed class BookTreeServiceTests {
 		public SeriesModel CreateSeries(CreateSeriesRequestDto dto) => new() {
 			Title = dto.Title,
 			Metadata = new SeriesMetadata {
-				Authors = dto.Metadata.Authors,
-				Artists = dto.Metadata.Artists,
-				Tags = dto.Metadata.Tags,
-				CoverImage = dto.Metadata.CoverImage
+				Authors = dto.Metadata.Authors ?? [],
+				Artists = dto.Metadata.Artists ?? [],
+				Tags = dto.Metadata.Tags ?? [],
+				CoverImage = dto.Metadata.CoverImage ?? string.Empty
 			}
 		};
 
@@ -227,9 +275,9 @@ public sealed class BookTreeServiceTests {
 			Metadata = dto.Metadata is null
 				? null
 				: new VolumeMetadata {
-					CoverImage = dto.Metadata.CoverImage,
+					CoverImage = dto.Metadata.CoverImage ?? string.Empty,
 					PublicationDate = dto.Metadata.PublicationDate,
-					Isbn = dto.Metadata.Isbn
+					Isbn = dto.Metadata.Isbn ?? string.Empty
 				}
 		};
 
@@ -237,10 +285,10 @@ public sealed class BookTreeServiceTests {
 			if (dto.Title is not null) model.Title = dto.Title;
 			if (dto.Metadata is not null) {
 				model.Metadata = new SeriesMetadata {
-					Authors = dto.Metadata.Authors,
-					Artists = dto.Metadata.Artists,
-					Tags = dto.Metadata.Tags,
-					CoverImage = dto.Metadata.CoverImage
+					Authors = dto.Metadata.Authors ?? model.Metadata.Authors,
+					Artists = dto.Metadata.Artists ?? model.Metadata.Artists,
+					Tags = dto.Metadata.Tags ?? model.Metadata.Tags,
+					CoverImage = dto.Metadata.CoverImage ?? model.Metadata.CoverImage
 				};
 			}
 		}
@@ -248,13 +296,14 @@ public sealed class BookTreeServiceTests {
 		public void UpdateVolume(UpdateVolumeRequestDto dto, VolumeModel model) {
 			if (dto.Title is not null) model.Title = dto.Title;
 			if (dto.Order is not null) model.Order = dto.Order.Value;
-			model.Metadata = dto.Metadata is null
-				? model.Metadata
-				: new VolumeMetadata {
-					CoverImage = dto.Metadata.CoverImage,
-					PublicationDate = dto.Metadata.PublicationDate,
-					Isbn = dto.Metadata.Isbn
+			if (dto.Metadata is not null) {
+				var current = model.Metadata ?? new VolumeMetadata();
+				model.Metadata = new VolumeMetadata {
+					CoverImage = dto.Metadata.CoverImage ?? current.CoverImage,
+					PublicationDate = dto.Metadata.PublicationDate ?? current.PublicationDate,
+					Isbn = dto.Metadata.Isbn ?? current.Isbn
 				};
+			}
 		}
 
 		public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId) =>
@@ -263,6 +312,12 @@ public sealed class BookTreeServiceTests {
 		public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model) {
 			if (dto.Title is not null) model.Title = dto.Title;
 			if (dto.Order is not null) model.Order = dto.Order.Value;
+		}
+
+		public void MergeChapter(ChapterModel source, ChapterContentModel sourceContent, ChapterModel target) {
+			target.Title = source.Title;
+			target.Status = source.Status;
+			target.ContentData = sourceContent;
 		}
 
 		public ChapterResponseDto ToChapterDto(ChapterModel model) => throw new NotSupportedException();
@@ -277,6 +332,9 @@ public sealed class BookTreeServiceTests {
 
 		public virtual Task<T?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
 			Task.FromResult(Items.FirstOrDefault(i => i.Id == id));
+
+		public virtual Task<T?> FindOneTracked(Guid id, CancellationToken cancellationToken = default) =>
+			FindOne(id, cancellationToken);
 
 		public Task<PagedResult<T>> FindAll(int pageIndex, int pageSize, CancellationToken cancellationToken = default) {
 			var items = Items.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
@@ -319,9 +377,6 @@ public sealed class BookTreeServiceTests {
 	}
 
 	private sealed class InMemoryBookTreeRepository : InMemoryRepository<BookNodeModel>, IBookTreeRepository {
-		public Task<BookNodeModel?> FindOneTracked(Guid id, CancellationToken cancellationToken = default) =>
-			FindOne(id, cancellationToken);
-
 		public Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, CancellationToken cancellationToken = default) =>
 			Task.FromResult<IEnumerable<BookNodeModel>>(Items.Where(n => n.ParentId == parentId).OrderBy(n => n.Order).ToList());
 

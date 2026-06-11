@@ -7,9 +7,6 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class BookTreeRepository(ApplicationDbContext context)
 	: CrudRepository<BookNodeModel>(context), IBookTreeRepository {
-	public async Task<BookNodeModel?> FindOneTracked(Guid id, CancellationToken cancellationToken = default) =>
-		await Entities.FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
-
 	public async Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, CancellationToken cancellationToken = default) =>
 		await Entities
 			.AsNoTracking()

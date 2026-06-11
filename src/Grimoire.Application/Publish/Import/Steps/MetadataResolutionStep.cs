@@ -13,5 +13,6 @@ public sealed class MetadataResolutionStep(
     {
         var (series, _) = await seriesService.GetOrCreate(context.SeriesDto, cancellationToken);
         context.Series = series;
+        context.OnProgress?.Invoke(5);
     }
 }

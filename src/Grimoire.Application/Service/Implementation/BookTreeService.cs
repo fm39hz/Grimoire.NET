@@ -71,19 +71,12 @@ public sealed class BookTreeService(
 	}
 
 	public async Task<SeriesModel> UpdateSeries(Guid seriesId, UpdateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
-		var series = await seriesRepository.FindOne(seriesId, cancellationToken) ??
+		var series = await seriesRepository.FindOneTracked(seriesId, cancellationToken) ??
 			throw new EntityNotFoundException($"Series with id {seriesId} not found");
 		var node = await RequireNode(seriesId, BookNodeType.Series, cancellationToken);
 
-		var currentTitle = series.Title;
 		mapper.UpdateSeries(dto, series);
-		if (dto.Title is not null) {
-			node.Title = dto.Title;
-			series.Title = dto.Title;
-		}
-		else {
-			series.Title = currentTitle;
-		}
+		node.Title = series.Title;
 
 		await treeRepository.Update(node, cancellationToken);
 		return await seriesRepository.Update(series, cancellationToken);
@@ -153,28 +146,13 @@ public sealed class BookTreeService(
 	}
 
 	public async Task<VolumeModel> UpdateVolume(Guid volumeId, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		var volume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
+		var volume = await volumeRepository.FindOneTracked(volumeId, cancellationToken) ??
 			throw new EntityNotFoundException($"Volume with id {volumeId} not found");
 		var node = await RequireNode(volumeId, BookNodeType.Volume, cancellationToken);
 
-		var currentTitle = volume.Title;
-		var currentOrder = volume.Order;
 		mapper.UpdateVolume(dto, volume);
-		if (dto.Title is not null) {
-			node.Title = dto.Title;
-			volume.Title = dto.Title;
-		}
-		else {
-			volume.Title = currentTitle;
-		}
-
-		if (dto.Order is not null) {
-			node.Order = dto.Order.Value;
-			volume.Order = dto.Order.Value;
-		}
-		else {
-			volume.Order = currentOrder;
-		}
+		node.Title = volume.Title;
+		node.Order = volume.Order;
 
 		await treeRepository.Update(node, cancellationToken);
 		var result = await volumeRepository.Update(volume, cancellationToken);
@@ -182,7 +160,7 @@ public sealed class BookTreeService(
 		if (dto.SeriesId is not null) {
 			var newParentId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
 			await MoveNode(volumeId, newParentId, dto.Order ?? volume.Order, cancellationToken);
-			var refreshed = await volumeRepository.FindOne(volumeId, cancellationToken);
+			var refreshed = await volumeRepository.FindOneTracked(volumeId, cancellationToken);
 			if (refreshed is not null) {
 				result = refreshed;
 			}

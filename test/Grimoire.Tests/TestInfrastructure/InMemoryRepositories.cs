@@ -12,6 +12,9 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 	public virtual Task<T?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(i => i.Id == id));
 
+	public virtual Task<T?> FindOneTracked(Guid id, CancellationToken cancellationToken = default) =>
+		FindOne(id, cancellationToken);
+
 	public Task<PagedResult<T>> FindAll(int pageIndex, int pageSize, CancellationToken cancellationToken = default) {
 		var items = Items.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList();
 		return Task.FromResult(new PagedResult<T>(items, Items.Count, pageIndex, pageSize));
@@ -53,9 +56,6 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 }
 
 public sealed class InMemoryBookTreeRepository : InMemoryRepository<BookNodeModel>, IBookTreeRepository {
-	public Task<BookNodeModel?> FindOneTracked(Guid id, CancellationToken cancellationToken = default) =>
-		FindOne(id, cancellationToken);
-
 	public Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, CancellationToken cancellationToken = default) =>
 		Task.FromResult<IEnumerable<BookNodeModel>>(Items.Where(n => n.ParentId == parentId).OrderBy(n => n.Order).ToList());
 

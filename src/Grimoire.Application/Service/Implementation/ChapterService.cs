@@ -52,20 +52,7 @@ public sealed class ChapterService(
 		var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
 
 		if (existing is not null) {
-			existing.Title = result.Chapter.Title;
-			existing.Status = result.Chapter.Status;
-
-			if (existing.ContentData != null) {
-				existing.ContentData.Segments = result.Content.Segments;
-				existing.ContentData.Footnotes = result.Content.Footnotes;
-			}
-			else {
-				existing.ContentData = new ChapterContentModel {
-					Id = existing.Id,
-					Segments = result.Content.Segments,
-					Footnotes = result.Content.Footnotes
-				};
-			}
+			mapper.MergeChapter(result.Chapter, result.Content, existing);
 
 			if (result.Source is not null) {
 				await sourceRepository.Create(result.Source, cancellationToken);
@@ -87,17 +74,10 @@ public sealed class ChapterService(
 	}
 
 	public async Task<ChapterModel> Update(Guid id, UpdateChapterRequestDto dto, CancellationToken cancellationToken = default) {
-		var chapter = await chapterRepository.FindOne(id, cancellationToken) ??
+		var chapter = await chapterRepository.FindOneTracked(id, cancellationToken) ??
 					throw new EntityNotFoundException($"Chapter with id {id} not found");
-		var currentTitle = chapter.Title;
-		var currentOrder = chapter.Order;
+
 		mapper.UpdateChapter(dto, chapter);
-		if (dto.Title is null) {
-			chapter.Title = currentTitle;
-		}
-		if (dto.Order is null) {
-			chapter.Order = currentOrder;
-		}
 
 		if (dto.VolumeId is not null) {
 			var newVolumeId = PrefixedId.ToGuid(dto.VolumeId, EntityPrefix.Volume);

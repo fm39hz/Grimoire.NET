@@ -15,4 +15,5 @@ public interface IBookMapper {
 	public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model);
 	public void UpdateVolume(UpdateVolumeRequestDto dto, VolumeModel model);
 	public void UpdateSeries(UpdateSeriesRequestDto dto, SeriesModel model);
+	public void MergeChapter(ChapterModel source, ChapterContentModel sourceContent, ChapterModel target);
 }

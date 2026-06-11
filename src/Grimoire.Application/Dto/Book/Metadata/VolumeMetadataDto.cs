@@ -14,5 +14,5 @@ public class VolumeMetadataDto {
 	/// <summary>
 	///     Gets or sets the ISBN of the volume.
 	/// </summary>
-	public string Isbn { get; init; } = string.Empty;
+	public string? Isbn { get; init; }
 }

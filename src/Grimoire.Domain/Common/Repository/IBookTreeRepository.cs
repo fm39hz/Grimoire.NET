@@ -4,7 +4,6 @@ using System.Threading;
 using Entity.Book;
 
 public interface IBookTreeRepository : IRepository<BookNodeModel> {
-	public Task<BookNodeModel?> FindOneTracked(Guid id, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, int pageIndex, int pageSize, CancellationToken cancellationToken = default);
 	public Task<int> CountChildren(Guid? parentId, CancellationToken cancellationToken = default);

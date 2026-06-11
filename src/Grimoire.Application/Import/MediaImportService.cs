@@ -11,6 +11,7 @@ public interface IMediaImportService {
     Task<Dictionary<string, string>> UploadFilesAsync(
         List<NormalizedFile> files, Guid seriesId,
         string prefix,
+        Action<int>? onProgress = null,
         CancellationToken cancellationToken = default);
 
     Task UploadCoverAsync(
@@ -27,9 +28,11 @@ public sealed class MediaImportService(
     public async Task<Dictionary<string, string>> UploadFilesAsync(
         List<NormalizedFile> files, Guid seriesId,
         string prefix,
+        Action<int>? onProgress = null,
         CancellationToken cancellationToken = default) {
 
         var map = new Dictionary<string, string>();
+        var processed = 0;
 
         foreach (var file in files)
         {
@@ -43,6 +46,9 @@ public sealed class MediaImportService(
                 cancellationToken: cancellationToken);
 
             map[file.FileName] = PrefixedId.ToString(EntityPrefix.Asset, asset.Id);
+
+            processed++;
+            onProgress?.Invoke(processed);
         }
 
         return map;

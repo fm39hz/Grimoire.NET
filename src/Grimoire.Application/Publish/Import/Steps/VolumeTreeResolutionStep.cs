@@ -15,5 +15,7 @@ public sealed class VolumeTreeResolutionStep(
 
         context.ResolvedVolumes = await volumeResolver.ResolveAsync(
             context.Series.Id, context.MergedVolumes, cancellationToken);
+
+        context.OnProgress?.Invoke(45);
     }
 }

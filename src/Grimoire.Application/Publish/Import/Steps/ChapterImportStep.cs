@@ -51,7 +51,11 @@ public sealed class ChapterImportStep(
         var (chapters, createdCount, updatedCount) = await chapterService.UpsertBulkAsync(
             context.Series.Id,
             chaptersToImport,
-            context.OnProgress,
+            subProgress =>
+            {
+                int progress = 45 + (int)(subProgress * 0.5);
+                context.OnProgress?.Invoke(progress);
+            },
             cancellationToken);
 
         context.ChaptersCreated = createdCount;

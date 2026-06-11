@@ -84,6 +84,13 @@ public sealed class ChapterServiceTests {
 
 		public void UpdateSeries(UpdateSeriesRequestDto dto, SeriesModel model) => throw new NotSupportedException();
 		public void UpdateVolume(UpdateVolumeRequestDto dto, VolumeModel model) => throw new NotSupportedException();
+
+		public void MergeChapter(ChapterModel source, ChapterContentModel sourceContent, ChapterModel target) {
+			target.Title = source.Title;
+			target.Status = source.Status;
+			target.ContentData = sourceContent;
+		}
+
 		public ChapterResponseDto ToChapterDto(ChapterModel model) => throw new NotSupportedException();
 		public ChapterListResponseDto ToChapterListDto(ChapterModel model) => throw new NotSupportedException();
 		public SeriesResponseDto ToSeriesDto(SeriesModel model) => throw new NotSupportedException();
