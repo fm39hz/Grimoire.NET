@@ -11,7 +11,7 @@ public sealed class ImportPipelineContext
 {
     // Inputs
     public IImportStrategy Strategy { get; }
-    public CreateSeriesRequestDto SeriesDto { get; }
+    public CreateSeriesRequestDto? SeriesDto { get; set; }
     public List<ImportVolumeDto>? VolumesOverride { get; }
     public Stream SourceStream { get; }
     public string JobId { get; }
@@ -31,7 +31,7 @@ public sealed class ImportPipelineContext
 
     public ImportPipelineContext(
         IImportStrategy strategy,
-        CreateSeriesRequestDto seriesDto,
+        CreateSeriesRequestDto? seriesDto,
         List<ImportVolumeDto>? volumesOverride,
         Stream sourceStream,
         string jobId)

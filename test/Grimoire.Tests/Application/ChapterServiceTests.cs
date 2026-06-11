@@ -2,6 +2,7 @@ namespace Grimoire.Tests.Application;
 
 using System.Linq;
 using Grimoire.Application.Dto.Book;
+using Grimoire.Application.Dto.Book.Segment;
 using Grimoire.Application.Dto.Common;
 using Grimoire.Application.Mapper;
 using Grimoire.Application.Service.Implementation;
@@ -96,6 +97,7 @@ public sealed class ChapterServiceTests {
 		public SeriesResponseDto ToSeriesDto(SeriesModel model) => throw new NotSupportedException();
 		public VolumeResponseDto ToVolumeDto(VolumeModel model) => throw new NotSupportedException();
 		public AssetResponseDto ToAssetDto(AssetModel model) => throw new NotSupportedException();
+		public TextSegmentDto ToTextSegmentDto(TextSegmentModel model) => throw new NotSupportedException();
 	}
 
 	// ── FindOne & FindAll Tests ───────────────────────────────────────────────

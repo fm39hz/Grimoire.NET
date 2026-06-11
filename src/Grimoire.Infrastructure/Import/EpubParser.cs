@@ -15,7 +15,11 @@ public sealed class EpubParser(ILogger<EpubParser> logger) : IEpubParser {
             Description = book.Description,
             CoverBytes = book.CoverImage,
             CoverContentType = "image/jpeg",
-            Images = ExtractImages(book)
+            Images = ExtractImages(book),
+            Tags = book.Schema?.Package?.Metadata?.Subjects?
+                .Select(s => s.Subject)
+                .Where(s => !string.IsNullOrWhiteSpace(s))
+                .ToList() ?? []
         };
 
         var tocItems = book.Navigation ?? [];

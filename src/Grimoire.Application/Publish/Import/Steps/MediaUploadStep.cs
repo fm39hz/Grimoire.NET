@@ -12,7 +12,7 @@ public sealed class MediaUploadStep(
 
     public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken)
     {
-        if (context.Series is null || context.Normalized is null) return;
+        if (context.Series is null || context.Normalized is null || context.SeriesDto is null) return;
 
         var seriesId = context.Series.Id;
         var prefix = $"staging/import/{seriesId}";

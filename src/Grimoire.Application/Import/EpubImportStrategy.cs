@@ -48,6 +48,7 @@ public sealed class EpubImportStrategy(
             Title = raw.Title,
             Author = raw.Author,
             Description = raw.Description,
+            Tags = raw.Tags,
             Cover = raw.CoverBytes?.Length > 0
                 ? new NormalizedFile
                 {

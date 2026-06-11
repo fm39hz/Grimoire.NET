@@ -8,6 +8,7 @@ public record NormalizedImport {
     public string? Author { get; init; }
     public string? Description { get; init; }
     public NormalizedFile? Cover { get; init; }
+    public List<string> Tags { get; init; } = [];
     public List<NormalizedVolume> Volumes { get; init; } = [];
     public List<NormalizedFile> Files { get; init; } = [];
 }

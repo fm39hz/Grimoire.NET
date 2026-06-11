@@ -2,6 +2,7 @@ namespace Grimoire.Tests.Application;
 
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Dto.Book.Metadata;
+using Grimoire.Application.Dto.Book.Segment;
 using Grimoire.Application.Dto.Book.Tree;
 using Grimoire.Application.Mapper;
 using Grimoire.Application.Service.Implementation;
@@ -325,6 +326,7 @@ public sealed class BookTreeServiceTests {
 		public SeriesResponseDto ToSeriesDto(SeriesModel model) => throw new NotSupportedException();
 		public VolumeResponseDto ToVolumeDto(VolumeModel model) => throw new NotSupportedException();
 		public AssetResponseDto ToAssetDto(AssetModel model) => throw new NotSupportedException();
+		public TextSegmentDto ToTextSegmentDto(TextSegmentModel model) => throw new NotSupportedException();
 	}
 
 	private abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel {

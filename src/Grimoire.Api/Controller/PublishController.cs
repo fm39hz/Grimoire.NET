@@ -51,7 +51,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
     [ProducesResponseType(202)]
     [ProducesResponseType(400)]
     public async Task<IResult> ImportBook(
-        [FromForm] string series,
+        [FromForm] string? series,
         [FromForm] string? volumes,
         IFormFile file,
         CancellationToken cancellationToken)
@@ -62,18 +62,21 @@ public sealed class PublishController(IPublishService publishService) : Controll
         if (!file.FileName.EndsWith(".epub", StringComparison.OrdinalIgnoreCase))
             return Results.BadRequest("File must be an EPUB file (.epub)");
 
-        CreateSeriesRequestDto? seriesDto;
-        try
+        CreateSeriesRequestDto? seriesDto = null;
+        if (!string.IsNullOrEmpty(series))
         {
-            seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(series, JsonConfiguration.JsonOptions);
-        }
-        catch (JsonException)
-        {
-            return Results.BadRequest("Invalid series metadata JSON");
-        }
+            try
+            {
+                seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(series, JsonConfiguration.JsonOptions);
+            }
+            catch (JsonException)
+            {
+                return Results.BadRequest("Invalid series metadata JSON");
+            }
 
-        if (seriesDto is null)
-            return Results.BadRequest("Invalid series metadata JSON");
+            if (seriesDto is null)
+                return Results.BadRequest("Invalid series metadata JSON");
+        }
 
         List<ImportVolumeDto>? volumesOverride = null;
         if (!string.IsNullOrEmpty(volumes))

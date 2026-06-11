@@ -38,7 +38,7 @@ public partial class BookMapper {
 	public partial AssetResponseDto ToAssetDto(AssetModel model);
 
 	private SegmentDto MapSegment(SegmentModel model) => model switch {
-		TextSegmentModel t => ToTextDto(t),
+		TextSegmentModel t => ToTextSegmentDto(t),
 		ImageSegmentModel i => ToImageDto(i),
 		DividerSegmentModel d => ToDividerDto(d),
 		FootnoteSegmentModel f => ToFootnoteDto(f),

@@ -31,7 +31,7 @@ public sealed class ImportJob
     [AutomaticRetry(Attempts = 1, OnAttemptsExceeded = AttemptsExceededAction.Fail)]
     public async Task<JobResult?> ExecuteAsync(
         PerformContext? context,
-        string seriesDtoJson,
+        string? seriesDtoJson,
         string? volumesJson,
         string fileKey,
         CancellationToken cancellationToken)
@@ -44,8 +44,11 @@ public sealed class ImportJob
 
         try
         {
-            var seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(seriesDtoJson, JsonConfiguration.JsonOptions)
-                ?? throw new InvalidOperationException("Failed to deserialize series DTO");
+            CreateSeriesRequestDto? seriesDto = null;
+            if (!string.IsNullOrEmpty(seriesDtoJson))
+            {
+                seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(seriesDtoJson, JsonConfiguration.JsonOptions);
+            }
 
             List<ImportVolumeDto>? volumesOverride = null;
             if (!string.IsNullOrEmpty(volumesJson))

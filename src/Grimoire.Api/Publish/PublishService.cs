@@ -45,7 +45,7 @@ public sealed class PublishService : IPublishService
     }
 
     public async Task<string> EnqueueImportAsync(
-        CreateSeriesRequestDto seriesDto,
+        CreateSeriesRequestDto? seriesDto,
         List<ImportVolumeDto>? volumesOverride,
         Stream fileStream,
         string fileName,
@@ -60,7 +60,7 @@ public sealed class PublishService : IPublishService
             "staging/import",
             cancellationToken);
 
-        var seriesJson = System.Text.Json.JsonSerializer.Serialize(seriesDto);
+        var seriesJson = seriesDto is not null ? System.Text.Json.JsonSerializer.Serialize(seriesDto) : null;
         var volumesJson = volumesOverride is not null ? System.Text.Json.JsonSerializer.Serialize(volumesOverride) : null;
 
         var jobId = _backgroundJobs.Enqueue<ImportJob>(

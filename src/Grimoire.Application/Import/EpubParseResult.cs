@@ -9,6 +9,7 @@ public class EpubParseResult {
     public string? Description { get; init; }
     public byte[]? CoverBytes { get; init; }
     public string? CoverContentType { get; init; }
+    public List<string> Tags { get; init; } = [];
     public List<EpubVolumeEntry> Volumes { get; set; } = [];
     public Dictionary<string, string> ChapterHtmlMap { get; init; } = [];
     public Dictionary<string, byte[]> Images { get; init; } = [];

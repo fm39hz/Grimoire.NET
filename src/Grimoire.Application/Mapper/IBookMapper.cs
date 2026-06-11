@@ -1,7 +1,9 @@
 namespace Grimoire.Application.Mapper;
 
 using Domain.Entity.Book;
+using Domain.Entity.Book.Segment;
 using Dto.Book;
+using Dto.Book.Segment;
 
 public interface IBookMapper {
 	public ChapterResponseDto ToChapterDto(ChapterModel model);
@@ -10,6 +12,7 @@ public interface IBookMapper {
 	public VolumeResponseDto ToVolumeDto(VolumeModel model);
 	public AssetResponseDto ToAssetDto(AssetModel model);
 	public SeriesModel CreateSeries(CreateSeriesRequestDto dto);
+	public TextSegmentDto ToTextSegmentDto(TextSegmentModel model);
 	public VolumeModel CreateVolume(CreateVolumeRequestDto dto, Guid seriesId);
 	public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId);
 	public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model);

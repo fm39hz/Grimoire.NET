@@ -11,7 +11,7 @@ using Riok.Mapperly.Abstractions;
 [SuppressMessage("Mapper", "RMG089:Mapping nullable source to non-nullable target member")]
 public partial class BookMapper : IBookMapper {
 	[MapProperty(nameof(TextSegmentModel.Id), nameof(TextSegmentDto.Id), Use = nameof(MapSegmentId))]
-	private partial TextSegmentDto ToTextDto(TextSegmentModel model);
+	public partial TextSegmentDto ToTextSegmentDto(TextSegmentModel model);
 
 	[MapProperty(nameof(ImageSegmentModel.Id), nameof(ImageSegmentDto.Id), Use = nameof(MapSegmentId))]
 	private partial ImageSegmentDto ToImageDto(ImageSegmentModel model);
