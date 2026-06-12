@@ -1,6 +1,6 @@
-namespace Grimoire.Infrastructure.Export.Common;
+namespace Grimoire.Application.Export;
 
-using Application.Service.Strategy;
+using Service.Strategy;
 
 public interface ISectionRendererFactory {
 	public ISectionRenderer? Resolve(ExportFormat format);

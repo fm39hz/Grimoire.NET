@@ -49,7 +49,11 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 		return entity;
 	}
 
+	public async Task<IEnumerable<T>> FindByIds(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) =>
+		await Entities.AsNoTracking().Where(entity => ids.Contains(entity.Id)).ToListAsync(cancellationToken);
+
 	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await Entities.Where(entity => entity.Id == id).ExecuteDeleteAsync(cancellationToken);
+
 
 	public async Task<IEnumerable<T>> UpdateBulk(IEnumerable<T> entities, CancellationToken cancellationToken = default) {
 		var entityList = entities.ToList();

@@ -1,7 +1,7 @@
-namespace Grimoire.Infrastructure.Export.Common;
+namespace Grimoire.Application.Export;
 
 using System.Collections.Generic;
-using Grimoire.Application.Dto.Book;
+using Dto.Book;
 
 public record BookPackageMetadata(
 	string Title,

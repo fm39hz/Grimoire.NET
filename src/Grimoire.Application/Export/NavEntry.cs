@@ -1,4 +1,6 @@
-namespace Grimoire.Infrastructure.Export.Common;
+namespace Grimoire.Application.Export;
+
+using System.Collections.Generic;
 
 /// <summary>
 ///     Format-agnostic navigation entry. PageId is a logical identifier

@@ -303,36 +303,47 @@ public sealed class BookTreeService(
 	}
 
 	private async Task<List<VolumeModel>> LoadVolumes(List<BookNodeModel> nodes, CancellationToken cancellationToken) {
-		var volumes = new List<VolumeModel>(nodes.Count);
-		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Volume)) {
-			var volume = await volumeRepository.FindOne(node.Id, cancellationToken);
-			if (volume is null) {
-				continue;
-			}
-
-			volume.Title = node.Title;
-			volume.Order = node.Order;
-			volumes.Add(volume);
+		var volumeNodes = nodes.Where(n => n.Type == BookNodeType.Volume).ToList();
+		if (volumeNodes.Count == 0) {
+			return [];
 		}
 
-		return volumes;
+		var ids = volumeNodes.Select(n => n.Id).ToList();
+		var volumes = (await volumeRepository.FindByIds(ids, cancellationToken)).ToDictionary(v => v.Id);
+
+		var result = new List<VolumeModel>(volumeNodes.Count);
+		foreach (var node in volumeNodes) {
+			if (volumes.TryGetValue(node.Id, out var volume)) {
+				volume.Title = node.Title;
+				volume.Order = node.Order;
+				result.Add(volume);
+			}
+		}
+
+		return result;
 	}
 
 	private async Task<List<ChapterModel>> LoadChapters(List<BookNodeModel> nodes, CancellationToken cancellationToken) {
-		var chapters = new List<ChapterModel>(nodes.Count);
-		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Chapter)) {
-			var chapter = await chapterRepository.FindOne(node.Id, cancellationToken);
-			if (chapter is null) {
-				continue;
-			}
-
-			chapter.Title = node.Title;
-			chapter.Order = node.Order;
-			chapters.Add(chapter);
+		var chapterNodes = nodes.Where(n => n.Type == BookNodeType.Chapter).ToList();
+		if (chapterNodes.Count == 0) {
+			return [];
 		}
 
-		return chapters;
+		var ids = chapterNodes.Select(n => n.Id).ToList();
+		var chapters = (await chapterRepository.FindByIds(ids, cancellationToken)).ToDictionary(c => c.Id);
+
+		var result = new List<ChapterModel>(chapterNodes.Count);
+		foreach (var node in chapterNodes) {
+			if (chapters.TryGetValue(node.Id, out var chapter)) {
+				chapter.Title = node.Title;
+				chapter.Order = node.Order;
+				result.Add(chapter);
+			}
+		}
+
+		return result;
 	}
+
 
 	private static BookTreeNodeType ToDtoType(BookNodeType type) =>
 		type switch {

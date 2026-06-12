@@ -1,8 +1,8 @@
-namespace Grimoire.Infrastructure.Export.Common;
+namespace Grimoire.Application.Export;
 
-using Application.Dto.Book;
-using Application.Export;
-using Application.Service.Strategy;
+using System.Collections.Generic;
+using Dto.Book;
+using Service.Strategy;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 

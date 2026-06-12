@@ -1,7 +1,7 @@
-namespace Grimoire.Infrastructure.Export.Common;
+namespace Grimoire.Application.Export;
 
 using System;
-using Application.Service.Strategy;
+using Service.Strategy;
 using Domain.Exception;
 
 public static class SectionRendererFactoryExtensions {

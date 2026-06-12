@@ -1,4 +1,4 @@
-namespace Grimoire.Infrastructure.Export.Common;
+namespace Grimoire.Application.Export;
 
 public enum PageRole {
 	Intro,

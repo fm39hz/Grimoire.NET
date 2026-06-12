@@ -10,5 +10,7 @@ public interface IRepository<T> {
 	public Task<IEnumerable<T>> CreateBulk(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 	public Task<T> Update(T entity, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<T>> UpdateBulk(IEnumerable<T> entities, CancellationToken cancellationToken = default);
+	public Task<IEnumerable<T>> FindByIds(IEnumerable<Guid> ids, CancellationToken cancellationToken = default);
 	public Task<int> Delete(Guid id, CancellationToken cancellationToken = default);
 }
+

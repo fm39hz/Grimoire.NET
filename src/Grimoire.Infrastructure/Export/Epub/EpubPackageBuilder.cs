@@ -6,6 +6,7 @@ using System.Threading;
 using Common;
 using Domain.Entity.Book;
 using Grimoire.Application.Dto.Book;
+using Grimoire.Application.Export;
 
 /// <summary>
 ///     Builds an EPUB 3 package. All EPUB-specific path layout (OEBPS/, spine

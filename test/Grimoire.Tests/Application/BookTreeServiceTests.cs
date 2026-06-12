@@ -373,6 +373,11 @@ public sealed class BookTreeServiceTests {
 			return Task.FromResult<IEnumerable<T>>(list);
 		}
 
+		public Task<IEnumerable<T>> FindByIds(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) {
+			var set = ids.ToHashSet();
+			return Task.FromResult<IEnumerable<T>>(Items.Where(i => set.Contains(i.Id)).ToList());
+		}
+
 		public virtual Task<int> Delete(Guid id, CancellationToken cancellationToken = default) {
 			return Task.FromResult(Items.RemoveAll(i => i.Id == id));
 		}

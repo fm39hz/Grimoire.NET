@@ -17,11 +17,11 @@ using Microsoft.AspNetCore.Mvc;
 [Route(RouteConstant.CONTROLLER)]
 public sealed class PublishController(IPublishService publishService) : ControllerBase
 {
-    [HttpPost("export")]
+    [HttpPost("series/{seriesId}/export")]
     [ProducesResponseType(202)]
     [ProducesResponseType(400)]
     public async Task<IResult> ExportSeries(
-        [FromQuery] string seriesId,
+        [FromRoute] string seriesId,
         [FromBody] BinderyRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -36,7 +36,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
         }
 
         var jobId = await publishService.EnqueueExportAsync(guid, request, cancellationToken);
-        var statusUrl = $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}";
+        var statusUrl = $"/api/{RouteConstant.VERSION}/publishes/jobs/{jobId}";
 
         return Results.Accepted(statusUrl, new
         {
@@ -99,7 +99,7 @@ public sealed class PublishController(IPublishService publishService) : Controll
             file.FileName,
             file.ContentType,
             cancellationToken);
-        var statusUrl = $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}";
+        var statusUrl = $"/api/{RouteConstant.VERSION}/publishes/jobs/{jobId}";
 
         return Results.Accepted(statusUrl, new
         {

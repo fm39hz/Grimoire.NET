@@ -1,6 +1,6 @@
-namespace Grimoire.Api.Dto;
+namespace Grimoire.Application.Dto.Book;
 
-using Application.Dto.Book;
+using System.Collections.Generic;
 
 public record ContentResponseDto {
 	public string Data { get; init; } = string.Empty;
