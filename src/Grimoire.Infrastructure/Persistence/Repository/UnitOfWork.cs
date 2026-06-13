@@ -70,7 +70,7 @@ public sealed class UnitOfWork(ApplicationDbContext context) : IUnitOfWork {
 
 	public void RegisterPostCommitAction(Func<Task> action) {
 		if (_currentTransaction == null) {
-			Task.Run(action);
+			action().GetAwaiter().GetResult();
 			return;
 		}
 		_postCommitActions.Add(action);
