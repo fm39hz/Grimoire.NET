@@ -3,6 +3,7 @@ namespace Grimoire.Api.Extension;
 using System.Diagnostics;
 using System.Linq;
 using Application.Dto.Book.Validators;
+using Constant;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using JetBrains.Annotations;
@@ -30,13 +31,13 @@ public static class ValidationExtension {
 					Title = "One or more validation errors occurred.",
 					Status = StatusCodes.Status400BadRequest,
 					Extensions = {
-						["errors"] = errors,
-						["traceId"] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier
+						[ProblemDetailsKeys.Errors] = errors,
+						[ProblemDetailsKeys.TraceId] = Activity.Current?.Id ?? context.HttpContext.TraceIdentifier
 					}
 				};
 
 				return new BadRequestObjectResult(problemDetails) {
-					ContentTypes = { "application/problem+json" }
+					ContentTypes = { ContentTypes.ProblemJson }
 				};
 			};
 		});

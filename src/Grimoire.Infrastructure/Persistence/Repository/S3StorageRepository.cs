@@ -18,6 +18,12 @@ public sealed partial class S3StorageRepository(
 	IAssetRepository assetRepository,
 	IOptions<S3Configuration> s3Options
 ) : IStorageRepository {
+	private const int MultipartPartSize = 90 * 1024 * 1024;
+	private const int MaxRetries = 3;
+	private static readonly TimeSpan InitialRetryDelay = TimeSpan.FromSeconds(1);
+	private const double RetryBackoffMultiplier = 2;
+	private const string DefaultKeyPrefix = "uploads";
+
 	private readonly AmazonS3Client _s3Client = CreateClient(s3Options.Value);
 	private readonly S3Configuration _config = s3Options.Value;
 
@@ -56,7 +62,7 @@ public sealed partial class S3StorageRepository(
 			Key = objectKey,
 			InputStream = content,
 			ContentType = contentType,
-			PartSize = 90 * 1024 * 1024
+			PartSize = MultipartPartSize
 		}, cancellationToken);
 
 		var asset = new AssetModel {
@@ -106,7 +112,7 @@ public sealed partial class S3StorageRepository(
 		var ext = Path.GetExtension(fileName).ToLowerInvariant();
 		var objectKey = prefix is not null
 			? $"{prefix.TrimEnd('/')}/{hash}{ext}"
-			: $"uploads/{hash}{ext}";
+			: $"{DefaultKeyPrefix}/{hash}{ext}";
 
 		LogUploadingToS3(logger, _config.BucketName, objectKey);
 		content.Seek(0, SeekOrigin.Begin);
@@ -117,7 +123,7 @@ public sealed partial class S3StorageRepository(
 			Key = objectKey,
 			InputStream = content,
 			ContentType = contentType,
-			PartSize = 90 * 1024 * 1024
+			PartSize = MultipartPartSize
 		}, cancellationToken);
 
 		return objectKey;
@@ -230,8 +236,8 @@ public sealed partial class S3StorageRepository(
 
 	// ── retry ────────────────────────────────────────────────────────
 
-	private static async Task<T> RetryS3Async<T>(Func<Task<T>> action, ILogger logger, CancellationToken ct, int maxRetries = 3) {
-		var delay = TimeSpan.FromSeconds(1);
+	private static async Task<T> RetryS3Async<T>(Func<Task<T>> action, ILogger logger, CancellationToken ct, int maxRetries = MaxRetries) {
+		var delay = InitialRetryDelay;
 		for (var attempt = 1; ; attempt++) {
 			try {
 				return await action();
@@ -241,7 +247,7 @@ public sealed partial class S3StorageRepository(
 				logger.LogWarning("S3 transient error (attempt {Attempt}/{MaxRetries}): {StatusCode} {ErrorCode}",
 					attempt, maxRetries, (int)ex.StatusCode, ex.ErrorCode);
 				await Task.Delay(delay, ct);
-				delay = TimeSpan.FromSeconds(delay.TotalSeconds * 2);
+				delay = TimeSpan.FromSeconds(delay.TotalSeconds * RetryBackoffMultiplier);
 			}
 		}
 	}

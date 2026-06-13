@@ -6,11 +6,11 @@ using Microsoft.AspNetCore.Mvc;
 
 public record PaginationRequestDto {
 	[FromQuery(Name = "pageIndex")]
-	[DefaultValue(1)]
+	[DefaultValue(PaginationDefaults.PageIndexDefault)]
 	public int PageIndex { get; init; }
 
 	[FromQuery(Name = "pageSize")]
-	[DefaultValue(10)]
+	[DefaultValue(PaginationDefaults.PageSizeDefault)]
 	public int PageSize { get; init; }
 
 	[FromQuery(Name = "sortBy")] public string? SortBy { get; init; }

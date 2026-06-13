@@ -21,6 +21,7 @@ public sealed class PublishController(
     IJobProgressTracker progressTracker,
     IJobProgressSubscription progressSubscription) : ControllerBase
 {
+    private static readonly TimeSpan SseSafetyPollInterval = TimeSpan.FromSeconds(3);
     [HttpPost("series/{seriesId}/export")]
     [ProducesResponseType(202)]
     [ProducesResponseType(400)]
@@ -36,7 +37,7 @@ public sealed class PublishController(
         }
         catch (Exception)
         {
-            return Results.BadRequest("Invalid seriesId format");
+            return Results.BadRequest(ErrorMessages.InvalidSeriesIdFormat);
         }
 
         var jobId = await publishService.EnqueueExportAsync(guid, request, cancellationToken);
@@ -45,7 +46,7 @@ public sealed class PublishController(
         return Results.Accepted(statusUrl, new
         {
             jobId,
-            status = "Queued",
+            status = SseConstants.StatusQueued,
             statusUrl
         });
     }
@@ -61,10 +62,10 @@ public sealed class PublishController(
         CancellationToken cancellationToken)
     {
         if (file is null || file.Length == 0)
-            return Results.BadRequest("EPUB file is required");
+            return Results.BadRequest(ErrorMessages.EpubFileRequired);
 
-        if (!file.FileName.EndsWith(".epub", StringComparison.OrdinalIgnoreCase))
-            return Results.BadRequest("File must be an EPUB file (.epub)");
+        if (!file.FileName.EndsWith(ErrorMessages.EpubFileExtension, StringComparison.OrdinalIgnoreCase))
+            return Results.BadRequest(ErrorMessages.MustBeEpubFile);
 
         CreateSeriesRequestDto? seriesDto = null;
         if (!string.IsNullOrEmpty(series))
@@ -75,11 +76,11 @@ public sealed class PublishController(
             }
             catch (JsonException)
             {
-                return Results.BadRequest("Invalid series metadata JSON");
+                return Results.BadRequest(ErrorMessages.InvalidSeriesMetadataJson);
             }
 
             if (seriesDto is null)
-                return Results.BadRequest("Invalid series metadata JSON");
+                return Results.BadRequest(ErrorMessages.InvalidSeriesMetadataJson);
         }
 
         List<ImportVolumeDto>? volumesOverride = null;
@@ -91,7 +92,7 @@ public sealed class PublishController(
             }
             catch (JsonException)
             {
-                return Results.BadRequest("Invalid volumes metadata JSON");
+                return Results.BadRequest(ErrorMessages.InvalidVolumesMetadataJson);
             }
         }
 
@@ -121,7 +122,7 @@ public sealed class PublishController(
         var status = await publishService.GetJobStatusAsync(jobId, cancellationToken);
         if (status is null)
         {
-            return Results.NotFound(new { jobId, status = "NotFound" });
+            return Results.NotFound(new { jobId, status = SseConstants.StatusNotFound });
         }
         return Results.Ok(status);
     }
@@ -129,9 +130,9 @@ public sealed class PublishController(
     [HttpGet("jobs/{jobId}/progress")]
     public async Task GetProgressStream(string jobId, CancellationToken cancellationToken)
     {
-        Response.Headers.Append("Content-Type", "text/event-stream");
-        Response.Headers.Append("Cache-Control", "no-cache");
-        Response.Headers.Append("Connection", "keep-alive");
+        Response.Headers.Append("Content-Type", SseConstants.ContentType);
+        Response.Headers.Append("Cache-Control", SseConstants.CacheControl);
+        Response.Headers.Append("Connection", SseConstants.Connection);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
@@ -140,7 +141,7 @@ public sealed class PublishController(
         if (initialStatus is not null)
         {
             await WriteSseEventAsync(initialStatus);
-            if (initialStatus.Status == "Completed" || initialStatus.Status == "Failed")
+            if (initialStatus.Status == SseConstants.StatusCompleted || initialStatus.Status == SseConstants.StatusFailed)
             {
                 return;
             }
@@ -156,16 +157,16 @@ public sealed class PublishController(
             {
                 while (!cts.Token.IsCancellationRequested)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(3), cts.Token);
+                    await Task.Delay(SseSafetyPollInterval, cts.Token);
                     var currentStatus = await publishService.GetJobStatusAsync(jobId, cts.Token);
                     if (currentStatus is not null)
                     {
-                        if (currentStatus.Status == "Completed" || currentStatus.Status == "Failed")
+                        if (currentStatus.Status == SseConstants.StatusCompleted || currentStatus.Status == SseConstants.StatusFailed)
                         {
                             progressTracker.CompleteJob(jobId, currentStatus.DownloadUrl);
-                            if (currentStatus.Status == "Failed")
+                            if (currentStatus.Status == SseConstants.StatusFailed)
                             {
-                                progressTracker.FailJob(jobId, currentStatus.Error ?? "Job failed");
+                                progressTracker.FailJob(jobId, currentStatus.Error ?? ErrorMessages.JobFailed);
                             }
                             break;
                         }
@@ -181,7 +182,7 @@ public sealed class PublishController(
             await foreach (var update in channel.WithCancellation(cts.Token))
             {
                 await WriteSseEventAsync(update);
-                if (update.Status == "Completed" || update.Status == "Failed")
+                if (update.Status == SseConstants.StatusCompleted || update.Status == SseConstants.StatusFailed)
                 {
                     break;
                 }
@@ -205,7 +206,7 @@ public sealed class PublishController(
     private async Task WriteSseEventAsync(PublishJobStatusDto status)
     {
         var json = JsonSerializer.Serialize(status, JsonConfiguration.JsonOptions);
-        await Response.WriteAsync($"data: {json}\n\n");
+        await Response.WriteAsync($"{SseConstants.DataPrefix}{json}{SseConstants.LineBreak}");
         await Response.Body.FlushAsync();
     }
 
@@ -217,7 +218,7 @@ public sealed class PublishController(
         var result = await publishService.GetDownloadStreamAsync(jobId, cancellationToken);
         if (result is null)
         {
-            return Results.NotFound(new { error = "Export result not found or job not yet completed" });
+            return Results.NotFound(new { error = ErrorMessages.ExportResultNotFound });
         }
 
         return Results.Stream(result.Stream, result.ContentType, result.FileName);

@@ -21,7 +21,7 @@ public static class ExportUtilities {
 	///     Checks if the section option "splitDescription" is enabled
 	/// </summary>
 	public static bool IsSplitDescriptionEnabled(ExportSectionDto? section) =>
-		section?.Options?.TryGetValue("splitDescription", out var splitVal) == true
+		section?.Options?.TryGetValue(ExportStructureDefaults.SplitDescriptionOptionKey, out var splitVal) == true
 		&& splitVal is bool split && split;
 
 	/// <summary>

@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import path from "node:path";
-
-const baseUrl =
-	process.env.GRIMOIRE_BLACKBOX_BASE_URL?.replace(/\/$/, "") ||
-	"http://localhost:5062/api/v1";
+import { API_BASE_URL as baseUrl } from "../config.ts";
 const repoRoot = path.resolve(import.meta.dir, "../..");
 
 type Json = Record<string, unknown>;

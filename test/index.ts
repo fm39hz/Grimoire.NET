@@ -3,8 +3,7 @@ import FormData from "form-data";
 import fs from "fs-extra";
 import path from "path";
 import { fileURLToPath } from "url";
-
-const API_URL = "http://localhost:5062/api/v1";
+import { API_BASE_URL as API_URL } from "./config.ts";
 const DIST_DIR = "./dist_grimoire";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));

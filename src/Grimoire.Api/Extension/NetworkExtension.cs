@@ -8,7 +8,7 @@ public static class NetworkExtension {
 	[UsedImplicitly]
 	public static IServiceCollection
 		AddNetworkService(this IServiceCollection service, WebApplicationBuilder builder) {
-		var serverUrl = builder.Configuration["OpenApi:ServerUrl"] ?? "http://localhost:8080";
+		var serverUrl = builder.Configuration[ConfigKeys.OpenApiServerUrl] ?? "http://localhost:8080";
 
 		// Using Swashbuckle only to avoid polymorphic type conflicts in ASP.NET Core OpenAPI
 		// builder.Services.AddOpenApi();
@@ -19,7 +19,7 @@ public static class NetworkExtension {
 				);
 			opt.CustomSchemaIds(type => type.FullName);
 		});
-		builder.Services.AddCors(options => options.AddPolicy("AllowAll", policy => policy.AllowAnyOrigin()
+		builder.Services.AddCors(options => options.AddPolicy(ConfigKeys.CorsPolicyAllowAll, policy => policy.AllowAnyOrigin()
 			.AllowAnyHeader()
 			.AllowAnyMethod()));
 		return service;

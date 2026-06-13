@@ -2,6 +2,7 @@ namespace Grimoire.Api.Middleware;
 
 using System.Diagnostics;
 using System.Text.Json;
+using Constant;
 using Domain.Exception;
 using EntityFramework.Exceptions.Common;
 using Infrastructure.Configuration;
@@ -13,16 +14,16 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 			await next(context);
 			if (!context.Response.HasStarted) {
 				switch (context.Response.StatusCode) {
-					case 401:
-						await HandleErrorAsync(context, 401, "Unauthorized",
+					case StatusCodes.Status401Unauthorized:
+						await HandleErrorAsync(context, StatusCodes.Status401Unauthorized, "Unauthorized",
 							"Unauthorized. Please login or refresh your token.");
 						break;
-					case 403:
-						await HandleErrorAsync(context, 403, "Forbidden",
+					case StatusCodes.Status403Forbidden:
+						await HandleErrorAsync(context, StatusCodes.Status403Forbidden, "Forbidden",
 							"Forbidden. You don't have permission to access this resource.");
 						break;
-					case 404:
-						await HandleErrorAsync(context, 404, "Not Found", "Resource not found.");
+					case StatusCodes.Status404NotFound:
+						await HandleErrorAsync(context, StatusCodes.Status404NotFound, "Not Found", "Resource not found.");
 						break;
 					default:
 						break;
@@ -53,7 +54,7 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 
 		var message = exception.Message;
 
-		if (statusCode == 500 && !context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()) {
+		if (statusCode == StatusCodes.Status500InternalServerError && !context.RequestServices.GetRequiredService<IWebHostEnvironment>().IsDevelopment()) {
 			message = "An internal server error occurred. Please try again later.";
 		}
 
@@ -61,7 +62,7 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 	}
 
 	private static async Task HandleErrorAsync(HttpContext context, int statusCode, string title, string message) {
-		context.Response.ContentType = "application/problem+json";
+		context.Response.ContentType = ContentTypes.ProblemJson;
 		context.Response.StatusCode = statusCode;
 
 		var problemDetails = new ProblemDetails {
@@ -69,8 +70,8 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 			Title = title,
 			Status = statusCode,
 			Extensions = {
-				["errors"] = new Dictionary<string, string[]> { { "message", [message] } },
-				["traceId"] = Activity.Current?.Id ?? context.TraceIdentifier
+				[ProblemDetailsKeys.Errors] = new Dictionary<string, string[]> { { "message", [message] } },
+				[ProblemDetailsKeys.TraceId] = Activity.Current?.Id ?? context.TraceIdentifier
 			}
 		};
 
@@ -80,12 +81,14 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 	}
 
 	private static string GetRfcSection(int statusCode) {
-		const string prefix = "15";
+		const string rfcPrefix = "15";
 		return statusCode switch {
-			426 => $"{prefix}.5.22",
-			>= 400 and < 500 => $"{prefix}.5.{statusCode - 399}",
-			>= 500 and < 600 => $"{prefix}.6.{statusCode - 499}",
-			_ => prefix
+			StatusCodes.Status426UpgradeRequired => $"{rfcPrefix}.5.22",
+			>= StatusCodes.Status400BadRequest and < StatusCodes.Status500InternalServerError =>
+				$"{rfcPrefix}.5.{statusCode - 399}",
+			>= StatusCodes.Status500InternalServerError and < 600 =>
+				$"{rfcPrefix}.6.{statusCode - 499}",
+			_ => rfcPrefix
 		};
 	}
 

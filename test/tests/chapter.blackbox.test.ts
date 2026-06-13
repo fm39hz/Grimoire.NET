@@ -1,6 +1,5 @@
 import { describe, expect, test } from "bun:test";
-
-const baseUrl = process.env.GRIMOIRE_BLACKBOX_BASE_URL?.replace(/\/$/, "") || "http://localhost:5062/api/v1";
+import { API_BASE_URL as baseUrl } from "../config.ts";
 
 type Json = Record<string, unknown>;
 

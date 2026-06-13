@@ -46,7 +46,7 @@ public class Program {
 			app.UseHttpsRedirection();
 		}
 
-		app.UseCors("AllowAll");
+		app.UseCors(ConfigKeys.CorsPolicyAllowAll);
 		
 		if (app.Environment.IsDevelopment())
 		{
@@ -86,10 +86,10 @@ public class Program {
 		builder.Services.AddHangfire(config => config
 			.UsePostgreSqlStorage(options => options
 				.UseNpgsqlConnection(
-					builder.Configuration.GetConnectionString("Postgre")!)));
+					builder.Configuration.GetConnectionString(ConfigKeys.ConnectionStringName)!)));
 		builder.Services.AddHangfireServer(options =>
 		{
-			options.Queues = ["default", "exports"];
+			options.Queues = [ConfigKeys.HangfireQueueDefault, ConfigKeys.HangfireQueueExports];
 			options.WorkerCount = Math.Max(1, Environment.ProcessorCount);
 		});
 		

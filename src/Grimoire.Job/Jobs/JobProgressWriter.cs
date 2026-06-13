@@ -5,6 +5,9 @@ using Hangfire;
 
 public sealed class JobProgressWriter
 {
+    private const int MinProgressDiff = 1;
+    private static readonly TimeSpan DbWriteThrottleInterval = TimeSpan.FromMilliseconds(500);
+
     private readonly IJobProgressTracker _tracker;
     private readonly string _jobId;
     private int _lastDbProgress = -1;
@@ -24,7 +27,7 @@ public sealed class JobProgressWriter
         if (progress == _lastDbProgress && stage == _lastStage)
             return;
 
-        if (Math.Abs(progress - _lastDbProgress) < 1 && DateTime.UtcNow - _lastDbWrite <= TimeSpan.FromMilliseconds(500))
+        if (Math.Abs(progress - _lastDbProgress) < MinProgressDiff && DateTime.UtcNow - _lastDbWrite <= DbWriteThrottleInterval)
             return;
 
         try

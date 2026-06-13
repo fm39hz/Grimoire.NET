@@ -5,9 +5,9 @@ services:
         image: postgres:16-alpine
         container_name: grimoire-db
         environment:
-            POSTGRES_USER: admin
-            POSTGRES_PASSWORD: admin
-            POSTGRES_DB: grimoire
+            POSTGRES_USER: ${POSTGRES_USER:-admin}
+            POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+            POSTGRES_DB: ${POSTGRES_DB:-grimoire}
         volumes: [pgdata:/var/lib/postgresql/data]
         ports: ["5432:5432"]
 
@@ -29,7 +29,7 @@ services:
         environment:
             - ASPNETCORE_ENVIRONMENT=Development
             - OpenApi__ServerUrl=http://localhost:8080
-            - ConnectionStrings__Postgre=Host=postgres;Database=grimoire;Username=admin;Password=admin
+            - ConnectionStrings__Postgre=Host=postgres;Database=${POSTGRES_DB:-grimoire};Username=${POSTGRES_USER:-admin};Password=${POSTGRES_PASSWORD:-admin}
             - Storage__UseTemporaryDirectory=true
             - Storage__Type=LocalStorage
             - Storage__BasePath=grimoire-files

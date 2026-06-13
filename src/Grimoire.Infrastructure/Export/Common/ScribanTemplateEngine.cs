@@ -8,14 +8,20 @@ using Scriban.Runtime;
 /// <summary>
 ///     Scriban implementation of the template engine
 /// </summary>
-public class ScribanTemplateEngine : ITemplateEngine {
+	public class ScribanTemplateEngine : ITemplateEngine {
+	private const int LoopLimit = 100_000;
+	private const string IsSplitDescriptionEnabled = "is_split_description_enabled";
+	private const string ShouldShowDescriptionInIntro = "should_show_description_in_intro";
+	private const string GetAssetUrl = "get_asset_url";
+	private const string ResourceTemplatePrefix = "Grimoire.Infrastructure.Export.Templates.";
+
 	private readonly ScriptObject _sharedFunctions;
 
 	public ScribanTemplateEngine() {
 		_sharedFunctions = new ScribanExportFunctions();
-		_sharedFunctions.Import("is_split_description_enabled",
+		_sharedFunctions.Import(IsSplitDescriptionEnabled,
 			new Func<ExportSectionDto?, bool>(ExportUtilities.IsSplitDescriptionEnabled));
-		_sharedFunctions.Import("should_show_description_in_intro",
+		_sharedFunctions.Import(ShouldShowDescriptionInIntro,
 			new Func<ExportSectionDto?, bool>(ScribanExportFunctions.ShouldShowDescriptionInIntro));
 	}
 
@@ -28,7 +34,7 @@ public class ScribanTemplateEngine : ITemplateEngine {
 				$"Template {templateName} errors: {string.Join(", ", template.Messages)}");
 		}
 
-		var context = new TemplateContext { MemberRenamer = StandardMemberRenamer.Rename, LoopLimit = 100_000 };
+		var context = new TemplateContext { MemberRenamer = StandardMemberRenamer.Rename, LoopLimit = LoopLimit };
 
 		var modelObject = new ScriptObject();
 		modelObject.Import(model, renamer: context.MemberRenamer);
@@ -41,7 +47,7 @@ public class ScribanTemplateEngine : ITemplateEngine {
 		}
 
 		var bookUtils = new ScriptObject();
-		bookUtils.Import("get_asset_url", new Func<string, string>(key =>
+		bookUtils.Import(GetAssetUrl, new Func<string, string>(key =>
 			exportContext.AssetFileMap.GetValueOrDefault(key, key)));
 		context.PushGlobal(bookUtils);
 
@@ -50,7 +56,7 @@ public class ScribanTemplateEngine : ITemplateEngine {
 
 	private static string GetTemplate(string templateName) {
 		var assembly = typeof(ScribanTemplateEngine).Assembly;
-		var resourceName = $"Grimoire.Infrastructure.Export.Templates.{templateName}.scriban";
+		var resourceName = $"{ResourceTemplatePrefix}{templateName}.scriban";
 
 		using var stream = assembly.GetManifestResourceStream(resourceName) ??
 								throw new FileNotFoundException($"Template resource {resourceName} not found.");
