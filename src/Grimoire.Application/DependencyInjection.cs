@@ -55,6 +55,7 @@ public static class DependencyInjection {
 
 		// Register Export Pipeline and Steps
 		services.AddScoped<IExportPipeline, ExportPipeline>();
+		services.AddScoped<IExportPipelineStep, RequestValidationStep>();
 		services.AddScoped<IExportPipelineStep, DeduplicationStep>();
 		services.AddScoped<IExportPipelineStep, ContentGenerationStep>();
 		services.AddScoped<IExportPipelineStep, StorageUploadStep>();
