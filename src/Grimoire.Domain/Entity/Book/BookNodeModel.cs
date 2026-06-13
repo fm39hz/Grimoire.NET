@@ -9,5 +9,10 @@ public class BookNodeModel : BaseModel {
 	public double Order { get; set; }
 	public required string Title { get; set; }
 	public string Path { get; set; } = string.Empty;
+
+	public static string CalculatePath(Guid id, string? parentPath) {
+		var segment = "n" + id.ToString("N");
+		return string.IsNullOrEmpty(parentPath) ? segment : $"{parentPath}.{segment}";
+	}
 }
 

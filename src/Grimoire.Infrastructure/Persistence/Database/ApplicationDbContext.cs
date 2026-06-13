@@ -23,6 +23,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 
+		modelBuilder.HasPostgresEnum<BookNodeType>();
+		modelBuilder.HasPostgresEnum<ChapterStatus>();
+		modelBuilder.HasCollation("natural_sort", locale: "en-US-u-kn-true", provider: "icu", deterministic: false);
+
 		modelBuilder.HasPostgresExtension("ltree");
 
 		modelBuilder.Entity<SeriesModel>(entity => {
@@ -61,8 +65,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasMaxLength(500)
 				.IsRequired();
 
-			entity.Property(n => n.Type)
-				.HasConversion<int>();
+			entity.Property(n => n.Type);
 
 			entity.Property(n => n.Path)
 				.HasColumnType("ltree")
@@ -83,7 +86,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 			entity.Property(v => v.Title)
 				.HasMaxLength(500)
-				.IsRequired();
+				.IsRequired()
+				.UseCollation("natural_sort");
 
 			entity.HasIndex(e => new { e.SeriesId, e.Order }).IsUnique();
 			entity.OwnsOne(s => s.Metadata, metaBuilder => metaBuilder.ToJson());
@@ -94,10 +98,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 			entity.Property(c => c.Title)
 				.HasMaxLength(500)
-				.IsRequired();
+				.IsRequired()
+				.UseCollation("natural_sort");
 
-			entity.Property(c => c.Status)
-				.HasConversion<int>();
+			entity.Property(c => c.Status);
 
 			entity.HasIndex(e => new { e.VolumeId, e.Order }).IsUnique();
 			entity.HasIndex(c => c.Status); // Add index for Status queries

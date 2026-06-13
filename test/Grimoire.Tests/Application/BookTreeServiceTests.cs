@@ -417,6 +417,12 @@ public sealed class BookTreeServiceTests {
 			return Task.FromResult<IReadOnlyList<BookNodeModel>>([.. series, .. volumes, .. chapters]);
 		}
 
+		public Task<IReadOnlyList<BookNodeModel>> FindChaptersInSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
+			var volumes = Items.Where(n => n.ParentId == seriesId).Select(v => v.Id).ToHashSet();
+			var chapters = Items.Where(n => n.ParentId is not null && volumes.Contains(n.ParentId.Value)).OrderBy(n => n.Order).ToList();
+			return Task.FromResult<IReadOnlyList<BookNodeModel>>(chapters);
+		}
+
 		public Task<IReadOnlyList<BookNodeModel>> FindSubtree(Guid nodeId, CancellationToken cancellationToken = default) {
 			var result = new List<BookNodeModel>();
 			var pending = new Queue<Guid>();

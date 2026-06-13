@@ -81,7 +81,7 @@ public sealed class BookTreeService(
 				Title = series.Title,
 				Order = 0,
 				ParentId = null,
-				Path = "n" + series.Id.ToString("N")
+				Path = BookNodeModel.CalculatePath(series.Id, null)
 			}, cancellationToken);
 
 			return series;
@@ -126,9 +126,10 @@ public sealed class BookTreeService(
 			throw new InvalidOperationException($"A {type} node already exists at order {order}");
 		}
 
-		var path = parentId is null
-			? "n" + id.ToString("N")
-			: (await treeRepository.FindOne(parentId.Value, cancellationToken))!.Path + "." + "n" + id.ToString("N");
+		var parentPath = parentId is null
+			? null
+			: (await treeRepository.FindOne(parentId.Value, cancellationToken))?.Path;
+		var path = BookNodeModel.CalculatePath(id, parentPath);
 
 		return await treeRepository.Create(new BookNodeModel {
 			Id = id,
@@ -178,7 +179,7 @@ public sealed class BookTreeService(
 				ParentId = seriesId,
 				Order = created.Order,
 				Title = created.Title,
-				Path = parentNode.Path + "." + "n" + created.Id.ToString("N")
+				Path = BookNodeModel.CalculatePath(created.Id, parentNode.Path)
 			}, cancellationToken);
 
 			return created;
@@ -252,9 +253,7 @@ public sealed class BookTreeService(
 			&& (parent.Path == oldPath || parent.Path.StartsWith(oldPath + "."))) {
 			throw new InvalidOperationException("Cannot move a node into its own subtree.");
 		}
-		var newPath = parent is null
-			? "n" + nodeId.ToString("N")
-			: parent.Path + "." + "n" + nodeId.ToString("N");
+		var newPath = BookNodeModel.CalculatePath(nodeId, parent?.Path);
 
 		node.ParentId = newParentId;
 		node.Order = newOrder;
@@ -339,9 +338,10 @@ public sealed class BookTreeService(
 			return;
 		}
 
-		var path = parentId is null
-			? "n" + id.ToString("N")
-			: (await treeRepository.FindOne(parentId.Value, cancellationToken))!.Path + "." + "n" + id.ToString("N");
+		var parentPath = parentId is null
+			? null
+			: (await treeRepository.FindOne(parentId.Value, cancellationToken))?.Path;
+		var path = BookNodeModel.CalculatePath(id, parentPath);
 
 		await treeRepository.Create(new BookNodeModel {
 			Id = id,
@@ -453,10 +453,11 @@ public sealed class BookTreeService(
 		var visiting = new HashSet<Guid>();
 		string GetPath(Guid id, Guid? pId) {
 			if (pId is null || !visiting.Add(id)) {
-				return "n" + id.ToString("N");
+				return BookNodeModel.CalculatePath(id, null);
 			}
 			parentIds.TryGetValue(pId.Value, out var grandparentsId);
-			var path = GetPath(pId.Value, grandparentsId) + "." + "n" + id.ToString("N");
+			var parentPath = GetPath(pId.Value, grandparentsId);
+			var path = BookNodeModel.CalculatePath(id, parentPath);
 			visiting.Remove(id);
 			return path;
 		}

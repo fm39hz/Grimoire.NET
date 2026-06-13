@@ -20,19 +20,11 @@ describe("unified book tree whitebox", () => {
 		expect(nodeModel).toContain("required string Title");
 	});
 
-	test("EF mapping and development startup create/backfill book_nodes", async () => {
+	test("EF mapping of book_nodes table", async () => {
 		const dbContext = await read("src/Grimoire.Infrastructure/Persistence/Database/ApplicationDbContext.cs");
-		const initializer = await read("src/Grimoire.Infrastructure/Persistence/Database/BookNodeSchemaInitializer.cs");
-		const program = await read("src/Grimoire.Api/Program.cs");
 
 		expect(dbContext).toContain("DbSet<BookNodeModel> BookNodes");
 		expect(dbContext).toContain("new { n.ParentId, n.Order }).IsUnique()");
-		expect(initializer).toContain("CREATE TABLE IF NOT EXISTS book_nodes");
-		expect(initializer).toContain("INSERT INTO book_nodes");
-		expect(initializer).toContain("FROM series");
-		expect(initializer).toContain("FROM volumes");
-		expect(initializer).toContain("FROM chapters");
-		expect(program).toContain("EnsureBookNodesAsync");
 	});
 
 	test("BookTreeService owns hierarchy invariants and legacy service facades delegate to it", async () => {

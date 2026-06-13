@@ -41,8 +41,6 @@ public class Program {
 					await dbContext.Database.EnsureDeletedAsync();
 					await dbContext.Database.EnsureCreatedAsync();
 				}
-
-				await dbContext.EnsureBookNodesAsync();
 			}
 
 			app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");

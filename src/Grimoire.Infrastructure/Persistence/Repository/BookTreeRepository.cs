@@ -44,6 +44,15 @@ public sealed class BookTreeRepository(ApplicationDbContext context)
 			.ToListAsync(cancellationToken);
 	}
 
+	public async Task<IReadOnlyList<BookNodeModel>> FindChaptersInSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
+		LTree seriesPath = "n" + seriesId.ToString("N");
+		return await Entities
+			.AsNoTracking()
+			.Where(n => ((LTree)n.Path).MatchesLQuery($"{seriesPath}.*.*"))
+			.OrderBy(n => n.Order)
+			.ToListAsync(cancellationToken);
+	}
+
 	public async Task<IReadOnlyList<BookNodeModel>> FindSubtree(Guid nodeId, CancellationToken cancellationToken = default) {
 		var node = await Entities.AsNoTracking().FirstOrDefaultAsync(n => n.Id == nodeId, cancellationToken);
 		if (node is null) {

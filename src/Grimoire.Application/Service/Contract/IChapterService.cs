@@ -15,6 +15,12 @@ public interface IChapterService : ICrudService<ChapterModel, CreateChapterReque
 	public Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto, CancellationToken cancellationToken = default);
 	public Task<ChapterModel> MergeAsync(MergeChaptersRequestDto dto, CancellationToken cancellationToken = default);
 
-	// TODO: Implement Postgres-native Full-Text Search (FTS) using tsvector / tsquery GIN index on chapter segments text content.
+	// TODO: Implement Postgres-native Full-Text Search (FTS) on chapter text content.
+	// We can leverage:
+	// - EF.Functions.ToTsVector("english", content) / ToTsVector(document) to build search vectors
+	// - EF.Functions.WebSearchToTsQuery("english", query) to parse user inputs (supporting quotes, OR, AND operators)
+	// - EF.Functions.Matches(vector, query) to perform GIN-indexed matches
+	// - EF.Functions.GetResultHeadline(query, document) to generate HTML-highlighted snippets
+	// - EF.Functions.Rank(vector, query) to sort matching results by relevance
 	// Task<IEnumerable<ChapterModel>> SearchChaptersAsync(string query, CancellationToken cancellationToken = default);
 }
