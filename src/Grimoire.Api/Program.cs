@@ -31,16 +31,6 @@ public class Program {
 				await using var scope = app.Services.CreateAsyncScope();
 				await using var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 				await dbContext.Database.EnsureCreatedAsync();
-
-				// EnsureCreatedAsync skips if DB already exists (Hangfire creates it first).
-				// Probe our tables; if missing, recreate the full schema.
-				var hasApplicationSchema = await dbContext.Database
-					.SqlQueryRaw<bool>("SELECT to_regclass('public.series') IS NOT NULL AS \"Value\"")
-					.SingleAsync();
-				if (!hasApplicationSchema) {
-					await dbContext.Database.EnsureDeletedAsync();
-					await dbContext.Database.EnsureCreatedAsync();
-				}
 			}
 
 			app.UseSwagger(options => options.RouteTemplate = "openapi/{documentName}.json");
