@@ -13,6 +13,7 @@ using Hangfire.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Grimoire.Infrastructure.Configuration;
+using Grimoire.Application.Publish;
 
 namespace Grimoire.Job.Jobs;
 
@@ -20,11 +21,13 @@ public sealed class ImportJob
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<ImportJob> _logger;
+    private readonly IJobProgressTracker _progressTracker;
 
-    public ImportJob(IServiceScopeFactory scopeFactory, ILogger<ImportJob> logger)
+    public ImportJob(IServiceScopeFactory scopeFactory, ILogger<ImportJob> logger, IJobProgressTracker progressTracker)
     {
         _scopeFactory = scopeFactory;
         _logger = logger;
+        _progressTracker = progressTracker;
     }
 
     [DisableConcurrentExecution(timeoutInSeconds: 300)]
@@ -65,20 +68,30 @@ public sealed class ImportJob
                 ?? throw new InvalidOperationException($"Source file not found: {fileKey}");
 
             var pipeline = services.GetRequiredService<IImportPipeline>();
-            var pipelineContext = new ImportPipelineContext(strategy, seriesDto, volumesOverride, sourceStream, jobId)
+            int lastDbProgress = -1;
+            var lastDbWrite = DateTime.MinValue;
+
+            var pipelineContext = new ImportPipelineContext(strategy, seriesDto, volumesOverride, sourceStream, jobId);
+            pipelineContext.OnProgress = progress =>
             {
-                OnProgress = progress =>
-                {
-                    try
+                _progressTracker.UpdateProgress(jobId, progress, pipelineContext.CurrentStage);
+
+                    if (progress != lastDbProgress && (Math.Abs(progress - lastDbProgress) >= 1 || DateTime.UtcNow - lastDbWrite > TimeSpan.FromMilliseconds(500)))
                     {
-                        using var connection = JobStorage.Current.GetConnection();
-                        connection.SetJobParameter(jobId, "Progress", progress.ToString());
+                        try
+                        {
+                            using var connection = JobStorage.Current.GetConnection();
+                            connection.SetJobParameter(jobId, "Progress", progress.ToString());
+                            if (pipelineContext.CurrentStage is not null)
+                                connection.SetJobParameter(jobId, "Stage", pipelineContext.CurrentStage);
+                            lastDbProgress = progress;
+                            lastDbWrite = DateTime.UtcNow;
+                        }
+                        catch
+                        {
+                            // Suppress progress reporting errors to not block the main pipeline
+                        }
                     }
-                    catch
-                    {
-                        // Suppress progress reporting errors to not block the main pipeline
-                    }
-                }
             };
 
             await pipeline.ExecuteAsync(pipelineContext, cancellationToken);

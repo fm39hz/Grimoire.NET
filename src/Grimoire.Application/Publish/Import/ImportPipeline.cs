@@ -15,13 +15,16 @@ public sealed class ImportPipeline(
 {
     private readonly List<IImportPipelineStep> _steps = steps.OrderBy(s => s.Order).ToList();
 
-    public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken)
+        public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken)
     {
         await unitOfWork.BeginTransactionAsync(cancellationToken);
         try
         {
             foreach (var step in _steps)
             {
+                var stageName = step.GetType().Name.Replace("Step", "");
+                context.CurrentStage = stageName;
+                context.ReportSubProgress(0.0);
                 logger.LogInformation("Executing import step: {StepName} (Order={Order})", step.GetType().Name, step.Order);
                 await step.ExecuteAsync(context, cancellationToken);
                 

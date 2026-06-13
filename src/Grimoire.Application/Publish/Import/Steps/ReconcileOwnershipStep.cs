@@ -17,7 +17,7 @@ public sealed class ReconcileOwnershipStep(
 
         await assetOwnershipService.ReconcileSeriesAsync(context.Series.Id, cancellationToken);
 
-        context.OnProgress?.Invoke(100);
+        context.ReportSubProgress(1.0);
 
         context.Result = JobResult.Ok(
             context.Series.Id.ToString(), 

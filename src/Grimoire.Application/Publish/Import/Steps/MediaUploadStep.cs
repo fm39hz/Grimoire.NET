@@ -26,8 +26,7 @@ public sealed class MediaUploadStep(
             {
                 if (totalFiles > 0)
                 {
-                    int progress = 5 + (int)((double)uploadedCount / totalFiles * 30);
-                    context.OnProgress?.Invoke(progress);
+                    context.ReportSubProgress((double)uploadedCount / totalFiles);
                 }
             },
             cancellationToken);
@@ -37,6 +36,6 @@ public sealed class MediaUploadStep(
             await mediaService.UploadCoverAsync(context.SeriesDto, seriesId, context.Normalized.Cover, cancellationToken);
         }
 
-        context.OnProgress?.Invoke(40);
+        context.ReportSubProgress(1.0);
     }
 }

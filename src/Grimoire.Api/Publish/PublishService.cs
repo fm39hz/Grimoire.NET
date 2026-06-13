@@ -139,6 +139,7 @@ public sealed class PublishService : IPublishService
         }
 
         int? progress = null;
+        string? stage = null;
         try
         {
             using var connection = _jobStorage.GetConnection();
@@ -147,13 +148,16 @@ public sealed class PublishService : IPublishService
             {
                 progress = prog;
             }
+            stage = connection.GetJobParameter(jobId, "Stage");
+            if (string.IsNullOrEmpty(stage))
+                stage = null;
         }
         catch
         {
             // Suppress errors reading progress
         }
 
-        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state, Progress: progress));
+        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state, Progress: progress, Stage: stage));
     }
 
     public async Task<PublishDownloadResultDto?> GetDownloadStreamAsync(string jobId, CancellationToken cancellationToken = default)

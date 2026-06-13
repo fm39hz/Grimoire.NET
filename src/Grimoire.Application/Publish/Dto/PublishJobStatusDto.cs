@@ -5,5 +5,6 @@ public sealed record PublishJobStatusDto(
     string Status,
     string? DownloadUrl = null,
     string? Error = null,
-    int? Progress = null
+    int? Progress = null,
+    string? Stage = null
 );

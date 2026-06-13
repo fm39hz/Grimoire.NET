@@ -29,6 +29,14 @@ public sealed class ImportPipelineContext
     // Output
     public JobResult? Result { get; set; }
 
+    // Progress stage tracking — set by pipeline before each step
+    public string? CurrentStage { get; set; }
+
+    public void ReportSubProgress(double fraction)
+    {
+        OnProgress?.Invoke((int)(fraction * 100));
+    }
+
     public ImportPipelineContext(
         IImportStrategy strategy,
         CreateSeriesRequestDto? seriesDto,

@@ -57,6 +57,11 @@ public class Program {
 		}
 		
 		app.MapControllers();
+
+		{
+			var progressTracker = app.Services.GetRequiredService<Grimoire.Application.Publish.IJobProgressTracker>();
+			GlobalJobFilters.Filters.Add(new Grimoire.Api.Publish.HangfireJobStateFilter(progressTracker));
+		}
 		app.UseSerilogRequestLogging(options => options.GetLevel = (httpContext, _, ex) => {
 			var path = httpContext.Request.Path.Value;
 

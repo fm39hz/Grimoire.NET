@@ -53,8 +53,7 @@ public sealed class ChapterImportStep(
             chaptersToImport,
             subProgress =>
             {
-                int progress = 45 + (int)(subProgress * 0.5);
-                context.OnProgress?.Invoke(progress);
+                context.ReportSubProgress(subProgress / 100.0);
             },
             cancellationToken);
 

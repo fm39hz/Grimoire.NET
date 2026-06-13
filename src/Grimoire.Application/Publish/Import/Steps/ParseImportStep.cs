@@ -17,7 +17,7 @@ public sealed class ParseImportStep : IImportPipelineStep
     {
         context.Normalized = await context.Strategy.ParseAsync(context.SourceStream, cancellationToken);
         context.MergedVolumes = BuildVolumeList(context.Normalized, context.VolumesOverride);
-        context.OnProgress?.Invoke(2);
+        context.ReportSubProgress(1.0);
     }
 
     private static List<NormalizedVolume> BuildVolumeList(

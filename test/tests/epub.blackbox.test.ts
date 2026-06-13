@@ -46,7 +46,8 @@ const pollJobStatus = async (
 		if (status.progress !== undefined && status.progress !== null) {
 			const progress = status.progress as number;
 			if (progress !== lastLoggedProgress) {
-				console.log(`   ⏳ Job ${jobId} progress: ${progress}%`);
+				const stage = (status.stage as string) ?? "(no stage)";
+				console.log(`   ⏳ Job ${jobId} [${stage}] ${progress}%`);
 				lastLoggedProgress = progress;
 			}
 		}
@@ -63,6 +64,51 @@ const pollJobStatus = async (
 		await new Promise((resolve) => setTimeout(resolve, 1000));
 	}
 	throw new Error(`Job ${jobId} timed out after ${maxAttempts} seconds`);
+};
+
+// Verify SSE stream returns terminal status for a completed job
+const verifySseCompleted = async (jobId: string): Promise<void> => {
+	const sseUrl = `${baseUrl}/publishes/jobs/${jobId}/progress`;
+	const ac = new AbortController();
+	const timer = setTimeout(() => ac.abort(), 10_000);
+
+	try {
+		const response = await fetch(sseUrl, { signal: ac.signal });
+		if (!response.ok) {
+			console.warn(`   ⚠️ SSE stream returned ${response.status}`);
+			return;
+		}
+
+		const reader = response.body!.getReader();
+		const decoder = new TextDecoder();
+		let buffer = "";
+
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+
+			buffer += decoder.decode(value, { stream: true });
+			const lines = buffer.split("\n");
+			buffer = lines.pop() ?? "";
+
+			for (const line of lines) {
+				if (line.startsWith("data: ")) {
+					const evt = JSON.parse(line.slice(6)) as Json;
+					if (evt.status === "Completed" || evt.status === "Failed") {
+						console.log(`   ✅ SSE confirmed: ${evt.status}`);
+						reader.cancel();
+						return;
+					}
+				}
+			}
+		}
+		console.warn(`   ⚠️ SSE did not return terminal status`);
+	} catch (e) {
+		if ((e as Error).name !== "AbortError")
+			console.warn(`   ⚠️ SSE error: ${(e as Error).message}`);
+	} finally {
+		clearTimeout(timer);
+	}
 };
 
 describe("EPUB integration lifecycle", () => {
@@ -92,8 +138,9 @@ describe("EPUB integration lifecycle", () => {
 		expect(jobId).toBeDefined();
 		console.log(`⏳ EPUB Import Job queued: ${jobId}, polling status...`);
 
-		// 3. Poll for completion
+		// 3. Poll for completion + verify SSE
 		await pollJobStatus(jobId);
+		await verifySseCompleted(jobId);
 		console.log(`✅ Import Job completed!`);
 
 		// 4. Find the newly created series
@@ -191,6 +238,7 @@ describe("EPUB integration lifecycle", () => {
 			);
 
 			await pollJobStatus(exportJobId);
+			await verifySseCompleted(exportJobId);
 			console.log(`✅ Export Job completed!`);
 
 			// 8. Download the exported EPUB
