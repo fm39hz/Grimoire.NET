@@ -31,7 +31,7 @@ public static class ChapterSplitter {
 
 		var footnotes = contentData.Footnotes;
 		var resultChapters = new List<ChapterModel>();
-		const float orderIncrement = 0.1f;
+		const double orderIncrement = 0.1d;
 
 		var firstSplitIndex = splitPoints[0].SegmentIndex;
 		original.ContentData = new ChapterContentModel {

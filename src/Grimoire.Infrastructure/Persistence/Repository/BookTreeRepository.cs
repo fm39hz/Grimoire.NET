@@ -29,61 +29,45 @@ public sealed class BookTreeRepository(ApplicationDbContext context)
 			.Where(n => n.ParentId == parentId)
 			.CountAsync(cancellationToken);
 
-	public async Task<BookNodeModel?> FindChildByOrder(Guid? parentId, float order, CancellationToken cancellationToken = default) =>
+	public async Task<BookNodeModel?> FindChildByOrder(Guid? parentId, double order, CancellationToken cancellationToken = default) =>
 		await Entities
 			.AsNoTracking()
 			.FirstOrDefaultAsync(n => n.ParentId == parentId && n.Order == order, cancellationToken);
 
 	public async Task<IReadOnlyList<BookNodeModel>> FindSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
-		var series = await Entities.AsNoTracking().FirstOrDefaultAsync(n => n.Id == seriesId, cancellationToken);
-		if (series is null) {
-			return [];
-		}
-
-		var volumes = await Entities
+		LTree seriesPath = "n" + seriesId.ToString("N");
+		return await Entities
 			.AsNoTracking()
-			.Where(n => n.ParentId == seriesId)
-			.OrderBy(n => n.Order)
+			.Where(n => ((LTree)n.Path).IsDescendantOf(seriesPath))
+			.OrderBy(n => n.Type)
+			.ThenBy(n => n.Order)
 			.ToListAsync(cancellationToken);
-		var volumeIds = volumes.Select(v => v.Id).ToList();
-		var chapters = volumeIds.Count == 0
-			? []
-			: await Entities
-				.AsNoTracking()
-				.Where(n => n.ParentId != null && volumeIds.Contains(n.ParentId.Value))
-				.OrderBy(n => n.ParentId)
-				.ThenBy(n => n.Order)
-				.ToListAsync(cancellationToken);
-
-		return [series, .. volumes, .. chapters];
 	}
 
 	public async Task<IReadOnlyList<BookNodeModel>> FindSubtree(Guid nodeId, CancellationToken cancellationToken = default) {
-		var result = new List<BookNodeModel>();
-		var pending = new Queue<Guid>();
-		pending.Enqueue(nodeId);
-
-		while (pending.Count > 0) {
-			var id = pending.Dequeue();
-			var node = await Entities.AsNoTracking().FirstOrDefaultAsync(n => n.Id == id, cancellationToken);
-			if (node is null) {
-				continue;
-			}
-
-			result.Add(node);
-			var children = await Entities
-				.AsNoTracking()
-				.Where(n => n.ParentId == id)
-				.Select(n => n.Id)
-				.ToListAsync(cancellationToken);
-			foreach (var childId in children) {
-				pending.Enqueue(childId);
-			}
+		var node = await Entities.AsNoTracking().FirstOrDefaultAsync(n => n.Id == nodeId, cancellationToken);
+		if (node is null) {
+			return [];
 		}
 
-		return result;
+		LTree parentPath = node.Path;
+		return await Entities
+			.AsNoTracking()
+			.Where(n => ((LTree)n.Path).IsDescendantOf(parentPath))
+			.OrderBy(n => n.Type)
+			.ThenBy(n => n.Order)
+			.ToListAsync(cancellationToken);
 	}
 
-	public async Task DeleteMany(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) =>
-		await Entities.Where(n => ids.Contains(n.Id)).ExecuteDeleteAsync(cancellationToken);
+	public async Task UpdateSubtreePaths(Guid nodeId, string oldPath, string newPath, CancellationToken cancellationToken = default) {
+		LTree oldLTreePath = oldPath;
+		var oldPathLength = oldPath.Split('.').Length;
+
+		await Entities
+			.Where(n => n.Id != nodeId && ((LTree)n.Path).IsDescendantOf(oldLTreePath))
+			.ExecuteUpdateAsync(s => s.SetProperty(
+				n => n.Path,
+				n => newPath + (string)((LTree)n.Path).Subpath(oldPathLength)
+			), cancellationToken);
+	}
 }

@@ -58,6 +58,11 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 
 	public virtual Task<int> Delete(Guid id, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.RemoveAll(i => i.Id == id));
+
+	public virtual Task<int> DeleteMany(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) {
+		var set = ids.ToHashSet();
+		return Task.FromResult(Items.RemoveAll(i => set.Contains(i.Id)));
+	}
 }
 
 public sealed class InMemoryBookTreeRepository : InMemoryRepository<BookNodeModel>, IBookTreeRepository {
@@ -75,7 +80,7 @@ public sealed class InMemoryBookTreeRepository : InMemoryRepository<BookNodeMode
 	public Task<int> CountChildren(Guid? parentId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.Count(n => n.ParentId == parentId));
 
-	public Task<BookNodeModel?> FindChildByOrder(Guid? parentId, float order, CancellationToken cancellationToken = default) =>
+	public Task<BookNodeModel?> FindChildByOrder(Guid? parentId, double order, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(n => n.ParentId == parentId && n.Order == order));
 
 	public Task<IReadOnlyList<BookNodeModel>> FindSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
@@ -103,9 +108,12 @@ public sealed class InMemoryBookTreeRepository : InMemoryRepository<BookNodeMode
 		return Task.FromResult<IReadOnlyList<BookNodeModel>>(result);
 	}
 
-	public Task DeleteMany(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) {
-		var set = ids.ToHashSet();
-		Items.RemoveAll(n => set.Contains(n.Id));
+	public Task UpdateSubtreePaths(Guid nodeId, string oldPath, string newPath, CancellationToken cancellationToken = default) {
+		foreach (var node in Items) {
+			if (node.Id != nodeId && node.Path.StartsWith(oldPath)) {
+				node.Path = newPath + node.Path[oldPath.Length..];
+			}
+		}
 		return Task.CompletedTask;
 	}
 }
@@ -125,7 +133,7 @@ public sealed class InMemoryVolumeRepository : InMemoryRepository<VolumeModel>, 
 	public Task<int> CountBySeriesId(Guid seriesId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.Count(v => v.SeriesId == seriesId));
 
-	public Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, float order, CancellationToken cancellationToken = default) =>
+	public Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, double order, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(v => v.SeriesId == seriesId && v.Order == order));
 }
 
@@ -147,7 +155,7 @@ public sealed class InMemoryChapterRepository : InMemoryRepository<ChapterModel>
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
 		FindByVolumeIds(volumeIds, cancellationToken);
 
-	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, float order, CancellationToken cancellationToken = default) =>
+	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(c => c.VolumeId == volumeId && c.Order == order));
 }
 

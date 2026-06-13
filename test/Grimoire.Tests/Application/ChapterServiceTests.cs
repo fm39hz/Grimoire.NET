@@ -29,7 +29,7 @@ public sealed class ChapterServiceTests {
 
 		public Fixture() {
 			var mapper = new FakeBookMapper();
-			BookTree = new BookTreeService(Tree, Series, Volumes, Chapters, mapper);
+			BookTree = new BookTreeService(Tree, Series, Volumes, Chapters, new NoOpUnitOfWork(), mapper);
 			var strategyFactory = new IngestionStrategyFactory([
 				new PreProcessedIngestionStrategy(),
 				new RawMarkdownIngestionStrategy(Volumes)

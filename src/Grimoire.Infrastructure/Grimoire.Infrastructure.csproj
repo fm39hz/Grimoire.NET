@@ -7,33 +7,33 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="Bogus"/>
-		<PackageReference Include="EFCore.NamingConventions"/>
-		<PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL"/>
-		<PackageReference Include="JetBrains.Annotations"/>
-		<PackageReference Include="Microsoft.EntityFrameworkCore"/>
-		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore"/>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
-		<PackageReference Include="Microsoft.Extensions.Configuration.Binder"/>
-		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions"/>
-		<PackageReference Include="Microsoft.IdentityModel.Tokens"/>
-		<PackageReference Include="AWSSDK.S3"/>
+		<PackageReference Include="Bogus" />
+		<PackageReference Include="EFCore.NamingConventions" />
+		<PackageReference Include="EntityFrameworkCore.Exceptions.PostgreSQL" />
+		<PackageReference Include="JetBrains.Annotations" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+		<PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+		<PackageReference Include="Microsoft.IdentityModel.Tokens" />
+		<PackageReference Include="AWSSDK.S3" />
 
-		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL"/>
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 
-		<PackageReference Include="Scriban"/>
-		<PackageReference Include="System.IdentityModel.Tokens.Jwt"/>
-		<PackageReference Include="VersOne.Epub"/>
-		<PackageReference Include="AngleSharp"/>
+		<PackageReference Include="Scriban" />
+		<PackageReference Include="System.IdentityModel.Tokens.Jwt" />
+		<PackageReference Include="VersOne.Epub" />
+		<PackageReference Include="AngleSharp" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<EmbeddedResource Include="Export/Templates/*.scriban"/>
+		<EmbeddedResource Include="Export/Templates/*.scriban" />
 	</ItemGroup>
 
 	<ItemGroup>
-		<ProjectReference Include="../Grimoire.Application/Grimoire.Application.csproj"/>
-		<ProjectReference Include="../Grimoire.Domain/Grimoire.Domain.csproj"/>
+		<ProjectReference Include="../Grimoire.Application/Grimoire.Application.csproj" />
+		<ProjectReference Include="../Grimoire.Domain/Grimoire.Domain.csproj" />
 	</ItemGroup>
 
 </Project>

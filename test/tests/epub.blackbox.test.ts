@@ -171,7 +171,7 @@ describe("EPUB integration lifecycle", () => {
 			// 7. Trigger export back to EPUB
 			console.log(`⚙️  Exporting series back to EPUB...`);
 			const exportStart = await request<Json>(
-				`/publishes/export?seriesId=${seriesId}`,
+				`/publishes/series/${seriesId}/export`,
 				{
 					method: "POST",
 					headers: {

@@ -4,6 +4,6 @@ using Metadata;
 
 public record CreateVolumeRequestDto(
 	string SeriesId,
-	float Order,
+	double Order,
 	string Title,
 	VolumeMetadataDto? Metadata);

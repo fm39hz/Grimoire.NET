@@ -112,8 +112,9 @@ public sealed class AssetOwnershipService(
 	private static List<Guid> GetAncestorPath(Guid nodeId, Dictionary<Guid, BookNodeModel> nodesById) {
 
 		var result = new List<Guid>();
+		var visited = new HashSet<Guid>();
 		var currentId = nodeId;
-		while (nodesById.TryGetValue(currentId, out var node)) {
+		while (nodesById.TryGetValue(currentId, out var node) && visited.Add(node.Id)) {
 			result.Add(node.Id);
 			if (node.ParentId is null) {
 				break;

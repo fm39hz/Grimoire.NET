@@ -16,7 +16,7 @@ describe("unified book tree whitebox", () => {
 		expect(nodeType).toContain("Chapter");
 		expect(nodeType).not.toContain("BookShelf");
 		expect(nodeModel).toContain("Guid? ParentId");
-		expect(nodeModel).toContain("float Order");
+		expect(nodeModel).toContain("double Order");
 		expect(nodeModel).toContain("required string Title");
 	});
 

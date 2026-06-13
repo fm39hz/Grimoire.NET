@@ -9,5 +9,5 @@ public interface IChapterRepository : IRepository<ChapterModel> {
 	public Task<int> CountByVolumeId(Guid volumeId, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default);
-	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, float order, CancellationToken cancellationToken = default);
+	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default);
 }

@@ -203,7 +203,7 @@ public sealed class ChapterService(
 
 		var toCreate = new System.Collections.Generic.List<ChapterModel>();
 		var toUpdate = new System.Collections.Generic.List<ChapterModel>();
-		var nodes = new System.Collections.Generic.List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, float Order)>();
+		var nodes = new System.Collections.Generic.List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, double Order)>();
 
 		var createdCount = 0;
 		var updatedCount = 0;

@@ -12,7 +12,8 @@ public class ChapterModel : BaseModel {
 	/// <summary>
 	///     Order of this chapter within the volume
 	/// </summary>
-	public float Order { get; set; }
+	public double Order { get; set; }
+
 
 	/// <summary>
 	///     Title of the chapter

@@ -14,7 +14,8 @@ public class VolumeModel : BaseModel {
 	/// <summary>
 	///     Order of this volume within the series
 	/// </summary>
-	public float Order { get; set; }
+	public double Order { get; set; }
+
 
 	/// <summary>
 	///     Title of the volume

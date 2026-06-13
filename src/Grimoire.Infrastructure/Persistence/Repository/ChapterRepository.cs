@@ -60,7 +60,7 @@ public sealed class ChapterRepository(ApplicationDbContext context)
 			.ThenBy(c => c.Order)
 			.ToListAsync(cancellationToken);
 
-	public async Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, float order, CancellationToken cancellationToken = default) =>
+	public async Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) =>
 		await Entities
 			.AsSplitQuery()
 			.Include(c => c.ContentData)

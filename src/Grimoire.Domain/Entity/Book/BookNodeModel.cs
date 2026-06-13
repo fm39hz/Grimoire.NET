@@ -6,6 +6,8 @@ namespace Grimoire.Domain.Entity.Book;
 public class BookNodeModel : BaseModel {
 	public required BookNodeType Type { get; init; }
 	public Guid? ParentId { get; set; }
-	public float Order { get; set; }
+	public double Order { get; set; }
 	public required string Title { get; set; }
+	public string Path { get; set; } = string.Empty;
 }
+

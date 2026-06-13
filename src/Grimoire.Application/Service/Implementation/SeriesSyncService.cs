@@ -26,7 +26,7 @@ public sealed class SeriesSyncService(
 			var existingVolumes = (await volumeNodeService.FindVolumes(seriesId, cancellationToken)).ToList();
 			var volumesByOrder = existingVolumes.ToDictionary(v => v.Order);
  
-			var volumeOrderToId = new Dictionary<float, Guid>();
+			var volumeOrderToId = new Dictionary<double, Guid>();
  
 			foreach (var volDto in request.Volumes) {
 				Guid volId;
@@ -55,7 +55,7 @@ public sealed class SeriesSyncService(
 				var volId = volumeOrderToId[volDto.Order];
  
 				foreach (var chpDto in volDto.Chapters) {
-					var key = (volId, (float)chpDto.Order);
+					var key = (volId, chpDto.Order);
 					var tempDto = new CreateChapterRequestDto(
 						PrefixedId.ToString(EntityPrefix.Volume, volId),
 						chpDto.Order,

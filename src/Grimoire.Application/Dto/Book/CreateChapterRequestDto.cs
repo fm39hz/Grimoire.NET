@@ -4,7 +4,7 @@ using Domain.Entity.Book;
 
 public record CreateChapterRequestDto(
 	string VolumeId,
-	float Order,
+	double Order,
 	string Title,
 	List<SegmentModel>? Content,
 	List<ImportFootnoteDto>? Footnotes,

@@ -4,7 +4,7 @@ using Domain.Entity.Book;
 using Segment;
 
 public record UpdateChapterRequestDto(
-	float? Order,
+	double? Order,
 	string? Title,
 	List<SegmentModel>? Content,
 	List<FootnoteSegmentDto>? Footnotes,

@@ -30,6 +30,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 
+		modelBuilder.HasPostgresExtension("ltree");
+
 		modelBuilder.Entity<SeriesModel>(entity => {
 			entity.Property(s => s.Id).ValueGeneratedOnAdd();
 
@@ -69,7 +71,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.Property(n => n.Type)
 				.HasConversion<int>();
 
+			entity.Property(n => n.Path)
+				.HasColumnType("ltree")
+				.IsRequired();
+
 			entity.HasIndex(n => n.ParentId);
+			entity.HasIndex(n => n.Path).HasMethod("gist");
 			entity.HasIndex(n => new { n.ParentId, n.Order }).IsUnique();
 
 			entity.HasOne<BookNodeModel>()

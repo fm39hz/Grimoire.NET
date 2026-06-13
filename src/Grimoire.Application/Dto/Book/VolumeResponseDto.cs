@@ -6,7 +6,7 @@ using Domain.Entity.Book.Metadata;
 
 public class VolumeResponseDto : ITimestampedDto {
 	public string SeriesId { get; init; } = string.Empty;
-	public float Order { get; init; }
+	public double Order { get; init; }
 	public string Title { get; init; } = string.Empty;
 	public VolumeMetadata? Metadata { get; init; }
 	public string Id { get; init; } = string.Empty;

@@ -33,7 +33,7 @@ public sealed class VolumeRepository(ApplicationDbContext context)
 			.Where(v => v.SeriesId == seriesId)
 			.CountAsync(cancellationToken);
 
-	public async Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, float order, CancellationToken cancellationToken = default) =>
+	public async Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, double order, CancellationToken cancellationToken = default) =>
 		await Entities
 			.FirstOrDefaultAsync(v => v.SeriesId == seriesId && v.Order == order, cancellationToken);
 }

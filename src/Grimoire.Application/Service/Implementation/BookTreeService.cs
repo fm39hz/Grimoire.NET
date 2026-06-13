@@ -10,14 +10,41 @@ using Dto.Book.Tree;
 using Dto.Common;
 using Mapper;
 
+
 public sealed class BookTreeService(
 	IBookTreeRepository treeRepository,
 	ISeriesRepository seriesRepository,
 	IVolumeRepository volumeRepository,
 	IChapterRepository chapterRepository,
+	IUnitOfWork unitOfWork,
 	IBookMapper mapper) : CrudServiceBase<BookNodeModel>, IBookTreeService {
 	private const string DefaultShelfId = "bookshelf:default";
 	private const string DefaultShelfTitle = "Book Shelf";
+
+	private async Task ExecuteInTransaction(Func<Task> action, CancellationToken cancellationToken) {
+		await unitOfWork.BeginTransactionAsync(cancellationToken);
+		try {
+			await action();
+			await unitOfWork.CommitTransactionAsync(cancellationToken);
+		}
+		catch {
+			await unitOfWork.RollbackTransactionAsync(cancellationToken);
+			throw;
+		}
+	}
+
+	private async Task<T> ExecuteInTransaction<T>(Func<Task<T>> action, CancellationToken cancellationToken) {
+		await unitOfWork.BeginTransactionAsync(cancellationToken);
+		try {
+			var result = await action();
+			await unitOfWork.CommitTransactionAsync(cancellationToken);
+			return result;
+		}
+		catch {
+			await unitOfWork.RollbackTransactionAsync(cancellationToken);
+			throw;
+		}
+	}
 
 	public async Task<BookTreeDto> GetTree(Guid seriesId, bool includeContent = false, CancellationToken cancellationToken = default) {
 		var nodes = await treeRepository.FindSeriesTree(seriesId, cancellationToken);
@@ -46,16 +73,19 @@ public sealed class BookTreeService(
 	}
 
 	public async Task<SeriesModel> CreateSeries(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
-		var series = await seriesRepository.Create(mapper.CreateSeries(dto), cancellationToken);
-		await treeRepository.Create(new BookNodeModel {
-			Id = series.Id,
-			Type = BookNodeType.Series,
-			Title = series.Title,
-			Order = 0,
-			ParentId = null
-		}, cancellationToken);
+		return await ExecuteInTransaction(async () => {
+			var series = await seriesRepository.Create(mapper.CreateSeries(dto), cancellationToken);
+			await treeRepository.Create(new BookNodeModel {
+				Id = series.Id,
+				Type = BookNodeType.Series,
+				Title = series.Title,
+				Order = 0,
+				ParentId = null,
+				Path = "n" + series.Id.ToString("N")
+			}, cancellationToken);
 
-		return series;
+			return series;
+		}, cancellationToken);
 	}
 
 	public async Task<(SeriesModel Series, bool Created)> GetOrCreateSeries(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
@@ -78,11 +108,13 @@ public sealed class BookTreeService(
 		mapper.UpdateSeries(dto, series);
 		node.Title = series.Title;
 
-		await treeRepository.Update(node, cancellationToken);
-		return await seriesRepository.Update(series, cancellationToken);
+		return await ExecuteInTransaction(async () => {
+			await treeRepository.Update(node, cancellationToken);
+			return await seriesRepository.Update(series, cancellationToken);
+		}, cancellationToken);
 	}
 
-	public async Task<BookNodeModel> CreateNode(Guid id, BookNodeType type, Guid? parentId, string title, float order, CancellationToken cancellationToken = default) {
+	public async Task<BookNodeModel> CreateNode(Guid id, BookNodeType type, Guid? parentId, string title, double order, CancellationToken cancellationToken = default) {
 		await ValidateParent(type, parentId, cancellationToken);
 		var existing = await treeRepository.FindOne(id, cancellationToken);
 		if (existing is not null) {
@@ -94,16 +126,21 @@ public sealed class BookTreeService(
 			throw new InvalidOperationException($"A {type} node already exists at order {order}");
 		}
 
+		var path = parentId is null
+			? "n" + id.ToString("N")
+			: (await treeRepository.FindOne(parentId.Value, cancellationToken))!.Path + "." + "n" + id.ToString("N");
+
 		return await treeRepository.Create(new BookNodeModel {
 			Id = id,
 			Type = type,
 			ParentId = parentId,
 			Title = title,
-			Order = order
+			Order = order,
+			Path = path
 		}, cancellationToken);
 	}
 
-	public async Task<BookNodeModel> UpdateNode(Guid id, string? title, float? order, CancellationToken cancellationToken = default) {
+	public async Task<BookNodeModel> UpdateNode(Guid id, string? title, double? order, CancellationToken cancellationToken = default) {
 		var node = await treeRepository.FindOneTracked(id, cancellationToken) ??
 			throw new EntityNotFoundException($"Book node with id {id} not found");
 
@@ -125,24 +162,27 @@ public sealed class BookTreeService(
 
 	public async Task<VolumeModel> CreateVolume(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
 		var seriesId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
-		_ = await RequireNode(seriesId, BookNodeType.Series, cancellationToken);
+		var parentNode = await RequireNode(seriesId, BookNodeType.Series, cancellationToken);
 
 		var existingNode = await treeRepository.FindChildByOrder(seriesId, dto.Order, cancellationToken);
 		if (existingNode is not null) {
 			return await UpdateVolume(existingNode.Id, new UpdateVolumeRequestDto(dto.Order, dto.Title, dto.Metadata), cancellationToken);
 		}
 
-		var volume = mapper.CreateVolume(dto, seriesId);
-		var created = await volumeRepository.Create(volume, cancellationToken);
-		await treeRepository.Create(new BookNodeModel {
-			Id = created.Id,
-			Type = BookNodeType.Volume,
-			ParentId = seriesId,
-			Order = created.Order,
-			Title = created.Title
-		}, cancellationToken);
+		return await ExecuteInTransaction(async () => {
+			var volume = mapper.CreateVolume(dto, seriesId);
+			var created = await volumeRepository.Create(volume, cancellationToken);
+			await treeRepository.Create(new BookNodeModel {
+				Id = created.Id,
+				Type = BookNodeType.Volume,
+				ParentId = seriesId,
+				Order = created.Order,
+				Title = created.Title,
+				Path = parentNode.Path + "." + "n" + created.Id.ToString("N")
+			}, cancellationToken);
 
-		return created;
+			return created;
+		}, cancellationToken);
 	}
 
 	public async Task<VolumeModel> UpdateVolume(Guid volumeId, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
@@ -154,8 +194,10 @@ public sealed class BookTreeService(
 		node.Title = volume.Title;
 		node.Order = volume.Order;
 
-		await treeRepository.Update(node, cancellationToken);
-		var result = await volumeRepository.Update(volume, cancellationToken);
+		var result = await ExecuteInTransaction(async () => {
+			await treeRepository.Update(node, cancellationToken);
+			return await volumeRepository.Update(volume, cancellationToken);
+		}, cancellationToken);
 
 		if (dto.SeriesId is not null) {
 			var newParentId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
@@ -195,7 +237,7 @@ public sealed class BookTreeService(
 		return new PagedResult<ChapterModel>(await LoadChapters(children, cancellationToken), total, pagination.PageIndex, pagination.PageSize);
 	}
 
-	public async Task MoveNode(Guid nodeId, Guid? newParentId, float newOrder, CancellationToken cancellationToken = default) {
+	public async Task MoveNode(Guid nodeId, Guid? newParentId, double newOrder, CancellationToken cancellationToken = default) {
 		var node = await treeRepository.FindOneTracked(nodeId, cancellationToken) ??
 			throw new EntityNotFoundException($"Book node with id {nodeId} not found");
 		await ValidateParent(node.Type, newParentId, cancellationToken);
@@ -204,43 +246,67 @@ public sealed class BookTreeService(
 			throw new InvalidOperationException($"A {node.Type} node already exists at order {newOrder}");
 		}
 
+		var oldPath = node.Path;
+		var parent = newParentId is null ? null : await treeRepository.FindOne(newParentId.Value, cancellationToken);
+		if (parent is not null && !string.IsNullOrEmpty(oldPath) && !string.IsNullOrEmpty(parent.Path)
+			&& (parent.Path == oldPath || parent.Path.StartsWith(oldPath + "."))) {
+			throw new InvalidOperationException("Cannot move a node into its own subtree.");
+		}
+		var newPath = parent is null
+			? "n" + nodeId.ToString("N")
+			: parent.Path + "." + "n" + nodeId.ToString("N");
+
 		node.ParentId = newParentId;
 		node.Order = newOrder;
-		await treeRepository.Update(node, cancellationToken);
+		node.Path = newPath;
 
-		if (node.Type == BookNodeType.Volume) {
-			var volume = await volumeRepository.FindOne(node.Id, cancellationToken);
-			if (volume is not null && newParentId is not null) {
-				volume.SeriesId = newParentId.Value;
-				volume.Order = newOrder;
-				await volumeRepository.Update(volume, cancellationToken);
+		await ExecuteInTransaction(async () => {
+			await treeRepository.Update(node, cancellationToken);
+			if (oldPath != newPath) {
+				await treeRepository.UpdateSubtreePaths(nodeId, oldPath, newPath, cancellationToken);
 			}
-		}
-		else if (node.Type == BookNodeType.Chapter) {
-			var chapter = await chapterRepository.FindOne(node.Id, cancellationToken);
-			if (chapter is not null && newParentId is not null) {
-				chapter.VolumeId = newParentId.Value;
-				chapter.Order = newOrder;
-				await chapterRepository.Update(chapter, cancellationToken);
+
+			if (node.Type == BookNodeType.Volume) {
+				var volume = await volumeRepository.FindOne(node.Id, cancellationToken);
+				if (volume is not null && newParentId is not null) {
+					volume.SeriesId = newParentId.Value;
+					volume.Order = newOrder;
+					await volumeRepository.Update(volume, cancellationToken);
+				}
 			}
-		}
+			else if (node.Type == BookNodeType.Chapter) {
+				var chapter = await chapterRepository.FindOne(node.Id, cancellationToken);
+				if (chapter is not null && newParentId is not null) {
+					chapter.VolumeId = newParentId.Value;
+					chapter.Order = newOrder;
+					await chapterRepository.Update(chapter, cancellationToken);
+				}
+			}
+		}, cancellationToken);
 	}
 
 	public async Task<int> DeleteSubtree(Guid nodeId, CancellationToken cancellationToken = default) {
 		var nodes = await treeRepository.FindSubtree(nodeId, cancellationToken);
-		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Chapter)) {
-			await chapterRepository.Delete(node.Id, cancellationToken);
-		}
+		if (nodes.Count == 0) return 0;
 
-		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Volume)) {
-			await volumeRepository.Delete(node.Id, cancellationToken);
-		}
+		var ids = nodes.Select(n => n.Id).ToList();
+		var chapterIds = nodes.Where(n => n.Type == BookNodeType.Chapter).Select(n => n.Id).ToList();
+		var volumeIds = nodes.Where(n => n.Type == BookNodeType.Volume).Select(n => n.Id).ToList();
+		var seriesIds = nodes.Where(n => n.Type == BookNodeType.Series).Select(n => n.Id).ToList();
 
-		foreach (var node in nodes.Where(n => n.Type == BookNodeType.Series)) {
-			await seriesRepository.Delete(node.Id, cancellationToken);
-		}
+		await ExecuteInTransaction(async () => {
+			if (chapterIds.Count > 0) {
+				await chapterRepository.DeleteMany(chapterIds, cancellationToken);
+			}
+			if (volumeIds.Count > 0) {
+				await volumeRepository.DeleteMany(volumeIds, cancellationToken);
+			}
+			if (seriesIds.Count > 0) {
+				await seriesRepository.DeleteMany(seriesIds, cancellationToken);
+			}
+			await treeRepository.DeleteMany(ids, cancellationToken);
+		}, cancellationToken);
 
-		await treeRepository.DeleteMany(nodes.Select(n => n.Id), cancellationToken);
 		return nodes.Count;
 	}
 
@@ -268,17 +334,22 @@ public sealed class BookTreeService(
 		return node;
 	}
 
-	private async Task EnsureNode(Guid id, BookNodeType type, Guid? parentId, string title, float order, CancellationToken cancellationToken) {
+	private async Task EnsureNode(Guid id, BookNodeType type, Guid? parentId, string title, double order, CancellationToken cancellationToken) {
 		if (await treeRepository.FindOne(id, cancellationToken) is not null) {
 			return;
 		}
+
+		var path = parentId is null
+			? "n" + id.ToString("N")
+			: (await treeRepository.FindOne(parentId.Value, cancellationToken))!.Path + "." + "n" + id.ToString("N");
 
 		await treeRepository.Create(new BookNodeModel {
 			Id = id,
 			Type = type,
 			ParentId = parentId,
 			Title = title,
-			Order = order
+			Order = order,
+			Path = path
 		}, cancellationToken);
 	}
 
@@ -363,11 +434,32 @@ public sealed class BookTreeService(
 
 	public async Task ReconcileNodesBulk(
 		Guid seriesId,
-		List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, float Order)> nodes,
+		List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, double Order)> nodes,
 		CancellationToken cancellationToken = default) {
 
 		var existingNodes = (await treeRepository.FindSeriesTree(seriesId, cancellationToken))
 			.ToDictionary(n => n.Id);
+
+		var parentIds = new Dictionary<Guid, Guid?>();
+		foreach (var n in nodes) {
+			parentIds[n.Id] = n.ParentId;
+		}
+		foreach (var n in existingNodes.Values) {
+			if (!parentIds.ContainsKey(n.Id)) {
+				parentIds[n.Id] = n.ParentId;
+			}
+		}
+
+		var visiting = new HashSet<Guid>();
+		string GetPath(Guid id, Guid? pId) {
+			if (pId is null || !visiting.Add(id)) {
+				return "n" + id.ToString("N");
+			}
+			parentIds.TryGetValue(pId.Value, out var grandparentsId);
+			var path = GetPath(pId.Value, grandparentsId) + "." + "n" + id.ToString("N");
+			visiting.Remove(id);
+			return path;
+		}
 
 		var toCreate = new List<BookNodeModel>();
 		var toUpdate = new List<BookNodeModel>();
@@ -377,6 +469,7 @@ public sealed class BookTreeService(
 				existing.Title = item.Title;
 				existing.Order = item.Order;
 				existing.ParentId = item.ParentId;
+				existing.Path = GetPath(item.Id, item.ParentId);
 				toUpdate.Add(existing);
 			}
 			else {
@@ -385,17 +478,45 @@ public sealed class BookTreeService(
 					Type = item.Type,
 					ParentId = item.ParentId,
 					Title = item.Title,
-					Order = item.Order
+					Order = item.Order,
+					Path = GetPath(item.Id, item.ParentId)
 				});
 			}
 		}
 
-		if (toCreate.Count > 0) {
-			await treeRepository.CreateBulk(toCreate, cancellationToken);
-		}
-		if (toUpdate.Count > 0) {
-			await treeRepository.UpdateBulk(toUpdate, cancellationToken);
-		}
+		var inputIds = nodes.Select(n => n.Id).ToHashSet();
+		var inputTypes = nodes.Select(n => n.Type).ToHashSet();
+		var toDeleteIds = existingNodes.Values
+			.Where(n => inputTypes.Contains(n.Type) && !inputIds.Contains(n.Id))
+			.Select(n => n.Id)
+			.ToList();
+
+		await ExecuteInTransaction(async () => {
+			if (toDeleteIds.Count > 0) {
+				var nodesToDelete = toDeleteIds.Select(id => existingNodes[id]).ToList();
+				var chapterIds = nodesToDelete.Where(n => n.Type == BookNodeType.Chapter).Select(n => n.Id).ToList();
+				var volumeIds = nodesToDelete.Where(n => n.Type == BookNodeType.Volume).Select(n => n.Id).ToList();
+				var seriesIds = nodesToDelete.Where(n => n.Type == BookNodeType.Series).Select(n => n.Id).ToList();
+
+				if (chapterIds.Count > 0) {
+					await chapterRepository.DeleteMany(chapterIds, cancellationToken);
+				}
+				if (volumeIds.Count > 0) {
+					await volumeRepository.DeleteMany(volumeIds, cancellationToken);
+				}
+				if (seriesIds.Count > 0) {
+					await seriesRepository.DeleteMany(seriesIds, cancellationToken);
+				}
+				await treeRepository.DeleteMany(toDeleteIds, cancellationToken);
+			}
+
+			if (toCreate.Count > 0) {
+				await treeRepository.CreateBulk(toCreate, cancellationToken);
+			}
+			if (toUpdate.Count > 0) {
+				await treeRepository.UpdateBulk(toUpdate, cancellationToken);
+			}
+		}, cancellationToken);
 	}
 
 }
