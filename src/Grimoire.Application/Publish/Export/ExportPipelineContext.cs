@@ -17,6 +17,15 @@ public sealed class ExportPipelineContext
     public Guid? AssetId { get; set; }
     public JobResult? Result { get; set; }
 
+    // Progress
+    public System.Action<int>? OnProgress { get; set; }
+    public string? CurrentStage { get; set; }
+
+    public void ReportSubProgress(double fraction)
+    {
+        OnProgress?.Invoke((int)(fraction * 100));
+    }
+
     public ExportPipelineContext(Guid seriesId, BinderyRequestDto request, string jobId)
     {
         SeriesId = seriesId;

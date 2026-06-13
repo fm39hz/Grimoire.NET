@@ -16,6 +16,9 @@ public sealed class ExportPipeline(
     {
         foreach (var step in _steps)
         {
+            var stageName = step.GetType().Name.Replace("Step", "");
+            context.CurrentStage = stageName;
+            context.ReportSubProgress(0.0);
             logger.LogInformation("Executing export step: {StepName} (Order={Order})", step.GetType().Name, step.Order);
             await step.ExecuteAsync(context, cancellationToken);
             if (context.Result is { Success: false })
