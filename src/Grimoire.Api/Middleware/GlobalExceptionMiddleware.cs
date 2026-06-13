@@ -3,6 +3,7 @@ namespace Grimoire.Api.Middleware;
 using System.Diagnostics;
 using System.Text.Json;
 using Domain.Exception;
+using EntityFramework.Exceptions.Common;
 using Infrastructure.Configuration;
 using Microsoft.AspNetCore.Mvc;
 
@@ -42,6 +43,11 @@ public partial class GlobalExceptionMiddleware(RequestDelegate next, ILogger<Glo
 			KeyNotFoundException => (StatusCodes.Status404NotFound, "Not Found"),
 			InvalidOperationException => (StatusCodes.Status409Conflict, "Conflict"),
 			UnsupportedOperationException => (StatusCodes.Status501NotImplemented, "Not Implemented"),
+			UniqueConstraintException => (StatusCodes.Status409Conflict, "Duplicate Key Error"),
+			ReferenceConstraintException => (StatusCodes.Status409Conflict, "Foreign Key Violation"),
+			CannotInsertNullException => (StatusCodes.Status400BadRequest, "Null Value Violation"),
+			MaxLengthExceededException => (StatusCodes.Status400BadRequest, "String Too Long"),
+			NumericOverflowException => (StatusCodes.Status400BadRequest, "Numeric Overflow Error"),
 			_ => (StatusCodes.Status500InternalServerError, "Internal Server Error")
 		};
 
