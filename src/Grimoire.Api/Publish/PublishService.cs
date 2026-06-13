@@ -21,27 +21,35 @@ public sealed class PublishService : IPublishService
     private readonly IBackgroundJobClient _backgroundJobs;
     private readonly JobStorage _jobStorage;
     private readonly IStorageRepository _storage;
+    private readonly IUnitOfWork _unitOfWork;
 
     public PublishService(
         IBackgroundJobClient backgroundJobs,
         JobStorage jobStorage,
-        IStorageRepository storage)
+        IStorageRepository storage,
+        IUnitOfWork unitOfWork)
     {
         _backgroundJobs = backgroundJobs;
         _jobStorage = jobStorage;
         _storage = storage;
+        _unitOfWork = unitOfWork;
     }
 
     public Task<string> EnqueueExportAsync(Guid seriesId, BinderyRequestDto request, CancellationToken cancellationToken = default)
     {
-        var jobId = _backgroundJobs.Enqueue<ExportJob>(
-            job => job.ExecuteAsync(
-                null!, // PerformContext — filled by Hangfire
-                seriesId,
-                request,
-                CancellationToken.None));
+        string? jobId = null;
+        _unitOfWork.RegisterPostCommitAction(() =>
+        {
+            jobId = _backgroundJobs.Enqueue<ExportJob>(
+                job => job.ExecuteAsync(
+                    null!, // PerformContext — filled by Hangfire
+                    seriesId,
+                    request,
+                    CancellationToken.None));
+            return Task.CompletedTask;
+        });
 
-        return Task.FromResult(jobId);
+        return Task.FromResult(jobId ?? string.Empty);
     }
 
     public async Task<string> EnqueueImportAsync(
@@ -63,15 +71,20 @@ public sealed class PublishService : IPublishService
         var seriesJson = seriesDto is not null ? System.Text.Json.JsonSerializer.Serialize(seriesDto) : null;
         var volumesJson = volumesOverride is not null ? System.Text.Json.JsonSerializer.Serialize(volumesOverride) : null;
 
-        var jobId = _backgroundJobs.Enqueue<ImportJob>(
-            job => job.ExecuteAsync(
-                null!,
-                seriesJson,
-                volumesJson,
-                fileKey,
-                CancellationToken.None));
+        string? jobId = null;
+        _unitOfWork.RegisterPostCommitAction(() =>
+        {
+            jobId = _backgroundJobs.Enqueue<ImportJob>(
+                job => job.ExecuteAsync(
+                    null!,
+                    seriesJson,
+                    volumesJson,
+                    fileKey,
+                    CancellationToken.None));
+            return Task.CompletedTask;
+        });
 
-        return jobId;
+        return jobId ?? string.Empty;
     }
 
     public Task<PublishJobStatusDto?> GetJobStatusAsync(string jobId, CancellationToken cancellationToken = default)

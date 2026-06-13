@@ -182,4 +182,5 @@ public sealed class NoOpUnitOfWork : IUnitOfWork {
 	public Task CommitTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	public Task RollbackTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
+	public void RegisterPostCommitAction(System.Func<Task> action) => Task.Run(action);
 }

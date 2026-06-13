@@ -25,4 +25,9 @@ public interface IUnitOfWork {
 	///     Saves all pending changes to the database
 	/// </summary>
 	public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+
+	/// <summary>
+	///     Registers an action to run after the transaction successfully commits
+	/// </summary>
+	public void RegisterPostCommitAction(System.Func<Task> action);
 }
