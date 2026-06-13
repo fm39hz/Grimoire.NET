@@ -15,7 +15,12 @@ public static class DatabaseExtension {
 		var connectionString = builder.Configuration["ConnectionStrings:Postgre"]!;
 		var postgresConnection = new PostgreSqlConfiguration(connectionString);
 		builder.Services.AddDbContext<ApplicationDbContext>(options =>
-			options.UseNpgsql(postgresConnection.ConnectionString)
+			options.UseNpgsql(postgresConnection.ConnectionString, npgsqlOptions => {
+					npgsqlOptions.EnableRetryOnFailure(
+						maxRetryCount: 5,
+						maxRetryDelay: TimeSpan.FromSeconds(30),
+						errorCodesToAdd: null);
+				})
 				.UseSnakeCaseNamingConvention()
 				.UseExceptionProcessor()
 				.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
