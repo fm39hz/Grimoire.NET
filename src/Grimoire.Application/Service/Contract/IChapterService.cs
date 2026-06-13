@@ -14,4 +14,7 @@ public interface IChapterService : ICrudService<ChapterModel, CreateChapterReque
 		CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto, CancellationToken cancellationToken = default);
 	public Task<ChapterModel> MergeAsync(MergeChaptersRequestDto dto, CancellationToken cancellationToken = default);
+
+	// TODO: Implement Postgres-native Full-Text Search (FTS) using tsvector / tsquery GIN index on chapter segments text content.
+	// Task<IEnumerable<ChapterModel>> SearchChaptersAsync(string query, CancellationToken cancellationToken = default);
 }
