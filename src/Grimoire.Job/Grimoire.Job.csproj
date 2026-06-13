@@ -16,6 +16,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Content Update="appsettings.json" CopyToPublishDirectory="Never" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="../Grimoire.Application/Grimoire.Application.csproj"/>
 		<ProjectReference Include="../Grimoire.Infrastructure/Grimoire.Infrastructure.csproj"/>
 	</ItemGroup>
