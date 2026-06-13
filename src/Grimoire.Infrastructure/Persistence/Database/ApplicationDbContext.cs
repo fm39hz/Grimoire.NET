@@ -20,13 +20,6 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SeriesExportRecord> SeriesExportRecords { get; set; } = null!;
 
-	public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) {
-		foreach (var entry in ChangeTracker.Entries<BaseModel>().Where(e => e.State == EntityState.Modified)) {
-			entry.Entity.MarkAsUpdated();
-		}
-		return await base.SaveChangesAsync(cancellationToken);
-	}
-
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
 

@@ -23,6 +23,7 @@ public static class DatabaseExtension {
 				})
 				.UseSnakeCaseNamingConvention()
 				.UseExceptionProcessor()
+				.AddInterceptors(new AuditInterceptor())
 				.ConfigureWarnings(w => w.Ignore(CoreEventId.AccidentalEntityType)));
 
 		service.AddTransient<DatabaseSeeder>();
