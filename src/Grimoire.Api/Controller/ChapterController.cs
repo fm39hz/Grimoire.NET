@@ -73,14 +73,11 @@ public sealed class ChapterController(
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<ChapterListResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination, CancellationToken cancellationToken) {
-		var pagedChapters = await service.FindAll(pagination.ToApplicationDto(), cancellationToken);
-		var pagedDto = new PagedResult<ChapterListResponseDto>(
-			pagedChapters.Items.Select(mapper.ToChapterListDto).ToList(),
-			pagedChapters.TotalCount,
-			pagedChapters.PageIndex,
-			pagedChapters.PageSize
-			);
+	public async Task<IResult> FindAll(
+		[FromQuery] PaginationRequestDto pagination,
+		[FromServices] Grimoire.Application.Persistence.IChapterProjectedQuery query,
+		CancellationToken cancellationToken) {
+		var pagedDto = await query.FindAllProjectedAsync(pagination.PageIndex, pagination.PageSize, cancellationToken);
 		return Results.Ok(pagedDto);
 	}
 

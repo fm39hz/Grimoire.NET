@@ -24,8 +24,12 @@ public static class DependencyInjection {
 		// Register repositories
 		services.AddScoped<IBookTreeRepository, BookTreeRepository>();
 		services.AddScoped<ISeriesRepository, SeriesRepository>();
-		services.AddScoped<IVolumeRepository, VolumeRepository>();
-		services.AddScoped<IChapterRepository, ChapterRepository>();
+		services.AddScoped<VolumeRepository>();
+		services.AddScoped<IVolumeRepository>(sp => sp.GetRequiredService<VolumeRepository>());
+		services.AddScoped<Application.Persistence.IVolumeProjectedQuery>(sp => sp.GetRequiredService<VolumeRepository>());
+		services.AddScoped<ChapterRepository>();
+		services.AddScoped<IChapterRepository>(sp => sp.GetRequiredService<ChapterRepository>());
+		services.AddScoped<Application.Persistence.IChapterProjectedQuery>(sp => sp.GetRequiredService<ChapterRepository>());
 		services.AddScoped<IAssetRepository, AssetRepository>();
 		services.AddScoped<ISourceMaterialRepository, SourceMaterialRepository>();
 		services.AddScoped<ISeriesExportRecordRepository, SeriesExportRecordRepository>();

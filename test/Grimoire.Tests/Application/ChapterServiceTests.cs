@@ -98,6 +98,8 @@ public sealed class ChapterServiceTests {
 		public VolumeResponseDto ToVolumeDto(VolumeModel model) => throw new NotSupportedException();
 		public AssetResponseDto ToAssetDto(AssetModel model) => throw new NotSupportedException();
 		public TextSegmentDto ToTextSegmentDto(TextSegmentModel model) => throw new NotSupportedException();
+		public IQueryable<VolumeResponseDto> ProjectToVolumeDto(IQueryable<VolumeModel> query) => throw new NotSupportedException();
+		public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query) => throw new NotSupportedException();
 	}
 
 	// ── FindOne & FindAll Tests ───────────────────────────────────────────────

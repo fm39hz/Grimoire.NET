@@ -59,4 +59,23 @@ public partial class BookMapper {
 		PrefixedId.ToString(EntityPrefix.Segment, id);
 
 	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
+
+	public System.Linq.IQueryable<VolumeResponseDto> ProjectToVolumeDto(System.Linq.IQueryable<VolumeModel> query) =>
+		query.Select(v => new VolumeResponseDto {
+			Id = "vol_" + v.Id,
+			SeriesId = "ser_" + v.SeriesId,
+			Title = v.Title,
+			Order = v.Order,
+			CreatedAt = v.CreatedAt,
+			UpdatedAt = v.UpdatedAt
+		});
+
+	public System.Linq.IQueryable<ChapterListResponseDto> ProjectToChapterListDto(System.Linq.IQueryable<ChapterModel> query) =>
+		query.Select(c => new ChapterListResponseDto {
+			Id = "chap_" + c.Id,
+			VolumeId = "vol_" + c.VolumeId,
+			Title = c.Title,
+			Order = c.Order,
+			UpdatedAt = c.UpdatedAt
+		});
 }

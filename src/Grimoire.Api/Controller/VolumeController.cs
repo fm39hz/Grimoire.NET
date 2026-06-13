@@ -29,14 +29,11 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 
 	[HttpGet]
 	[ProducesResponseType(typeof(PagedResult<VolumeResponseDto>), 200)]
-	public async Task<IResult> FindAll([FromQuery] PaginationRequestDto pagination, CancellationToken cancellationToken) {
-		var pagedVolumes = await service.FindAll(pagination.ToApplicationDto(), cancellationToken);
-		var pagedDto = new PagedResult<VolumeResponseDto>(
-			pagedVolumes.Items.Select(mapper.ToVolumeDto).ToList(),
-			pagedVolumes.TotalCount,
-			pagedVolumes.PageIndex,
-			pagedVolumes.PageSize
-			);
+	public async Task<IResult> FindAll(
+		[FromQuery] PaginationRequestDto pagination,
+		[FromServices] Grimoire.Application.Persistence.IVolumeProjectedQuery query,
+		CancellationToken cancellationToken) {
+		var pagedDto = await query.FindAllProjectedAsync(pagination.PageIndex, pagination.PageSize, cancellationToken);
 		return Results.Ok(pagedDto);
 	}
 
