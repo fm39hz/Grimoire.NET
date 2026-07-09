@@ -7,6 +7,7 @@ using Dto.Book.Segment;
 
 public interface IBookMapper {
 	public ChapterResponseDto ToChapterDto(ChapterModel model);
+	public ChapterResponseDto ToChapterDto(ChapterModel model, IEnumerable<SegmentModel> segments);
 	public ChapterListResponseDto ToChapterListDto(ChapterModel model);
 	public SeriesResponseDto ToSeriesDto(SeriesModel model);
 	public VolumeResponseDto ToVolumeDto(VolumeModel model);
@@ -15,10 +16,9 @@ public interface IBookMapper {
 	public System.Linq.IQueryable<ChapterListResponseDto> ProjectToChapterListDto(System.Linq.IQueryable<ChapterModel> query);
 	public SeriesModel CreateSeries(CreateSeriesRequestDto dto);
 	public TextSegmentDto ToTextSegmentDto(TextSegmentModel model);
-	public VolumeModel CreateVolume(CreateVolumeRequestDto dto, Guid seriesId);
-	public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId);
+	public VolumeModel CreateVolume(CreateVolumeRequestDto dto);
+	public ChapterModel CreateChapter(CreateChapterRequestDto dto);
 	public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model);
 	public void UpdateVolume(UpdateVolumeRequestDto dto, VolumeModel model);
 	public void UpdateSeries(UpdateSeriesRequestDto dto, SeriesModel model);
-	public void MergeChapter(ChapterModel source, ChapterContentModel sourceContent, ChapterModel target);
 }

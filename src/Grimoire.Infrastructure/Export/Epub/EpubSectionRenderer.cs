@@ -380,13 +380,17 @@ public partial class EpubSectionRenderer(
 				}
 
 				var chapter = chapterModels.FirstOrDefault(c => c.Id == chapterId);
-				if (chapter?.ContentData?.Segments == null) {
+				if (chapter == null) {
+					continue;
+				}
+
+				if (!context.ChapterSegmentsMap.TryGetValue(chapter.Id, out var allSegments)) {
 					continue;
 				}
 
 				var chId = chapter.Id.ToString();
-				var segments = chapter.ContentData.Segments;
-				var footnotes = chapter.ContentData.Footnotes;
+				var segments = allSegments.Where(s => s is not FootnoteSegmentModel).OrderBy(s => s.Order).ToList();
+				var footnotes = allSegments.OfType<FootnoteSegmentModel>().OrderBy(s => s.Order).ToList();
 
 				string renderedContent;
 				string chFileName;

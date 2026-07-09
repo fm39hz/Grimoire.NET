@@ -3,6 +3,7 @@ namespace Grimoire.Application.Export;
 using System.Threading;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
+using Grimoire.Domain.Common.Extensions;
 
 public class ChapterLoader(IChapterRepository chapterRepository) {
 	public async Task<IReadOnlyDictionary<Guid, List<ChapterModel>>> LoadAsync(
@@ -17,7 +18,7 @@ public class ChapterLoader(IChapterRepository chapterRepository) {
 		var allChapters = await chapterRepository.FindByVolumeIdsWithContent(volumeIds, cancellationToken);
 
 		return allChapters
-			.GroupBy(c => c.VolumeId)
+			.GroupBy(c => c.Path.GetVolumeId())
 			.ToDictionary(g => g.Key, g => g.ToList());
 	}
 }

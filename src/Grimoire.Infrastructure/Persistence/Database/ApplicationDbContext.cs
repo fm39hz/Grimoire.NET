@@ -11,10 +11,9 @@ using Microsoft.EntityFrameworkCore;
 
 public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : DbContext(options) {
 	[UsedImplicitly] public DbSet<SeriesModel> Series { get; set; } = null!;
-	[UsedImplicitly] public DbSet<BookNodeModel> BookNodes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<VolumeModel> Volumes { get; set; } = null!;
 	[UsedImplicitly] public DbSet<ChapterModel> Chapters { get; set; } = null!;
-	[UsedImplicitly] public DbSet<ChapterContentModel> ChapterContents { get; set; } = null!;
+	[UsedImplicitly] public DbSet<SegmentModel> Segments { get; set; } = null!;
 	[UsedImplicitly] public DbSet<GlossaryTerm> GlossaryTerms { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SourceMaterial> SourceMaterials { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
@@ -36,6 +35,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasMaxLength(500)
 				.IsRequired();
 
+			entity.Property(s => s.Path)
+				.HasColumnType("ltree")
+				.IsRequired();
+
 			entity.Property(s => s.Metadata)
 				.HasColumnType("jsonb")
 				.HasConversion(
@@ -46,6 +49,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.Metadata.SetValueComparer(JsonConfiguration.MetadataComparer);
 			entity.HasIndex(s => s.Metadata).HasMethod("gin");
 			entity.HasIndex(s => s.Title).IsUnique();
+			entity.HasIndex(s => s.Path).HasMethod("gist");
 
 			entity.HasMany(s => s.GlossaryTerms)
 				.WithOne(g => g.Series)
@@ -58,29 +62,6 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 
-		modelBuilder.Entity<BookNodeModel>(entity => {
-			entity.Property(n => n.Id).ValueGeneratedNever();
-
-			entity.Property(n => n.Title)
-				.HasMaxLength(500)
-				.IsRequired();
-
-			entity.Property(n => n.Type);
-
-			entity.Property(n => n.Path)
-				.HasColumnType("ltree")
-				.IsRequired();
-
-			entity.HasIndex(n => n.ParentId);
-			entity.HasIndex(n => n.Path).HasMethod("gist");
-			entity.HasIndex(n => new { n.ParentId, n.Order }).IsUnique();
-
-			entity.HasOne<BookNodeModel>()
-				.WithMany()
-				.HasForeignKey(n => n.ParentId)
-				.OnDelete(DeleteBehavior.Cascade);
-		});
-
 		modelBuilder.Entity<VolumeModel>(entity => {
 			entity.Property(v => v.Id).ValueGeneratedOnAdd();
 
@@ -89,7 +70,12 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.IsRequired()
 				.UseCollation("natural_sort");
 
-			entity.HasIndex(e => new { e.SeriesId, e.Order }).IsUnique();
+			entity.Property(v => v.Path)
+				.HasColumnType("ltree")
+				.IsRequired();
+
+			entity.HasIndex(v => v.Path).HasMethod("gist");
+			entity.HasIndex(v => new { v.Path, v.Order }).IsUnique();
 			entity.OwnsOne(s => s.Metadata, metaBuilder => metaBuilder.ToJson());
 		});
 
@@ -103,35 +89,58 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 			entity.Property(c => c.Status);
 
-			entity.HasIndex(e => new { e.VolumeId, e.Order }).IsUnique();
-			entity.HasIndex(c => c.Status); // Add index for Status queries
+			entity.Property(c => c.Path)
+				.HasColumnType("ltree")
+				.IsRequired();
 
-			entity.HasOne(c => c.ContentData)
-				.WithOne(cc => cc.Chapter)
-				.HasForeignKey<ChapterContentModel>(cc => cc.Id)
-				.OnDelete(DeleteBehavior.Cascade);
+			entity.HasIndex(c => c.Path).HasMethod("gist");
+			entity.HasIndex(c => new { c.Path, c.Order }).IsUnique();
+			entity.HasIndex(c => c.Status);
 		});
 
-		modelBuilder.Entity<ChapterContentModel>(entity => {
-			entity.HasKey(cc => cc.Id);
-			entity.Property(cc => cc.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<SegmentModel>(entity => {
+			entity.HasKey(s => s.Id);
+			entity.Property(s => s.Id).ValueGeneratedOnAdd();
 
-			entity.Property(cc => cc.Segments)
+			entity.Property(s => s.Path)
+				.HasColumnType("ltree")
+				.IsRequired();
+
+			entity.Property(s => s.Order).IsRequired();
+
+			entity.HasIndex(s => s.Path).HasMethod("gist");
+			entity.HasIndex(s => new { s.Path, s.Order }).IsUnique();
+
+			entity.HasDiscriminator<string>("SegmentType")
+				.HasValue<TextSegmentModel>("Text")
+				.HasValue<ImageSegmentModel>("Image")
+				.HasValue<DividerSegmentModel>("Divider")
+				.HasValue<FootnoteSegmentModel>("Footnote");
+		});
+
+		modelBuilder.Entity<TextSegmentModel>(entity => {
+			entity.Property(t => t.Runs)
 				.HasColumnType("jsonb")
 				.HasConversion(
 					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
-					v => JsonSerializer.Deserialize<List<SegmentModel>>(v, JsonConfiguration.JsonOptions) ??
-						new List<SegmentModel>()
-					).Metadata.SetValueComparer(JsonConfiguration.ContentComparer);
+					v => JsonSerializer.Deserialize<List<TextRun>>(v, JsonConfiguration.JsonOptions) ??
+						new List<TextRun>()
+				).Metadata.SetValueComparer(JsonConfiguration.TextRunComparer);
+		});
 
-			entity.Property(cc => cc.Footnotes)
+		modelBuilder.Entity<ImageSegmentModel>(entity => {
+			entity.Property(i => i.AssetKey).HasMaxLength(500).IsRequired();
+			entity.Property(i => i.Caption).HasMaxLength(1000);
+		});
+
+		modelBuilder.Entity<FootnoteSegmentModel>(entity => {
+			entity.Property(f => f.Segments)
 				.HasColumnType("jsonb")
 				.HasConversion(
 					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
-					v => JsonSerializer.Deserialize<List<FootnoteSegmentModel>>(
-							v, JsonConfiguration.JsonOptions) ??
-						new List<FootnoteSegmentModel>()
-					).Metadata.SetValueComparer(JsonConfiguration.FootnoteComparer);
+					v => JsonSerializer.Deserialize<List<TextSegmentModel>>(v, JsonConfiguration.JsonOptions) ??
+						new List<TextSegmentModel>()
+				).Metadata.SetValueComparer(JsonConfiguration.FootnoteSegmentsComparer);
 		});
 
 		modelBuilder.Entity<GlossaryTerm>(entity => {
@@ -189,10 +198,6 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.HasIndex(a => new { a.SeriesId, a.FileHash });
 			entity.HasIndex(a => a.RefType);
 
-			entity.HasOne<BookNodeModel>()
-				.WithMany()
-				.HasForeignKey(a => a.OwnerNodeId)
-				.OnDelete(DeleteBehavior.SetNull);
 		});
 
 		modelBuilder.Entity<SeriesExportRecord>(entity => {

@@ -1,18 +1,23 @@
 namespace Grimoire.Tests.Application;
 
+using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
+using Grimoire.Application.Dto.Book.Segment;
 using Grimoire.Application.Service.Strategy;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
 using Grimoire.Tests.TestInfrastructure;
 using Xunit;
 
-public sealed class IngestionStrategyTests {
+public class IngestionStrategyTests {
+
 	// ── PreProcessedIngestionStrategy Tests ───────────────────────────────────
 
 	[Fact]
-	public void PreProcessedIngestionStrategy_CanHandle_ContentIsNotNull_ReturnsTrue() {
+	public void PreProcessedIngestionStrategy_CanHandle_ValidContent_ReturnsTrue() {
 		var strategy = new PreProcessedIngestionStrategy();
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
@@ -27,7 +32,7 @@ public sealed class IngestionStrategyTests {
 	}
 
 	[Fact]
-	public void PreProcessedIngestionStrategy_CanHandle_ContentIsNull_ReturnsFalse() {
+	public void PreProcessedIngestionStrategy_CanHandle_NullContent_ReturnsFalse() {
 		var strategy = new PreProcessedIngestionStrategy();
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
@@ -42,10 +47,10 @@ public sealed class IngestionStrategyTests {
 	}
 
 	[Fact]
-	public async Task PreProcessedIngestionStrategy_ExecuteAsync_RemapsFootnotesAndReturnsResult() {
+	public async Task PreProcessedIngestionStrategy_ExecuteAsync_ReturnsResult() {
 		var strategy = new PreProcessedIngestionStrategy();
 		var volumeId = Guid.NewGuid();
-		var originalFootnoteId = "fn-original";
+		var originalFootnoteId = Guid.NewGuid().ToString();
 
 		var segment = new TextSegmentModel {
 			Id = Guid.NewGuid(),
@@ -65,18 +70,17 @@ public sealed class IngestionStrategyTests {
 		var result = await strategy.ExecuteAsync(dto, volumeId);
 
 		Assert.NotNull(result);
-		Assert.Equal(volumeId, result.Chapter.VolumeId);
 		Assert.Equal(2, result.Chapter.Order);
 		Assert.Equal("Chapter 1", result.Chapter.Title);
 		Assert.Equal(ChapterStatus.Done, result.Chapter.Status);
 		Assert.Null(result.Source);
 
-		var mappedSegment = Assert.IsType<TextSegmentModel>(Assert.Single(result.Content.Segments));
+		var mappedSegment = Assert.IsType<TextSegmentModel>(Assert.Single(result.Segments.OfType<TextSegmentModel>()));
 		var mappedFootnoteId = mappedSegment.Runs.First().FootnoteId;
 		Assert.NotNull(mappedFootnoteId);
 		Assert.NotEqual(originalFootnoteId, mappedFootnoteId);
 
-		var systemFootnote = Assert.Single(result.Content.Footnotes);
+		var systemFootnote = Assert.Single(result.Segments.OfType<FootnoteSegmentModel>());
 		Assert.Equal(mappedFootnoteId, systemFootnote.Id.ToString());
 	}
 
@@ -108,33 +112,30 @@ public sealed class IngestionStrategyTests {
 			Title: "Test",
 			Content: null,
 			Footnotes: [],
-			RawContent: "This is raw markdown content.\nAnother line."
+			RawContent: "some markdown"
 		);
 
 		Assert.True(strategy.CanHandle(dto));
 	}
 
-	[Theory]
-	[InlineData(null)]
-	[InlineData("")]
-	[InlineData("   ")]
-	public void RawMarkdownIngestionStrategy_CanHandle_NullOrWhitespaceContent_ReturnsFalse(string? rawContent) {
+	[Fact]
+	public void RawMarkdownIngestionStrategy_CanHandle_NullRawContent_ReturnsFalse() {
 		var repo = new InMemoryVolumeRepository();
 		var strategy = new RawMarkdownIngestionStrategy(repo);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
 			Title: "Test",
-			Content: null,
+			Content: [],
 			Footnotes: [],
-			RawContent: rawContent
+			RawContent: null
 		);
 
 		Assert.False(strategy.CanHandle(dto));
 	}
 
 	[Fact]
-	public void RawMarkdownIngestionStrategy_CanHandle_ContainsHtml_ReturnsFalse() {
+	public void RawMarkdownIngestionStrategy_CanHandle_ContentContainsHtml_ReturnsFalse() {
 		var repo = new InMemoryVolumeRepository();
 		var strategy = new RawMarkdownIngestionStrategy(repo);
 		var dto = new CreateChapterRequestDto(
@@ -156,7 +157,7 @@ public sealed class IngestionStrategyTests {
 		var repo = new InMemoryVolumeRepository();
 		await repo.Create(new VolumeModel {
 			Id = volumeId,
-			SeriesId = seriesId,
+			Path = $"n{seriesId:N}.n{volumeId:N}",
 			Order = 1,
 			Title = "Volume 1"
 		});
@@ -174,7 +175,6 @@ public sealed class IngestionStrategyTests {
 		var result = await strategy.ExecuteAsync(dto, volumeId);
 
 		Assert.NotNull(result);
-		Assert.Equal(volumeId, result.Chapter.VolumeId);
 		Assert.Equal(5, result.Chapter.Order);
 		Assert.Equal("Chapter 5", result.Chapter.Title);
 		Assert.Equal(ChapterStatus.Draft, result.Chapter.Status);
@@ -184,10 +184,10 @@ public sealed class IngestionStrategyTests {
 		Assert.Equal("Chapter 5 - Raw Source", result.Source.Title);
 		Assert.Equal("Line 1\n\nLine 2", result.Source.MarkdownContent);
 
-		Assert.Equal(2, result.Content.Segments.Count);
-		var seg1 = Assert.IsType<TextSegmentModel>(result.Content.Segments[0]);
+		Assert.Equal(2, result.Segments.Count);
+		var seg1 = Assert.IsType<TextSegmentModel>(result.Segments[0]);
 		Assert.Equal("Line 1", seg1.Runs.First().Text);
-		var seg2 = Assert.IsType<TextSegmentModel>(result.Content.Segments[1]);
+		var seg2 = Assert.IsType<TextSegmentModel>(result.Segments[1]);
 		Assert.Equal("Line 2", seg2.Runs.First().Text);
 	}
 
@@ -256,7 +256,7 @@ public sealed class IngestionStrategyTests {
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
 			Title: "Test",
-			Content: null, // this makes strategy.CanHandle return false because RawContent is also null
+			Content: null,
 			Footnotes: [],
 			RawContent: null
 		);

@@ -186,12 +186,13 @@ public partial class MarkdownSectionRenderer(
 					chSb.AppendLine($"## {chapter.Title}");
 					chSb.AppendLine();
 
-					if (chapter.ContentData?.Segments != null) {
-						var footnoteList = chapter.ContentData.Footnotes;
+					if (context.ChapterSegmentsMap.TryGetValue(chapter.Id, out var segments)) {
+						var footnoteList = segments.OfType<FootnoteSegmentModel>().ToList();
 						var footnoteMap = BuildFootnoteMap(footnoteList);
 
 						var isFirstText = true;
-						foreach (var segment in chapter.ContentData.Segments) {
+						var contentSegments = segments.Where(s => s is not FootnoteSegmentModel).OrderBy(s => s.Order).ToList();
+						foreach (var segment in contentSegments) {
 							var markdown = ConvertSegmentToMarkdown(segment, footnoteMap, context.Structure.FootnoteStyle, context.Structure.EnableDropcap, ref isFirstText);
 							if (!string.IsNullOrWhiteSpace(markdown)) {
 								chSb.AppendLine(markdown);
@@ -199,7 +200,7 @@ public partial class MarkdownSectionRenderer(
 							}
 						}
 
-						if (footnoteList != null && footnoteList.Count > 0) {
+						if (footnoteList.Count > 0) {
 							chSb.AppendLine();
 							AppendFootnotes(chSb, footnoteList, footnoteMap, context.Structure.FootnoteStyle);
 						}

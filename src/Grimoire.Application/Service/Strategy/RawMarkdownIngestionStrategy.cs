@@ -6,6 +6,7 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
+using Grimoire.Domain.Common.Extensions;
 
 /// <summary>
 ///     Strategy for ingesting raw Markdown content
@@ -30,13 +31,16 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 		var chapterId = Guid.CreateVersion7();
 		var sourceId = Guid.CreateVersion7();
 
-		// Fetch the volume to get SeriesId
+		// Fetch the volume to get SeriesId via Path
 		var volume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
-					throw new InvalidOperationException($"Volume with ID {dto.VolumeId} not found");
+					throw new InvalidOperationException($"Volume with ID {volumeId} not found");
+
+		Guid seriesId = volume.Path.GetSeriesId();
 
 		// Parse RawContent into segments (simple split by newline)
 		var lines = dto.RawContent!.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 		var segments = new List<SegmentModel>();
+		double order = 1.0;
 
 		foreach (var line in lines) {
 			var trimmedLine = line.Trim();
@@ -45,7 +49,8 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 					Id = Guid.CreateVersion7(),
 					Runs = [
 						new TextRun(trimmedLine)
-					]
+					],
+					Order = order++
 				});
 			}
 		}
@@ -53,21 +58,18 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 		// Create SourceMaterial for backup with the correct SeriesId
 		var source = new SourceMaterial {
 			Id = sourceId,
-			SeriesId = volume.SeriesId,
+			SeriesId = seriesId,
 			Title = $"{dto.Title} - Raw Source",
 			MarkdownContent = dto.RawContent!
 		};
 
 		var chapter = new ChapterModel {
 			Id = chapterId,
-			VolumeId = volumeId,
 			Order = dto.Order,
 			Title = dto.Title,
 			Status = ChapterStatus.Draft
 		};
 
-		var content = new ChapterContentModel { Id = chapterId, Segments = segments, Footnotes = [] };
-
-		return new IngestionResult(chapter, content, source);
+		return new IngestionResult(chapter, segments, source);
 	}
 }

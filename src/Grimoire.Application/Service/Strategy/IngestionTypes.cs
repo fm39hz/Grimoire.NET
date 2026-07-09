@@ -7,5 +7,5 @@ using Domain.Entity.Book;
 /// </summary>
 public record IngestionResult(
 	ChapterModel Chapter,
-	ChapterContentModel Content,
+	IReadOnlyList<SegmentModel> Segments,
 	SourceMaterial? Source);

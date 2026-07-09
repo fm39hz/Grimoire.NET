@@ -1,6 +1,11 @@
 namespace Grimoire.Application.Export;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
+using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
@@ -15,7 +20,8 @@ public class BookExportOrchestrator(
 	ChapterLoader chapterLoader,
 	CoverResolver coverResolver,
 	ImageAssetCollector imageAssetCollector,
-	IBookTreeService bookTreeService) {
+	IBookTreeService bookTreeService,
+	ISegmentRepository segmentRepository) {
 
 	public async Task<BookExportContext> BuildContextAsync(
 		SeriesModel series,
@@ -29,11 +35,19 @@ public class BookExportOrchestrator(
 		var assetFileMap = ImageAssetCollector.GenerateFileMap(imageAssets);
 		var plainTextDescription = FlattenDescription(series.Metadata?.Description);
 
+		var allChapters = chapterMap.Values.SelectMany(c => c).ToList();
+		var segmentsMap = new Dictionary<Guid, List<SegmentModel>>();
+		foreach (var ch in allChapters) {
+			var segments = (await segmentRepository.FindByChapterPath(ch.Path, cancellationToken)).ToList();
+			segmentsMap[ch.Id] = segments;
+		}
+
 		return new BookExportContext {
 			Series = series,
 			Tree = tree,
 			Volumes = volumes,
 			ChapterMap = chapterMap,
+			ChapterSegmentsMap = segmentsMap,
 			CoverAsset = coverAsset,
 			CoverStreamProvider = coverStream,
 			ImageAssets = imageAssets,

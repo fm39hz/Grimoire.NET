@@ -17,7 +17,7 @@ public class ProjectionTests {
 		var volumes = new List<VolumeModel> {
 			new() {
 				Id = volumeId,
-				SeriesId = seriesId,
+				Path = $"n{seriesId:N}.n{volumeId:N}",
 				Title = "Volume 1",
 				Order = 1,
 				CreatedAt = DateTime.UtcNow,
@@ -42,7 +42,7 @@ public class ProjectionTests {
 		var chapters = new List<ChapterModel> {
 			new() {
 				Id = chapterId,
-				VolumeId = volumeId,
+				Path = $"n{Guid.NewGuid():N}.n{volumeId:N}.n{chapterId:N}",
 				Title = "Chapter 1",
 				Order = 2,
 				CreatedAt = DateTime.UtcNow,

@@ -22,7 +22,7 @@ public static class DependencyInjection {
 		services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 		// Register repositories
-		services.AddScoped<IBookTreeRepository, BookTreeRepository>();
+		services.AddScoped<ISegmentRepository, SegmentRepository>();
 		services.AddScoped<ISeriesRepository, SeriesRepository>();
 		services.AddScoped<VolumeRepository>();
 		services.AddScoped<IVolumeRepository>(sp => sp.GetRequiredService<VolumeRepository>());

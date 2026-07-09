@@ -22,61 +22,66 @@ public sealed class ChapterRepository(ApplicationDbContext context, IBookMapper 
 
 		return new PagedResult<ChapterListResponseDto>(items, count, pageIndex, pageSize);
 	}
-	public override async Task<ChapterModel?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
-		await Entities
+	public async Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) {
+		LTree volumePath = "n" + volumeId.ToString("N");
+		return await Entities
 			.AsNoTracking()
-			.AsSplitQuery()
-			.Include(c => c.ContentData)
-			.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
-
-	public async Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) =>
-		await Entities
-			.AsNoTracking()
-			.AsSplitQuery()
-			.Where(c => c.VolumeId == volumeId)
+			.Where(c => c.Path.MatchesLQuery($"{volumePath}.*"))
 			.OrderBy(c => c.Order)
 			.ToListAsync(cancellationToken);
+	}
 
 	public async Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, int pageIndex, int pageSize, CancellationToken cancellationToken = default) {
-		var items = await Entities
+		LTree volumePath = "n" + volumeId.ToString("N");
+		return await Entities
 			.AsNoTracking()
-			.AsSplitQuery()
-			.Where(c => c.VolumeId == volumeId)
+			.Where(c => c.Path.MatchesLQuery($"{volumePath}.*"))
 			.OrderBy(c => c.Order)
 			.Skip((pageIndex - 1) * pageSize)
 			.Take(pageSize)
 			.ToListAsync(cancellationToken);
-
-		return items;
 	}
 
-	public async Task<int> CountByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) =>
-		await Entities
+	public async Task<int> CountByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) {
+		LTree volumePath = "n" + volumeId.ToString("N");
+		return await Entities
 			.AsNoTracking()
-			.Where(c => c.VolumeId == volumeId)
+			.Where(c => c.Path.MatchesLQuery($"{volumePath}.*"))
 			.CountAsync(cancellationToken);
+	}
 
-	public async Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
-		await Entities
+	public async Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) {
+		var volGuidStrings = volumeIds.Select(id => id.ToString("N")).ToList();
+		return await Entities
 			.AsNoTracking()
-			.Where(c => volumeIds.Contains(c.VolumeId))
-			.OrderBy(c => c.VolumeId)
-			.ThenBy(c => c.Order)
+			.Where(c => volGuidStrings.Contains(c.Path.ToString().Substring(35, 32)))
+			.OrderBy(c => c.Order)
 			.ToListAsync(cancellationToken);
+	}
 
-	public async Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
-		await Entities
-			.AsNoTracking()
-			.AsSplitQuery()
-			.Include(c => c.ContentData)
-			.Where(c => volumeIds.Contains(c.VolumeId))
-			.OrderBy(c => c.VolumeId)
-			.ThenBy(c => c.Order)
-			.ToListAsync(cancellationToken);
+	public async Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) {
+		// Content is now loaded separately from Segments table, this method just returns chapters.
+		return await FindByVolumeIds(volumeIds, cancellationToken);
+	}
 
-	public async Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) =>
-		await Entities
-			.AsSplitQuery()
-			.Include(c => c.ContentData)
-			.FirstOrDefaultAsync(c => c.VolumeId == volumeId && c.Order == order, cancellationToken);
+	public async Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) {
+		LTree volumePath = "n" + volumeId.ToString("N");
+		return await Entities
+			.FirstOrDefaultAsync(c => c.Path.MatchesLQuery($"{volumePath}.*") && c.Order == order, cancellationToken);
+	}
+
+	public async Task MoveChapterAsync(Guid chapterId, LTree oldPath, LTree newPath, double newOrder, CancellationToken cancellationToken = default) {
+		var oldPathLength = oldPath.ToString().Split('.').Length;
+
+		await Entities.Where(c => c.Id == chapterId)
+			.ExecuteUpdateAsync(s => s.SetProperty(c => c.Path, newPath).SetProperty(c => c.Order, newOrder), cancellationToken);
+
+		await context.Segments.Where(seg => seg.Path.IsDescendantOf(oldPath))
+			.ExecuteUpdateAsync(s => s.SetProperty(seg => seg.Path, seg => (LTree)((string)newPath + (string)seg.Path.Subpath(oldPathLength))), cancellationToken);
+	}
+
+	public async Task DeleteSubtreeAsync(Guid chapterId, LTree path, CancellationToken cancellationToken = default) {
+		await context.Segments.Where(s => s.Path.IsDescendantOf(path)).ExecuteDeleteAsync(cancellationToken);
+		await Entities.Where(c => c.Id == chapterId).ExecuteDeleteAsync(cancellationToken);
+	}
 }

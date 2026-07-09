@@ -50,7 +50,7 @@ public sealed class ChapterImportHandler(IChapterService chapterService) : IChap
         return segments.Select(s =>
         {
             if (s is ImageSegmentModel img && assetMap.TryGetValue(img.AssetKey, out var key))
-                return img with { AssetKey = key };
+                return new ImageSegmentModel { Id = img.Id, AssetKey = key };
             return s;
         }).ToList();
     }

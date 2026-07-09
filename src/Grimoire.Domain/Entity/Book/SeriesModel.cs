@@ -1,5 +1,7 @@
 namespace Grimoire.Domain.Entity.Book;
 
+using Microsoft.EntityFrameworkCore;
+
 using Metadata;
 
 /// <summary>
@@ -10,6 +12,14 @@ public class SeriesModel : BaseModel {
 	///     Title of the series
 	/// </summary>
 	public required string Title { get; set; }
+
+	/// <summary>
+	///     The hierarchical ltree path for this series node.
+	///     Using Microsoft.EntityFrameworkCore.LTree directly in Domain (pragmatic design)
+	///     to leverage native PG LTree operations (LCA, IsDescendantOf, Subpath) both in SQL LINQ
+	///     and in-memory tests, avoiding custom C# string parsing workarounds.
+	/// </summary>
+	public LTree Path { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Strongly-typed metadata for the series

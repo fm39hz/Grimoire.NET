@@ -1,10 +1,13 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Database;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.EntityFrameworkCore;
-using System.Threading;
 
 public sealed class SeriesExportRecordRepository(ApplicationDbContext context)
     : CrudRepository<SeriesExportRecord>(context), ISeriesExportRecordRepository
@@ -17,33 +20,28 @@ public sealed class SeriesExportRecordRepository(ApplicationDbContext context)
 
     public async Task<DateTime> GetMaxContentTimestampAsync(Guid seriesId, CancellationToken cancellationToken = default)
     {
-        var seriesDt = await (
-            from s in Context.Series
-            where s.Id == seriesId
-            select s.UpdatedAt
-        ).FirstOrDefaultAsync(cancellationToken);
+        LTree seriesPath = "n" + seriesId.ToString("N");
 
-        var volumeDt = await (
-            from v in Context.BookNodes
-            where v.ParentId == seriesId && v.Type == BookNodeType.Volume
-            select (DateTime?)v.UpdatedAt
-        ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
+        var seriesDt = await Context.Series
+            .Where(s => s.Id == seriesId)
+            .Select(s => s.UpdatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
-        var chapterDt = await (
-            from c in Context.BookNodes
-            join v in Context.BookNodes on c.ParentId equals v.Id
-            where v.ParentId == seriesId && c.Type == BookNodeType.Chapter
-            select (DateTime?)c.UpdatedAt
-        ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
+        var volumeDt = await Context.Volumes
+            .Where(v => v.Path.MatchesLQuery($"{seriesPath}.*"))
+            .Select(v => (DateTime?)v.UpdatedAt)
+            .MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
-        var contentDt = await (
-            from cc in Context.ChapterContents
-            join c in Context.BookNodes on cc.Id equals c.Id
-            join v in Context.BookNodes on c.ParentId equals v.Id
-            where v.ParentId == seriesId && c.Type == BookNodeType.Chapter
-            select (DateTime?)cc.UpdatedAt
-        ).MaxAsync(cancellationToken) ?? DateTime.MinValue;
+        var chapterDt = await Context.Chapters
+            .Where(c => c.Path.MatchesLQuery($"{seriesPath}.*.*"))
+            .Select(c => (DateTime?)c.UpdatedAt)
+            .MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
-        return new[] { seriesDt, volumeDt, chapterDt, contentDt }.Max();
+        var segmentDt = await Context.Segments
+            .Where(s => s.Path.IsDescendantOf(seriesPath))
+            .Select(s => (DateTime?)s.UpdatedAt)
+            .MaxAsync(cancellationToken) ?? DateTime.MinValue;
+
+        return new[] { seriesDt, volumeDt, chapterDt, segmentDt }.Max();
     }
 }

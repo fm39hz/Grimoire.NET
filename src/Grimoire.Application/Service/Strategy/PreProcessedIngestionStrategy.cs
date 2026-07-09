@@ -24,14 +24,24 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 
 		var chapter = new ChapterModel {
 			Id = chapterId,
-			VolumeId = volumeId,
 			Order = dto.Order,
 			Title = dto.Title,
 			Status = ChapterStatus.Done
 		};
 
-		var content = new ChapterContentModel { Id = chapterId, Segments = remapResult.Segments, Footnotes = remapResult.Footnotes };
+		var segments = new List<SegmentModel>();
+		double order = 1.0;
+		
+		foreach (var seg in remapResult.Segments) {
+			seg.Order = order++;
+			segments.Add(seg);
+		}
+		
+		foreach (var fn in remapResult.Footnotes) {
+			fn.Order = order++;
+			segments.Add(fn);
+		}
 
-		return Task.FromResult(new IngestionResult(chapter, content, null));
+		return Task.FromResult(new IngestionResult(chapter, segments, null));
 	}
 }

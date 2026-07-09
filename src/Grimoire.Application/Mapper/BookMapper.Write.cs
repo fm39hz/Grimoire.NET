@@ -18,27 +18,19 @@ public partial class BookMapper {
 	public partial SeriesModel CreateSeries(CreateSeriesRequestDto dto);
 #pragma warning restore RMG012
 
-	public VolumeModel CreateVolume(CreateVolumeRequestDto dto, Guid seriesId) => new() {
-		SeriesId = seriesId,
+	public VolumeModel CreateVolume(CreateVolumeRequestDto dto) => new() {
 		Order = dto.Order,
 		Title = dto.Title,
 		Metadata = dto.Metadata != null ? ToVolumeMetadata(dto.Metadata) : null
 	};
 
-	public ChapterModel CreateChapter(CreateChapterRequestDto dto, Guid volumeId) {
-		var remapResult = FootnoteRemapper.Remap(dto.Content ?? [], dto.Footnotes);
-
+	public ChapterModel CreateChapter(CreateChapterRequestDto dto) {
 		var chapterId = Guid.CreateVersion7();
 		return new ChapterModel {
 			Id = chapterId,
-			VolumeId = volumeId,
 			Order = dto.Order,
 			Title = dto.Title,
-			ContentData = new ChapterContentModel {
-				Id = chapterId,
-				Segments = remapResult.Segments,
-				Footnotes = remapResult.Footnotes
-			}
+			Status = ChapterStatus.Draft
 		};
 	}
 
@@ -93,21 +85,6 @@ public partial class BookMapper {
 		};
 	}
 
-	public void MergeChapter(ChapterModel source, ChapterContentModel sourceContent, ChapterModel target) {
-		target.Title = source.Title;
-		target.Status = source.Status;
-		
-		if (target.ContentData != null) {
-			target.ContentData.Segments = sourceContent.Segments;
-			target.ContentData.Footnotes = sourceContent.Footnotes;
-		} else {
-			target.ContentData = new ChapterContentModel {
-				Id = target.Id,
-				Segments = sourceContent.Segments,
-				Footnotes = sourceContent.Footnotes
-			};
-		}
-	}
 
 	private SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto) {
 		return new SeriesMetadata {

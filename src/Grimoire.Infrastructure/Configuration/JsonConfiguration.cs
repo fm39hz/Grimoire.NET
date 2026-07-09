@@ -46,6 +46,24 @@ public static class JsonConfiguration {
 				JsonOptions)!
 			);
 
+	public static readonly ValueComparer<List<TextRun>> TextRunComparer = new(
+		(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+					JsonSerializer.Serialize(c2, JsonOptions),
+		c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		c => JsonSerializer.Deserialize<List<TextRun>>(
+			JsonSerializer.Serialize(c, JsonOptions),
+			JsonOptions)!
+		);
+
+	public static readonly ValueComparer<List<TextSegmentModel>> FootnoteSegmentsComparer = new(
+		(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+					JsonSerializer.Serialize(c2, JsonOptions),
+		c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		c => JsonSerializer.Deserialize<List<TextSegmentModel>>(
+			JsonSerializer.Serialize(c, JsonOptions),
+			JsonOptions)!
+		);
+
 	public static void ApplyTo(JsonSerializerOptions target) {
 		target.PropertyNamingPolicy = JsonOptions.PropertyNamingPolicy;
 		target.PropertyNameCaseInsensitive = JsonOptions.PropertyNameCaseInsensitive;

@@ -6,6 +6,7 @@ using Domain.Entity.Book.Segment;
 using Dto.Book;
 using Dto.Book.Segment;
 using Riok.Mapperly.Abstractions;
+using Microsoft.EntityFrameworkCore;
 
 public partial class BookMapper {
 #pragma warning disable RMG012
@@ -13,25 +14,39 @@ public partial class BookMapper {
 	public partial SeriesResponseDto ToSeriesDto(SeriesModel model);
 #pragma warning restore RMG012
 
-	[MapProperty(nameof(VolumeModel.Id), nameof(VolumeResponseDto.Id), Use = nameof(MapVolumeId))]
-	[MapProperty(nameof(VolumeModel.SeriesId), nameof(VolumeResponseDto.SeriesId), Use = nameof(MapSeriesId))]
-	public partial VolumeResponseDto ToVolumeDto(VolumeModel model);
+	public VolumeResponseDto ToVolumeDto(VolumeModel model) => new() {
+		Id = MapVolumeId(model.Id),
+		SeriesId = GetSeriesIdFromPath(model.Path),
+		Title = model.Title,
+		Order = model.Order,
+		CreatedAt = model.CreatedAt,
+		UpdatedAt = model.UpdatedAt
+	};
 
-	public ChapterResponseDto ToChapterDto(ChapterModel model) =>
-		new() {
+	public ChapterResponseDto ToChapterDto(ChapterModel model) => ToChapterDto(model, Array.Empty<SegmentModel>());
+
+	public ChapterResponseDto ToChapterDto(ChapterModel model, IEnumerable<SegmentModel> segments) {
+		var contentSegments = segments.Where(s => s is not FootnoteSegmentModel).OrderBy(s => s.Order).ToList();
+		var footnotes = segments.OfType<FootnoteSegmentModel>().ToList();
+		return new ChapterResponseDto {
 			Id = MapChapterId(model.Id),
-			VolumeId = MapVolumeId(model.VolumeId),
+			VolumeId = GetVolumeIdFromPath(model.Path),
 			Title = model.Title,
 			Order = model.Order,
-			Content = model.ContentData?.Segments.Select(MapSegment).ToList() ?? [],
-			Footnotes = model.ContentData?.Footnotes.Select(ToFootnoteDto).ToList() ?? [],
+			Content = contentSegments.Select(MapSegment).ToList(),
+			Footnotes = footnotes.Select(ToFootnoteDto).ToList(),
 			CreatedAt = model.CreatedAt,
 			UpdatedAt = model.UpdatedAt
 		};
+	}
 
-	[MapProperty(nameof(ChapterModel.Id), nameof(ChapterListResponseDto.Id), Use = nameof(MapChapterId))]
-	[MapProperty(nameof(ChapterModel.VolumeId), nameof(ChapterListResponseDto.VolumeId), Use = nameof(MapVolumeId))]
-	public partial ChapterListResponseDto ToChapterListDto(ChapterModel model);
+	public ChapterListResponseDto ToChapterListDto(ChapterModel model) => new() {
+		Id = MapChapterId(model.Id),
+		VolumeId = GetVolumeIdFromPath(model.Path),
+		Title = model.Title,
+		Order = model.Order,
+		UpdatedAt = model.UpdatedAt
+	};
 
 	[MapProperty(nameof(AssetModel.Id), nameof(AssetResponseDto.Id), Use = nameof(MapAssetId))]
 	[MapProperty(nameof(AssetModel.SeriesId), nameof(AssetResponseDto.SeriesId), Use = nameof(MapSeriesId))]
@@ -60,10 +75,34 @@ public partial class BookMapper {
 
 	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 
+	private static string GetSeriesIdFromPath(LTree path) {
+		string pathStr = path.ToString();
+		if (string.IsNullOrEmpty(pathStr)) return string.Empty;
+		var parts = pathStr.Split('.');
+		if (parts.Length > 0 && parts[0].Length > 1 && parts[0].StartsWith('n')) {
+			if (Guid.TryParseExact(parts[0][1..], "N", out var guid)) {
+				return PrefixedId.ToString(EntityPrefix.Series, guid);
+			}
+		}
+		return string.Empty;
+	}
+
+	private static string GetVolumeIdFromPath(LTree path) {
+		string pathStr = path.ToString();
+		if (string.IsNullOrEmpty(pathStr)) return string.Empty;
+		var parts = pathStr.Split('.');
+		if (parts.Length > 1 && parts[1].Length > 1 && parts[1].StartsWith('n')) {
+			if (Guid.TryParseExact(parts[1][1..], "N", out var guid)) {
+				return PrefixedId.ToString(EntityPrefix.Volume, guid);
+			}
+		}
+		return string.Empty;
+	}
+
 	public System.Linq.IQueryable<VolumeResponseDto> ProjectToVolumeDto(System.Linq.IQueryable<VolumeModel> query) =>
 		query.Select(v => new VolumeResponseDto {
 			Id = "vol_" + v.Id,
-			SeriesId = "ser_" + v.SeriesId,
+			SeriesId = "ser_" + ((string)v.Path).Substring(1, 8) + "-" + ((string)v.Path).Substring(9, 4) + "-" + ((string)v.Path).Substring(13, 4) + "-" + ((string)v.Path).Substring(17, 4) + "-" + ((string)v.Path).Substring(21, 12),
 			Title = v.Title,
 			Order = v.Order,
 			CreatedAt = v.CreatedAt,
@@ -73,7 +112,7 @@ public partial class BookMapper {
 	public System.Linq.IQueryable<ChapterListResponseDto> ProjectToChapterListDto(System.Linq.IQueryable<ChapterModel> query) =>
 		query.Select(c => new ChapterListResponseDto {
 			Id = "chap_" + c.Id,
-			VolumeId = "vol_" + c.VolumeId,
+			VolumeId = "vol_" + ((string)c.Path).Substring(35, 8) + "-" + ((string)c.Path).Substring(43, 4) + "-" + ((string)c.Path).Substring(47, 4) + "-" + ((string)c.Path).Substring(51, 4) + "-" + ((string)c.Path).Substring(55, 12),
 			Title = c.Title,
 			Order = c.Order,
 			UpdatedAt = c.UpdatedAt

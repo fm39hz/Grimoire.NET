@@ -1,18 +1,29 @@
 namespace Grimoire.Application.Export;
 
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Service.Contract;
+using Microsoft.EntityFrameworkCore;
 
-public class ImageAssetCollector(IAssetRepository assetRepository, IStorageService storageService) {
+public class ImageAssetCollector(
+	IAssetRepository assetRepository,
+	ISegmentRepository segmentRepository,
+	IStorageService storageService) {
+
 	public async Task<IReadOnlyDictionary<string, ResolvedAsset>> CollectAsync(
 		List<VolumeModel> volumes,
 		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap,
 		CancellationToken cancellationToken = default) {
-		var assetKeyToIdMap = BuildAssetKeyToIdMap(chapterMap, volumes);
+		
+		var assetKeyToIdMap = await BuildAssetKeyToIdMapAsync(chapterMap, volumes, cancellationToken);
 		if (assetKeyToIdMap.Count == 0) {
 			return new Dictionary<string, ResolvedAsset>();
 		}
@@ -59,12 +70,19 @@ public class ImageAssetCollector(IAssetRepository assetRepository, IStorageServi
 		return $"{sanitized}_{index:D3}{ext}";
 	}
 
-	private static Dictionary<string, Guid> BuildAssetKeyToIdMap(
+	private async Task<Dictionary<string, Guid>> BuildAssetKeyToIdMapAsync(
 		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap,
-		List<VolumeModel> volumes) {
-		var result = chapterMap.Values
+		List<VolumeModel> volumes,
+		CancellationToken cancellationToken) {
+
+		var chapterPaths = chapterMap.Values
 			.SelectMany(chapters => chapters)
-			.SelectMany(chapter => chapter.ContentData!.Segments.OfType<ImageSegmentModel>())
+			.Select(c => c.Path)
+			.ToList();
+
+		var imageSegments = await segmentRepository.FindImageSegmentsByChapterPaths(chapterPaths, cancellationToken);
+
+		var result = imageSegments
 			.Select(seg => (seg.AssetKey,
 				PrefixedId.TryToGuid(seg.AssetKey, EntityPrefix.Asset, out var id) ? id : Guid.Empty))
 			.Where(pair => pair.Item2 != Guid.Empty)

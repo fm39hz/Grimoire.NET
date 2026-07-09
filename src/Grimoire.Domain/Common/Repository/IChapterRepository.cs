@@ -3,6 +3,8 @@ namespace Grimoire.Domain.Common.Repository;
 using System.Threading;
 using Entity.Book;
 
+using Microsoft.EntityFrameworkCore;
+
 public interface IChapterRepository : IRepository<ChapterModel> {
 	public Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, int pageIndex, int pageSize, CancellationToken cancellationToken = default);
@@ -10,4 +12,6 @@ public interface IChapterRepository : IRepository<ChapterModel> {
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default);
 	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default);
+	public Task MoveChapterAsync(Guid chapterId, LTree oldPath, LTree newPath, double newOrder, CancellationToken cancellationToken = default);
+	public Task DeleteSubtreeAsync(Guid chapterId, LTree path, CancellationToken cancellationToken = default);
 }

@@ -27,14 +27,8 @@ public interface IChapterNodeService {
 }
 
 public interface INodeManagerService {
-	public Task<BookNodeModel> CreateNode(Guid id, BookNodeType type, Guid? parentId, string title, double order, CancellationToken cancellationToken = default);
-	public Task<BookNodeModel> UpdateNode(Guid id, string? title, double? order, CancellationToken cancellationToken = default);
 	public Task MoveNode(Guid nodeId, Guid? newParentId, double newOrder, CancellationToken cancellationToken = default);
 	public Task<int> DeleteSubtree(Guid nodeId, CancellationToken cancellationToken = default);
-	public Task ReconcileNodesBulk(
-		Guid seriesId,
-		List<(Guid Id, BookNodeType Type, Guid? ParentId, string Title, double Order)> nodes,
-		CancellationToken cancellationToken = default);
 }
 
 

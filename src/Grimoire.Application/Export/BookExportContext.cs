@@ -19,11 +19,12 @@ public class BookExportContext {
 	/// <summary>Volumes in ascending Order, filtered per BinderyRequest mode.</summary>
 	public required List<VolumeModel> Volumes { get; init; }
 
-	/// <summary>
-	///     All chapters with ContentData pre-loaded, grouped by VolumeId,
-	///     in ascending Order within each volume.
-	/// </summary>
 	public required IReadOnlyDictionary<Guid, List<ChapterModel>> ChapterMap { get; init; }
+
+	/// <summary>
+	///     All segments for each chapter, grouped by ChapterId.
+	/// </summary>
+	public required IReadOnlyDictionary<Guid, List<SegmentModel>> ChapterSegmentsMap { get; init; }
 
 	/// <summary>Cover asset, null when the series has no cover configured.</summary>
 	public AssetModel? CoverAsset { get; init; }

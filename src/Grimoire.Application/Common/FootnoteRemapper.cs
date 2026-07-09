@@ -34,7 +34,10 @@ public static class FootnoteRemapper {
 						: run
 				).ToList();
 
-				cleanContent.Add(textSeg with { Runs = updatedRuns });
+				cleanContent.Add(new TextSegmentModel {
+					Id = textSeg.Id,
+					Runs = updatedRuns
+				});
 			}
 			else {
 				cleanContent.Add(segment);

@@ -1,10 +1,17 @@
 namespace Grimoire.Tests.TestInfrastructure;
 
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using Grimoire.Domain.Common;
 using Grimoire.Domain.Common.Repository;
 using Grimoire.Domain.Entity;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
+using Microsoft.EntityFrameworkCore;
+using Grimoire.Domain.Common.Extensions;
 
 public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel {
 	public List<T> Items { get; } = [];
@@ -65,104 +72,137 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 	}
 }
 
-public sealed class InMemoryBookTreeRepository : InMemoryRepository<BookNodeModel>, IBookTreeRepository {
-	public Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<BookNodeModel>>(Items.Where(n => n.ParentId == parentId).OrderBy(n => n.Order).ToList());
-
-	public Task<IEnumerable<BookNodeModel>> FindChildren(Guid? parentId, int pageIndex, int pageSize, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<BookNodeModel>>(Items
-			.Where(n => n.ParentId == parentId)
-			.OrderBy(n => n.Order)
-			.Skip((pageIndex - 1) * pageSize)
-			.Take(pageSize)
-			.ToList());
-
-	public Task<int> CountChildren(Guid? parentId, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Items.Count(n => n.ParentId == parentId));
-
-	public Task<BookNodeModel?> FindChildByOrder(Guid? parentId, double order, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Items.FirstOrDefault(n => n.ParentId == parentId && n.Order == order));
-
-	public Task<IReadOnlyList<BookNodeModel>> FindSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
-		var series = Items.Where(n => n.Id == seriesId).ToList();
-		var volumes = Items.Where(n => n.ParentId == seriesId).OrderBy(n => n.Order).ToList();
-		var volumeIds = volumes.Select(v => v.Id).ToHashSet();
-		var chapters = Items.Where(n => n.ParentId is not null && volumeIds.Contains(n.ParentId.Value)).OrderBy(n => n.Order).ToList();
-		return Task.FromResult<IReadOnlyList<BookNodeModel>>([.. series, .. volumes, .. chapters]);
+public sealed class InMemorySegmentRepository : InMemoryRepository<SegmentModel>, ISegmentRepository {
+	public Task<IEnumerable<SegmentModel>> FindByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default) {
+		return Task.FromResult<IEnumerable<SegmentModel>>(Items.Where(s => s.Path.IsDescendantOfClient(chapterPath)).OrderBy(s => s.Order).ToList());
 	}
 
-	public Task<IReadOnlyList<BookNodeModel>> FindChaptersInSeriesTree(Guid seriesId, CancellationToken cancellationToken = default) {
-		var volumes = Items.Where(n => n.ParentId == seriesId).Select(v => v.Id).ToHashSet();
-		var chapters = Items.Where(n => n.ParentId is not null && volumes.Contains(n.ParentId.Value)).OrderBy(n => n.Order).ToList();
-		return Task.FromResult<IReadOnlyList<BookNodeModel>>(chapters);
-	}
-
-	public Task<IReadOnlyList<BookNodeModel>> FindSubtree(Guid nodeId, CancellationToken cancellationToken = default) {
-		var result = new List<BookNodeModel>();
-		var pending = new Queue<Guid>();
-		pending.Enqueue(nodeId);
-		while (pending.Count > 0) {
-			var id = pending.Dequeue();
-			var node = Items.FirstOrDefault(n => n.Id == id);
-			if (node is null) continue;
-			result.Add(node);
-			foreach (var child in Items.Where(n => n.ParentId == id)) {
-				pending.Enqueue(child.Id);
-			}
-		}
-
-		return Task.FromResult<IReadOnlyList<BookNodeModel>>(result);
-	}
-
-	public Task UpdateSubtreePaths(Guid nodeId, string oldPath, string newPath, CancellationToken cancellationToken = default) {
-		foreach (var node in Items) {
-			if (node.Id != nodeId && node.Path.StartsWith(oldPath)) {
-				node.Path = newPath + node.Path[oldPath.Length..];
-			}
-		}
+	public Task DeleteByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default) {
+		Items.RemoveAll(s => s.Path.IsDescendantOfClient(chapterPath));
 		return Task.CompletedTask;
+	}
+
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(LTree seriesPath, CancellationToken cancellationToken = default) {
+		return Task.FromResult<IEnumerable<ImageSegmentModel>>(Items.OfType<ImageSegmentModel>().Where(s => s.Path.IsDescendantOfClient(seriesPath)).ToList());
+	}
+
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<LTree> chapterPaths, CancellationToken cancellationToken = default) {
+		var paths = chapterPaths.ToList();
+		return Task.FromResult<IEnumerable<ImageSegmentModel>>(
+			Items.OfType<ImageSegmentModel>()
+				.Where(s => paths.Any(p => s.Path.IsDescendantOfClient(p)))
+				.ToList()
+		);
 	}
 }
 
 public sealed class InMemorySeriesRepository : InMemoryRepository<SeriesModel>, ISeriesRepository {
+	private readonly InMemoryVolumeRepository? _volumes;
+	private readonly InMemoryChapterRepository? _chapters;
+	private readonly InMemorySegmentRepository? _segments;
+
+	public InMemorySeriesRepository(
+		InMemoryVolumeRepository? volumes = null,
+		InMemoryChapterRepository? chapters = null,
+		InMemorySegmentRepository? segments = null) {
+		_volumes = volumes;
+		_chapters = chapters;
+		_segments = segments;
+	}
+
 	public Task<SeriesModel?> FindOneByTitle(string title, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(s => s.Title == title));
+
+	public Task DeleteSubtreeAsync(Guid seriesId, LTree path, CancellationToken cancellationToken = default) {
+		Items.RemoveAll(s => s.Id == seriesId);
+		_volumes?.Items.RemoveAll(v => v.Path.IsDescendantOfClient(path));
+		_chapters?.Items.RemoveAll(c => c.Path.IsDescendantOfClient(path));
+		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOfClient(path));
+		return Task.CompletedTask;
+	}
 }
 
 public sealed class InMemoryVolumeRepository : InMemoryRepository<VolumeModel>, IVolumeRepository {
+	private readonly InMemoryChapterRepository? _chapters;
+	private readonly InMemorySegmentRepository? _segments;
+
+	public InMemoryVolumeRepository(
+		InMemoryChapterRepository? chapters = null,
+		InMemorySegmentRepository? segments = null) {
+		_chapters = chapters;
+		_segments = segments;
+	}
+
 	public Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<VolumeModel>>(Items.Where(v => v.SeriesId == seriesId).OrderBy(v => v.Order).ToList());
+		Task.FromResult<IEnumerable<VolumeModel>>(Items.Where(v => v.Path.GetSeriesId() == seriesId).OrderBy(v => v.Order).ToList());
 
 	public Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId, int pageIndex, int pageSize, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<VolumeModel>>(Items.Where(v => v.SeriesId == seriesId).OrderBy(v => v.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList());
+		Task.FromResult<IEnumerable<VolumeModel>>(Items.Where(v => v.Path.GetSeriesId() == seriesId).OrderBy(v => v.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList());
 
 	public Task<int> CountBySeriesId(Guid seriesId, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Items.Count(v => v.SeriesId == seriesId));
+		Task.FromResult(Items.Count(v => v.Path.GetSeriesId() == seriesId));
 
 	public Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, double order, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Items.FirstOrDefault(v => v.SeriesId == seriesId && v.Order == order));
+		Task.FromResult(Items.FirstOrDefault(v => v.Path.GetSeriesId() == seriesId && v.Order == order));
+
+	public Task MoveVolumeAsync(Guid volumeId, LTree oldPath, LTree newPath, double newOrder, CancellationToken cancellationToken = default) {
+		var volume = Items.FirstOrDefault(v => v.Id == volumeId);
+		if (volume is not null) {
+			volume.Path = newPath;
+			volume.Order = newOrder;
+		}
+		return Task.CompletedTask;
+	}
+
+	public Task DeleteSubtreeAsync(Guid volumeId, LTree path, CancellationToken cancellationToken = default) {
+		Items.RemoveAll(v => v.Id == volumeId);
+		_chapters?.Items.RemoveAll(c => c.Path.IsDescendantOfClient(path));
+		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOfClient(path));
+		return Task.CompletedTask;
+	}
 }
 
 public sealed class InMemoryChapterRepository : InMemoryRepository<ChapterModel>, IChapterRepository {
+	private readonly InMemorySegmentRepository? _segments;
+
+	public InMemoryChapterRepository(InMemorySegmentRepository? segments = null) {
+		_segments = segments;
+	}
+
 	public Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => c.VolumeId == volumeId).OrderBy(c => c.Order).ToList());
+		Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => c.Path.GetVolumeId() == volumeId).OrderBy(c => c.Order).ToList());
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, int pageIndex, int pageSize, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => c.VolumeId == volumeId).OrderBy(c => c.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList());
+		Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => c.Path.GetVolumeId() == volumeId).OrderBy(c => c.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList());
 
 	public Task<int> CountByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Items.Count(c => c.VolumeId == volumeId));
+		Task.FromResult(Items.Count(c => c.Path.GetVolumeId() == volumeId));
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) {
 		var set = volumeIds.ToHashSet();
-		return Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => set.Contains(c.VolumeId)).OrderBy(c => c.VolumeId).ThenBy(c => c.Order).ToList());
+		return Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => set.Contains(c.Path.GetVolumeId())).OrderBy(c => c.Path.GetVolumeId()).ThenBy(c => c.Order).ToList());
 	}
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
 		FindByVolumeIds(volumeIds, cancellationToken);
 
 	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) =>
-		Task.FromResult(Items.FirstOrDefault(c => c.VolumeId == volumeId && c.Order == order));
+		Task.FromResult(Items.FirstOrDefault(c => c.Path.GetVolumeId() == volumeId && c.Order == order));
+
+	public Task MoveChapterAsync(Guid chapterId, LTree oldPath, LTree newPath, double newOrder, CancellationToken cancellationToken = default) {
+		var chapter = Items.FirstOrDefault(c => c.Id == chapterId);
+		if (chapter is not null) {
+			chapter.Path = newPath;
+			chapter.Order = newOrder;
+		}
+		return Task.CompletedTask;
+	}
+
+	public Task DeleteSubtreeAsync(Guid chapterId, LTree path, CancellationToken cancellationToken = default) {
+		Items.RemoveAll(c => c.Id == chapterId);
+		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOfClient(path));
+		return Task.CompletedTask;
+	}
 }
 
 public sealed class InMemoryAssetRepository : InMemoryRepository<AssetModel>, IAssetRepository {

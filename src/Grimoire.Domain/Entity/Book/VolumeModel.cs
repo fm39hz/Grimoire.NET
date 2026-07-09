@@ -1,5 +1,7 @@
 namespace Grimoire.Domain.Entity.Book;
 
+using Microsoft.EntityFrameworkCore;
+
 using Metadata;
 
 /// <summary>
@@ -7,9 +9,12 @@ using Metadata;
 /// </summary>
 public class VolumeModel : BaseModel {
 	/// <summary>
-	///     Foreign key to the series
+	///     The hierarchical ltree path for this volume node.
+	///     Using Microsoft.EntityFrameworkCore.LTree directly in Domain (pragmatic design)
+	///     to leverage native PG LTree operations (LCA, IsDescendantOf, Subpath) both in SQL LINQ
+	///     and in-memory tests, avoiding custom C# string parsing workarounds.
 	/// </summary>
-	public required Guid SeriesId { get; set; }
+	public LTree Path { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Order of this volume within the series

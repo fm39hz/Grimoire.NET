@@ -1,5 +1,6 @@
 namespace Grimoire.Domain.Entity.Book;
 
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
 using Segment;
 
@@ -12,9 +13,17 @@ using Segment;
 [JsonDerivedType(typeof(ImageSegmentModel), "Image")]
 [JsonDerivedType(typeof(DividerSegmentModel), "Divider")]
 [JsonDerivedType(typeof(FootnoteSegmentModel), "Footnote")]
-public abstract record SegmentModel {
+public abstract class SegmentModel : BaseModel {
 	/// <summary>
-	///     Unique identifier for the segment (used for footnote references)
+	///     The hierarchical ltree path for this segment node.
+	///     Using Microsoft.EntityFrameworkCore.LTree directly in Domain (pragmatic design)
+	///     to leverage native PG LTree operations (LCA, IsDescendantOf, Subpath) both in SQL LINQ
+	///     and in-memory tests, avoiding custom C# string parsing workarounds.
 	/// </summary>
-	public Guid Id { get; init; } = Guid.CreateVersion7();
+	public LTree Path { get; set; } = string.Empty;
+
+	/// <summary>
+	///     Order of this segment within the chapter
+	/// </summary>
+	public double Order { get; set; }
 }
