@@ -19,7 +19,7 @@ public interface IMediaImportService {
 		CancellationToken cancellationToken = default);
 }
 
-public sealed class MediaImportService(
+public sealed partial class MediaImportService(
 	IStorageService storageService,
 	ISeriesService seriesService,
 	ILogger<MediaImportService> logger) : IMediaImportService {
@@ -72,7 +72,10 @@ public sealed class MediaImportService(
 				cancellationToken);
 		}
 		catch (Exception ex) {
-			logger.LogWarning(ex, "Cover upload failed — Series={SeriesId}", seriesId);
+			LogCoverUploadFailed(logger, ex, seriesId);
 		}
 	}
+
+	[LoggerMessage(LogLevel.Warning, "Cover upload failed — Series={SeriesId}")]
+	private static partial void LogCoverUploadFailed(ILogger logger, Exception ex, Guid seriesId);
 }

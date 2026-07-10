@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using Grimoire.Domain.Common.Repository;
 using Microsoft.Extensions.Logging;
 
-public sealed class ImportPipeline(
+public sealed partial class ImportPipeline(
 	IEnumerable<IImportPipelineStep> steps,
 	IUnitOfWork unitOfWork,
 	ILogger<ImportPipeline> logger) : IImportPipeline {
@@ -21,11 +21,11 @@ public sealed class ImportPipeline(
 				var stageName = step.GetType().Name.Replace("Step", "");
 				context.CurrentStage = stageName;
 				context.ReportSubProgress(0.0);
-				logger.LogInformation("Executing import step: {StepName} (Order={Order})", step.GetType().Name, step.Order);
+				LogExecutingImportStep(logger, step.GetType().Name, step.Order);
 				await step.ExecuteAsync(context, cancellationToken);
 
 				if (context.Result is { Success: false }) {
-					logger.LogWarning("Import pipeline stopped due to step failure in {StepName}", step.GetType().Name);
+					LogImportPipelineStopped(logger, step.GetType().Name);
 					await unitOfWork.RollbackTransactionAsync(cancellationToken);
 					return;
 				}
@@ -34,9 +34,18 @@ public sealed class ImportPipeline(
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 		}
 		catch (Exception ex) {
-			logger.LogError(ex, "Import pipeline crashed, rolling back transaction");
+			LogImportPipelineCrashed(logger, ex);
 			await unitOfWork.RollbackTransactionAsync(cancellationToken);
 			throw;
 		}
 	}
+
+	[LoggerMessage(LogLevel.Information, "Executing import step: {StepName} (Order={Order})")]
+	private static partial void LogExecutingImportStep(ILogger logger, string stepName, int order);
+
+	[LoggerMessage(LogLevel.Warning, "Import pipeline stopped due to step failure in {StepName}")]
+	private static partial void LogImportPipelineStopped(ILogger logger, string stepName);
+
+	[LoggerMessage(LogLevel.Error, "Import pipeline crashed, rolling back transaction")]
+	private static partial void LogImportPipelineCrashed(ILogger logger, Exception ex);
 }

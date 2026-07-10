@@ -6,7 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
-public sealed class ExportPipeline(
+public sealed partial class ExportPipeline(
 	IEnumerable<IExportPipelineStep> steps,
 	ILogger<ExportPipeline> logger) : IExportPipeline {
 	private readonly List<IExportPipelineStep> _steps = [.. steps.OrderBy(static s => s.Order)];
@@ -16,12 +16,18 @@ public sealed class ExportPipeline(
 			var stageName = step.GetType().Name.Replace("Step", "");
 			context.CurrentStage = stageName;
 			context.ReportSubProgress(0.0);
-			logger.LogInformation("Executing export step: {StepName} (Order={Order})", step.GetType().Name, step.Order);
+			LogExecutingExportStep(logger, step.GetType().Name, step.Order);
 			await step.ExecuteAsync(context, cancellationToken);
 			if (context.Result is { Success: false }) {
-				logger.LogWarning("Export pipeline stopped due to step failure in {StepName}", step.GetType().Name);
+				LogExportPipelineStopped(logger, step.GetType().Name);
 				break;
 			}
 		}
 	}
+
+	[LoggerMessage(LogLevel.Information, "Executing export step: {StepName} (Order={Order})")]
+	private static partial void LogExecutingExportStep(ILogger logger, string stepName, int order);
+
+	[LoggerMessage(LogLevel.Warning, "Export pipeline stopped due to step failure in {StepName}")]
+	private static partial void LogExportPipelineStopped(ILogger logger, string stepName);
 }

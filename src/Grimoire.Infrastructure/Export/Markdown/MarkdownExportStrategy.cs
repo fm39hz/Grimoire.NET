@@ -36,10 +36,13 @@ public partial class MarkdownExportStrategy(
 			return ExportResult.Ok(stream, fileName, "text/markdown");
 		}
 		catch (Exception ex) {
-			logger.LogError(ex, "Failed to export series {Id} as Markdown", context.Series.Id);
+			LogExportFailed(ex, context.Series.Id);
 			return ExportResult.Fail(ex.Message);
 		}
 	}
+
+	[LoggerMessage(LogLevel.Error, "Failed to export series {Id} as Markdown")]
+	private partial void LogExportFailed(Exception ex, Guid id);
 
 	private static string BuildMarkdownFile(
 		Dictionary<string, string> pages,
@@ -91,6 +94,5 @@ public partial class MarkdownExportStrategy(
 		public Task<Stream> BuildAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("MarkdownPackageBuilder does not support BuildAsync");
 	}
 
-	[LoggerMessage(LogLevel.Error, "Failed to export series as Markdown")]
-	partial void LogExportFailed(Exception ex);
+
 }

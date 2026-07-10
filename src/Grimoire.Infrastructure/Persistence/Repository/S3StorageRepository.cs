@@ -254,8 +254,7 @@ public sealed partial class S3StorageRepository(
 					throw;
 				}
 
-				logger.LogWarning("S3 transient error (attempt {Attempt}/{MaxRetries}): {StatusCode} {ErrorCode}",
-					attempt, maxRetries, (int)ex.StatusCode, ex.ErrorCode);
+				LogS3TransientError(logger, attempt, maxRetries, (int)ex.StatusCode, ex.ErrorCode);
 				await Task.Delay(delay, ct);
 				delay = TimeSpan.FromSeconds(delay.TotalSeconds * RetryBackoffMultiplier);
 			}
@@ -263,6 +262,9 @@ public sealed partial class S3StorageRepository(
 	}
 
 	// ── logging ──────────────────────────────────────────────────────
+
+	[LoggerMessage(LogLevel.Warning, "S3 transient error (attempt {Attempt}/{MaxRetries}): {StatusCode} {ErrorCode}")]
+	private static partial void LogS3TransientError(ILogger logger, int attempt, int maxRetries, int statusCode, string? errorCode);
 
 	[LoggerMessage(LogLevel.Information, "Uploading to S3: bucket={Bucket} key={Key}")]
 	private static partial void LogUploadingToS3(ILogger logger, string bucket, string key);

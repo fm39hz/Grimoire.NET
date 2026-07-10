@@ -6,7 +6,7 @@ using Hangfire.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-public abstract class JobBase(IServiceScopeFactory scopeFactory, IJobProgressTracker progressTracker) {
+public abstract partial class JobBase(IServiceScopeFactory scopeFactory, IJobProgressTracker progressTracker) {
 	private readonly IServiceScopeFactory _scopeFactory = scopeFactory;
 	private readonly IJobProgressTracker _progressTracker = progressTracker;
 
@@ -25,19 +25,28 @@ public abstract class JobBase(IServiceScopeFactory scopeFactory, IJobProgressTra
 		var writer = new JobProgressWriter(_progressTracker, jobId);
 		var ctx = new JobContext(jobId, writer, logger) { Services = scope.ServiceProvider };
 
-		logger.LogInformation("{JobName} started — JobId={JobId}", jobName, jobId);
+		LogJobStarted(logger, jobName, jobId);
 
 		try {
 			var result = await ExecuteCoreAsync(ctx, cancellationToken);
 			return result;
 		}
 		catch (OperationCanceledException) {
-			logger.LogWarning("{JobName} cancelled — JobId={JobId}", jobName, jobId);
+			LogJobCancelled(logger, jobName, jobId);
 			return null;
 		}
 		catch (Exception ex) {
-			logger.LogError(ex, "{JobName} crashed — JobId={JobId}", jobName, jobId);
+			LogJobCrashed(logger, ex, jobName, jobId);
 			return JobResult.Fail(ex.Message);
 		}
 	}
+
+	[LoggerMessage(LogLevel.Information, "{JobName} started — JobId={JobId}")]
+	private static partial void LogJobStarted(ILogger logger, string jobName, string jobId);
+
+	[LoggerMessage(LogLevel.Warning, "{JobName} cancelled — JobId={JobId}")]
+	private static partial void LogJobCancelled(ILogger logger, string jobName, string jobId);
+
+	[LoggerMessage(LogLevel.Error, "{JobName} crashed — JobId={JobId}")]
+	private static partial void LogJobCrashed(ILogger logger, Exception ex, string jobName, string jobId);
 }

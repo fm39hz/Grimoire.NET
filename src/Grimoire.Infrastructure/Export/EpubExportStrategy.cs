@@ -52,10 +52,13 @@ public partial class EpubExportStrategy(
 			return ExportResult.Ok(stream, fileName, "application/epub+zip");
 		}
 		catch (Exception ex) {
-			logger.LogError(ex, "Failed to export series {Id}", context.Series.Id);
+			LogExportFailed(ex, context.Series.Id);
 			return ExportResult.Fail(ex.Message);
 		}
 	}
+
+	[LoggerMessage(LogLevel.Error, "Failed to export series {Id}")]
+	private partial void LogExportFailed(Exception ex, Guid id);
 
 	private static void RegisterAssets(BookExportContext context, IPackageBuilder builder) {
 		// Cover

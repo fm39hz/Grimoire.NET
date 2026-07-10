@@ -11,7 +11,7 @@ using Grimoire.Infrastructure.Configuration;
 using Hangfire;
 using Hangfire.Server;
 
-public sealed class ImportJob(IServiceScopeFactory scopeFactory, IJobProgressTracker progressTracker) : JobBase(scopeFactory, progressTracker) {
+public sealed partial class ImportJob(IServiceScopeFactory scopeFactory, IJobProgressTracker progressTracker) : JobBase(scopeFactory, progressTracker) {
 	private string? _seriesDtoJson;
 	private string? _volumesJson;
 	private string _fileKey = "";
@@ -59,11 +59,7 @@ public sealed class ImportJob(IServiceScopeFactory scopeFactory, IJobProgressTra
 		await pipeline.ExecuteAsync(pipelineContext, cancellationToken);
 
 		if (pipelineContext.Result is not null) {
-			ctx.Logger.LogInformation(
-				"ImportJob completed — JobId={JobId}, SeriesId={SeriesId}, " +
-				"VolumesCreated={VolumesCreated}, VolumesUpdated={VolumesUpdated}, " +
-				"ChaptersCreated={ChaptersCreated}, ChaptersUpdated={ChaptersUpdated}",
-				jobId, pipelineContext.Series?.Id,
+			LogImportJobCompleted(ctx.Logger, jobId, pipelineContext.Series?.Id,
 				pipelineContext.ResolvedVolumes.Count(v => v.WasCreated),
 				pipelineContext.ResolvedVolumes.Count(v => !v.WasCreated),
 				pipelineContext.ChaptersCreated, pipelineContext.ChaptersUpdated);
@@ -71,4 +67,11 @@ public sealed class ImportJob(IServiceScopeFactory scopeFactory, IJobProgressTra
 
 		return pipelineContext.Result;
 	}
+
+	[LoggerMessage(LogLevel.Information,
+		"ImportJob completed — JobId={JobId}, SeriesId={SeriesId}, " +
+		"VolumesCreated={VolumesCreated}, VolumesUpdated={VolumesUpdated}, " +
+		"ChaptersCreated={ChaptersCreated}, ChaptersUpdated={ChaptersUpdated}")]
+	private static partial void LogImportJobCompleted(ILogger logger, string? jobId, Guid? seriesId,
+		int volumesCreated, int volumesUpdated, int chaptersCreated, int chaptersUpdated);
 }

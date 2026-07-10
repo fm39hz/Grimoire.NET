@@ -5,7 +5,7 @@ using Application.Import;
 using Microsoft.Extensions.Logging;
 using VersOne.Epub;
 
-public sealed class EpubParser(ILogger<EpubParser> logger) : IEpubParser {
+public sealed partial class EpubParser(ILogger<EpubParser> logger) : IEpubParser {
 	public async Task<EpubParseResult> ParseAsync(Stream epubStream, CancellationToken cancellationToken = default) {
 		var book = await EpubReader.ReadBookAsync(epubStream);
 
@@ -53,13 +53,14 @@ public sealed class EpubParser(ILogger<EpubParser> logger) : IEpubParser {
 			}
 		}
 
-		logger.LogInformation(
-			"Parsed EPUB: {Title}, {VolumeCount} volumes, {ChapterCount} chapters, {ImageCount} images",
-			result.Title, result.Volumes.Count,
+		LogEpubParsed(logger, result.Title, result.Volumes.Count,
 			result.Volumes.Sum(v => v.Chapters.Count), result.Images.Count);
 
 		return result;
 	}
+
+	[LoggerMessage(LogLevel.Information, "Parsed EPUB: {Title}, {VolumeCount} volumes, {ChapterCount} chapters, {ImageCount} images")]
+	private static partial void LogEpubParsed(ILogger logger, string title, int volumeCount, int chapterCount, int imageCount);
 
 	private static Dictionary<string, byte[]> ExtractImages(EpubBook book) {
 		var images = new Dictionary<string, byte[]>();
