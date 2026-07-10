@@ -31,6 +31,7 @@ public static class ExportUtilities {
 		FootnoteStyle.Parentheses => $"({number})",
 		FootnoteStyle.Asterisk => new string('*', number),
 		FootnoteStyle.SuperScript => number.ToString(),
+		FootnoteStyle.SquareBrackets => throw new NotImplementedException(),
 		_ => $"[{number}]"
 	};
 
@@ -47,15 +48,15 @@ public static class ExportUtilities {
 			return false;
 		}
 
-		int letterIdx = 0;
+		var letterIdx = 0;
 		while (letterIdx < text.Length && !char.IsLetterOrDigit(text[letterIdx])) {
 			letterIdx++;
 		}
 
 		if (letterIdx < text.Length) {
-			prefix = text.Substring(0, letterIdx);
+			prefix = text[..letterIdx];
 			dropcapChar = text[letterIdx];
-			suffix = text.Substring(letterIdx + 1);
+			suffix = text[(letterIdx + 1)..];
 			return true;
 		}
 

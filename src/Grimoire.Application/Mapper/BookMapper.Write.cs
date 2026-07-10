@@ -1,6 +1,5 @@
 namespace Grimoire.Application.Mapper;
 
-using Common;
 using Domain.Entity;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
@@ -73,36 +72,30 @@ public partial class BookMapper {
 		}
 	}
 
-	private SeriesMetadata MergeSeriesMetadata(SeriesMetadata existing, SeriesMetadataDto dto) {
-		return new SeriesMetadata {
-			Authors = dto.Authors ?? existing.Authors,
-			Artists = dto.Artists ?? existing.Artists,
-			Tags = dto.Tags ?? existing.Tags,
-			Description = dto.Description != null 
-				? dto.Description.Select(ToTextSegment).ToList() 
+	private SeriesMetadata MergeSeriesMetadata(SeriesMetadata existing, SeriesMetadataDto dto) => new() {
+		Authors = dto.Authors ?? existing.Authors,
+		Artists = dto.Artists ?? existing.Artists,
+		Tags = dto.Tags ?? existing.Tags,
+		Description = dto.Description != null
+				? [.. dto.Description.Select(ToTextSegment)]
 				: existing.Description,
-			CoverImage = dto.CoverImage ?? existing.CoverImage
-		};
-	}
+		CoverImage = dto.CoverImage ?? existing.CoverImage
+	};
 
 
-	private SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto) {
-		return new SeriesMetadata {
-			Authors = dto.Authors ?? [],
-			Artists = dto.Artists ?? [],
-			Tags = dto.Tags ?? [],
-			Description = dto.Description != null
-				? dto.Description.Select(ToTextSegment).ToList()
+	private SeriesMetadata ToSeriesMetadata(SeriesMetadataDto dto) => new() {
+		Authors = dto.Authors ?? [],
+		Artists = dto.Artists ?? [],
+		Tags = dto.Tags ?? [],
+		Description = dto.Description != null
+				? [.. dto.Description.Select(ToTextSegment)]
 				: [],
-			CoverImage = dto.CoverImage ?? string.Empty
-		};
-	}
+		CoverImage = dto.CoverImage ?? string.Empty
+	};
 
-	private static VolumeMetadata ToVolumeMetadata(VolumeMetadataDto dto) {
-		return new VolumeMetadata {
-			CoverImage = dto.CoverImage ?? string.Empty,
-			PublicationDate = dto.PublicationDate,
-			Isbn = dto.Isbn ?? string.Empty
-		};
-	}
+	private static VolumeMetadata ToVolumeMetadata(VolumeMetadataDto dto) => new() {
+		CoverImage = dto.CoverImage ?? string.Empty,
+		PublicationDate = dto.PublicationDate,
+		Isbn = dto.Isbn ?? string.Empty
+	};
 }

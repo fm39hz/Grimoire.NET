@@ -1,14 +1,14 @@
 namespace Grimoire.Api.Controller;
 
+using System.Threading;
 using Application.Dto.Book;
 using Application.Mapper;
 using Application.Service.Contract;
 using Constant;
 using Domain.Common;
 using Dto;
-using System.Threading;
-using Microsoft.AspNetCore.Mvc;
 using Extension;
+using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -31,7 +31,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 	[ProducesResponseType(typeof(PagedResult<VolumeResponseDto>), 200)]
 	public async Task<IResult> FindAll(
 		[FromQuery] PaginationRequestDto pagination,
-		[FromServices] Grimoire.Application.Persistence.IVolumeProjectedQuery query,
+		[FromServices] Application.Persistence.IVolumeProjectedQuery query,
 		CancellationToken cancellationToken) {
 		var pagedDto = await query.FindAllProjectedAsync(pagination.PageIndex, pagination.PageSize, cancellationToken);
 		return Results.Ok(pagedDto);
@@ -73,7 +73,7 @@ public sealed class VolumeController(IVolumeService service, IBookMapper mapper)
 
 		var pagedChapters = await service.FindAllChapters(guid, pagination.ToApplicationDto(), cancellationToken);
 		var pagedDto = new PagedResult<ChapterListResponseDto>(
-			pagedChapters.Items.Select(mapper.ToChapterListDto).ToList(),
+			[.. pagedChapters.Items.Select(mapper.ToChapterListDto)],
 			pagedChapters.TotalCount,
 			pagedChapters.PageIndex,
 			pagedChapters.PageSize

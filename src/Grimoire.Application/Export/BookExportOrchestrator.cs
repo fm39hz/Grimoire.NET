@@ -60,5 +60,5 @@ public class BookExportOrchestrator(
 	private static string? FlattenDescription(List<TextSegmentModel>? description) =>
 		description == null || description.Count == 0
 			? null
-			: string.Join(" ", description.SelectMany(d => d.Runs.Select(r => r.Text)));
+			: string.Join(" ", description.SelectMany(static d => d.Runs.Select(static r => r.Text)));
 }

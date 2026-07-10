@@ -1,15 +1,15 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using System.Threading;
 using Database;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Common.ValueObject;
 using Domain.Entity.Book;
-using System.Threading;
-using Microsoft.EntityFrameworkCore;
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Mapper;
 using Grimoire.Application.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 public sealed class ChapterRepository(ApplicationDbContext context, IBookMapper mapper)
 	: CrudRepository<ChapterModel>(context), IChapterRepository, IChapterProjectedQuery {
@@ -62,9 +62,7 @@ public sealed class ChapterRepository(ApplicationDbContext context, IBookMapper 
 			.ToListAsync(cancellationToken);
 	}
 
-	public async Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) {
-		return await FindByVolumeIds(volumeIds, cancellationToken);
-	}
+	public async Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) => await FindByVolumeIds(volumeIds, cancellationToken);
 
 	public async Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) {
 		LTree volumePath = "n" + volumeId.ToString("N");
@@ -73,8 +71,8 @@ public sealed class ChapterRepository(ApplicationDbContext context, IBookMapper 
 	}
 
 	public async Task MoveChapterAsync(Guid chapterId, BookPath oldPath, BookPath newPath, double newOrder, CancellationToken cancellationToken = default) {
-		LTree ltreeOld = (LTree)oldPath.Value;
-		LTree ltreeNew = (LTree)newPath.Value;
+		var ltreeOld = (LTree)oldPath.Value;
+		var ltreeNew = (LTree)newPath.Value;
 		var oldPathLength = oldPath.Level;
 
 		await Entities.Where(c => c.Id == chapterId)
@@ -85,7 +83,7 @@ public sealed class ChapterRepository(ApplicationDbContext context, IBookMapper 
 	}
 
 	public async Task DeleteSubtreeAsync(Guid chapterId, BookPath path, CancellationToken cancellationToken = default) {
-		LTree ltreePath = (LTree)path.Value;
+		var ltreePath = (LTree)path.Value;
 		await context.Segments.Where(s => s.DbPath.IsDescendantOf(ltreePath)).ExecuteDeleteAsync(cancellationToken);
 		await Entities.Where(c => c.Id == chapterId).ExecuteDeleteAsync(cancellationToken);
 	}

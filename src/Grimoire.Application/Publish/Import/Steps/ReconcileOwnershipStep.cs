@@ -1,27 +1,26 @@
 namespace Grimoire.Application.Publish.Import.Steps;
 
-using System;
 using System.Threading;
 using System.Threading.Tasks;
-using Grimoire.Application.Service.Contract;
 using Grimoire.Application.Publish.Dto;
+using Grimoire.Application.Service.Contract;
 
 public sealed class ReconcileOwnershipStep(
-    IAssetOwnershipService assetOwnershipService) : IImportPipelineStep
-{
-    public int Order => 60;
+	IAssetOwnershipService assetOwnershipService) : IImportPipelineStep {
+	public int Order => 60;
 
-    public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken)
-    {
-        if (context.Series is null) return;
+	public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken) {
+		if (context.Series is null) {
+			return;
+		}
 
-        await assetOwnershipService.ReconcileSeriesAsync(context.Series.Id, cancellationToken);
+		await assetOwnershipService.ReconcileSeriesAsync(context.Series.Id, cancellationToken);
 
-        context.ReportSubProgress(1.0);
+		context.ReportSubProgress(1.0);
 
-        context.Result = JobResult.Ok(
-            context.Series.Id.ToString(), 
-            "import-completed", 
-            "application/json");
-    }
+		context.Result = JobResult.Ok(
+			context.Series.Id.ToString(),
+			"import-completed",
+			"application/json");
+	}
 }

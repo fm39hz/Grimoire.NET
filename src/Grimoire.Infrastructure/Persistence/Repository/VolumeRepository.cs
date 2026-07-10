@@ -1,15 +1,15 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using System.Threading;
 using Database;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Common.ValueObject;
 using Domain.Entity.Book;
-using System.Threading;
-using Microsoft.EntityFrameworkCore;
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Mapper;
 using Grimoire.Application.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 public sealed class VolumeRepository(ApplicationDbContext context, IBookMapper mapper)
 	: CrudRepository<VolumeModel>(context), IVolumeRepository, IVolumeProjectedQuery {
@@ -60,8 +60,8 @@ public sealed class VolumeRepository(ApplicationDbContext context, IBookMapper m
 	}
 
 	public async Task MoveVolumeAsync(Guid volumeId, BookPath oldPath, BookPath newPath, double newOrder, CancellationToken cancellationToken = default) {
-		LTree ltreeOld = (LTree)oldPath.Value;
-		LTree ltreeNew = (LTree)newPath.Value;
+		var ltreeOld = (LTree)oldPath.Value;
+		var ltreeNew = (LTree)newPath.Value;
 		var oldPathLength = oldPath.Level;
 
 		await Entities.Where(v => v.Id == volumeId)
@@ -69,13 +69,13 @@ public sealed class VolumeRepository(ApplicationDbContext context, IBookMapper m
 
 		await context.Chapters.Where(c => c.DbPath.IsDescendantOf(ltreeOld))
 			.ExecuteUpdateAsync(s => s.SetProperty(c => c.DbPath, c => (LTree)((string)ltreeNew + (string)c.DbPath.Subpath(oldPathLength))), cancellationToken);
-			
+
 		await context.Segments.Where(seg => seg.DbPath.IsDescendantOf(ltreeOld))
 			.ExecuteUpdateAsync(s => s.SetProperty(seg => seg.DbPath, seg => (LTree)((string)ltreeNew + (string)seg.DbPath.Subpath(oldPathLength))), cancellationToken);
 	}
 
 	public async Task DeleteSubtreeAsync(Guid volumeId, BookPath path, CancellationToken cancellationToken = default) {
-		LTree ltreePath = (LTree)path.Value;
+		var ltreePath = (LTree)path.Value;
 		await context.Segments.Where(s => s.DbPath.IsDescendantOf(ltreePath)).ExecuteDeleteAsync(cancellationToken);
 		await context.Chapters.Where(c => c.DbPath.IsDescendantOf(ltreePath)).ExecuteDeleteAsync(cancellationToken);
 		await Entities.Where(v => v.Id == volumeId).ExecuteDeleteAsync(cancellationToken);

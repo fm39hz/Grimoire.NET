@@ -13,9 +13,7 @@ public partial class MarkdownSectionRenderer(
 	ILogger<MarkdownSectionRenderer> logger) : ISectionRenderer {
 	public ExportFormat Format => ExportFormat.Markdown;
 
-	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null, IReadOnlyDictionary<string, string>? assetMap = null) {
-		return RenderSegments(segments, footnotes, assetMap, FootnoteStyle.Parentheses, false);
-	}
+	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null, IReadOnlyDictionary<string, string>? assetMap = null) => RenderSegments(segments, footnotes, assetMap, FootnoteStyle.Parentheses, false);
 
 	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes,
 		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle footnoteStyle, bool enableDropcap) {
@@ -126,7 +124,7 @@ public partial class MarkdownSectionRenderer(
 	}
 
 	private IReadOnlyList<NavEntry> RenderDescriptionSection(BookExportContext context, ExportSectionDto section, IPackageBuilder builder) {
-		var introSection = context.Structure.Sections.FirstOrDefault(s => s.Type == BookSection.IntroPage);
+		var introSection = context.Structure.Sections.FirstOrDefault(static s => s.Type == BookSection.IntroPage);
 
 		if (introSection != null && !IsSplitDescriptionEnabled(introSection)) {
 			LogSkippingDescription();
@@ -191,7 +189,7 @@ public partial class MarkdownSectionRenderer(
 						var footnoteMap = BuildFootnoteMap(footnoteList);
 
 						var isFirstText = true;
-						var contentSegments = segments.Where(s => s is not FootnoteSegmentModel).OrderBy(s => s.Order).ToList();
+						var contentSegments = segments.Where(static s => s is not FootnoteSegmentModel).OrderBy(static s => s.Order).ToList();
 						foreach (var segment in contentSegments) {
 							var markdown = ConvertSegmentToMarkdown(segment, footnoteMap, context.Structure.FootnoteStyle, context.Structure.EnableDropcap, ref isFirstText);
 							if (!string.IsNullOrWhiteSpace(markdown)) {
@@ -255,12 +253,12 @@ public partial class MarkdownSectionRenderer(
 		if (enableDropcap && isFirstText) {
 			isFirstText = false;
 			var runsList = segment.Runs.ToList();
-			var firstTextRunIndex = runsList.FindIndex(r => !string.IsNullOrEmpty(r.Text));
+			var firstTextRunIndex = runsList.FindIndex(static r => !string.IsNullOrEmpty(r.Text));
 			if (firstTextRunIndex == -1) {
 				return ConvertTextRunsToMarkdown(runsList, footnoteMap, style);
 			}
 
-			for (int i = 0; i < runsList.Count; i++) {
+			for (var i = 0; i < runsList.Count; i++) {
 				var run = runsList[i];
 				if (i == firstTextRunIndex) {
 					var text = run.Text;
@@ -274,15 +272,18 @@ public partial class MarkdownSectionRenderer(
 							fullText += $"[^{footnoteNumber}]";
 						}
 						sb.Append(fullText);
-					} else {
-						sb.Append(ConvertTextRunsToMarkdown(new[] { run }, footnoteMap, style));
 					}
-				} else {
-					sb.Append(ConvertTextRunsToMarkdown(new[] { run }, footnoteMap, style));
+					else {
+						sb.Append(ConvertTextRunsToMarkdown([run], footnoteMap, style));
+					}
+				}
+				else {
+					sb.Append(ConvertTextRunsToMarkdown([run], footnoteMap, style));
 				}
 			}
 			return sb.ToString();
-		} else {
+		}
+		else {
 			isFirstText = false;
 			return ConvertTextRunsToMarkdown(segment.Runs, footnoteMap, style);
 		}
@@ -292,7 +293,7 @@ public partial class MarkdownSectionRenderer(
 		var sb = new StringBuilder();
 		foreach (var run in runs) {
 			var text = run.Text;
-			int footnoteIndex = 0;
+			var footnoteIndex = 0;
 			var hasFootnote = !string.IsNullOrEmpty(run.FootnoteId) &&
 							footnoteMap is not null &&
 							footnoteMap.TryGetValue(run.FootnoteId, out footnoteIndex);

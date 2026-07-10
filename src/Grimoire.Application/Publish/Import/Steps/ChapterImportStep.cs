@@ -5,71 +5,67 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Grimoire.Application.Import;
-using Grimoire.Application.Service.Contract;
 using Grimoire.Application.Dto.Book;
+using Grimoire.Application.Service.Contract;
 using Grimoire.Domain.Common;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
 
 public sealed class ChapterImportStep(
-    IChapterService chapterService) : IImportPipelineStep
-{
-    public int Order => 50;
+	IChapterService chapterService) : IImportPipelineStep {
+	public int Order => 50;
 
-    public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken)
-    {
-        if (context.Series is null) return;
+	public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken) {
+		if (context.Series is null) {
+			return;
+		}
 
-        var chaptersToImport = new List<(Guid VolumeId, CreateChapterRequestDto Dto)>();
+		var chaptersToImport = new List<(Guid VolumeId, CreateChapterRequestDto Dto)>();
 
-        foreach (var vol in context.ResolvedVolumes)
-        {
-            var volEntry = context.MergedVolumes.First(v => v.Order == vol.VolumeOrder);
+		foreach (var vol in context.ResolvedVolumes) {
+			var volEntry = context.MergedVolumes.First(v => v.Order == vol.VolumeOrder);
 
-            foreach (var ch in vol.Chapters)
-            {
-                var chEntry = volEntry.Chapters.FirstOrDefault(c => c.Order == ch.Order);
-                if (chEntry is null) continue;
+			foreach (var ch in vol.Chapters) {
+				var chEntry = volEntry.Chapters.FirstOrDefault(c => c.Order == ch.Order);
+				if (chEntry is null) {
+					continue;
+				}
 
-                var segments = RemapImages(chEntry.Segments, context.FileMap);
+				var segments = RemapImages(chEntry.Segments, context.FileMap);
 
-                var dto = new CreateChapterRequestDto(
-                    PrefixedId.ToString(EntityPrefix.Volume, vol.Id),
-                    chEntry.Order,
-                    chEntry.Title,
-                    segments,
-                    chEntry.Footnotes,
-                    null);
+				var dto = new CreateChapterRequestDto(
+					PrefixedId.ToString(EntityPrefix.Volume, vol.Id),
+					chEntry.Order,
+					chEntry.Title,
+					segments,
+					chEntry.Footnotes,
+					null);
 
-                chaptersToImport.Add((vol.Id, dto));
-            }
-        }
+				chaptersToImport.Add((vol.Id, dto));
+			}
+		}
 
-        if (chaptersToImport.Count == 0) return;
+		if (chaptersToImport.Count == 0) {
+			return;
+		}
 
-        var (chapters, createdCount, updatedCount) = await chapterService.UpsertBulkAsync(
-            context.Series.Id,
-            chaptersToImport,
-            subProgress =>
-            {
-                context.ReportSubProgress(subProgress / 100.0);
-            },
-            cancellationToken);
+		var (chapters, createdCount, updatedCount) = await chapterService.UpsertBulkAsync(
+			context.Series.Id,
+			chaptersToImport,
+			subProgress => context.ReportSubProgress(subProgress / 100.0),
+			cancellationToken);
 
-        context.ChaptersCreated = createdCount;
-        context.ChaptersUpdated = updatedCount;
-    }
+		context.ChaptersCreated = createdCount;
+		context.ChaptersUpdated = updatedCount;
+	}
 
-    private static List<SegmentModel> RemapImages(
-        List<SegmentModel> segments,
-        Dictionary<string, string> assetMap) {
+	private static List<SegmentModel> RemapImages(
+		List<SegmentModel> segments,
+		Dictionary<string, string> assetMap) => [.. segments.Select(s => {
+			if (s is ImageSegmentModel img && assetMap.TryGetValue(img.AssetKey, out var key)) {
+				return new ImageSegmentModel { Id = img.Id, AssetKey = key };
+			}
 
-        return segments.Select(s =>
-        {
-            if (s is ImageSegmentModel img && assetMap.TryGetValue(img.AssetKey, out var key))
-                return new ImageSegmentModel { Id = img.Id, AssetKey = key };
-            return s;
-        }).ToList();
-    }
+			return s;
+		})];
 }

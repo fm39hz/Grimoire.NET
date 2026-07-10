@@ -9,8 +9,8 @@ public interface IChapterService : ICrudService<ChapterModel, CreateChapterReque
 	public Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, ChapterModel? existing, CancellationToken cancellationToken = default);
 	public Task<(IEnumerable<ChapterModel> Chapters, int CreatedCount, int UpdatedCount)> UpsertBulkAsync(
 		Guid seriesId,
-		System.Collections.Generic.List<(Guid VolumeId, CreateChapterRequestDto Dto)> chapters,
-		System.Action<int>? onProgress = null,
+		List<(Guid VolumeId, CreateChapterRequestDto Dto)> chapters,
+		Action<int>? onProgress = null,
 		CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ChapterModel>> SplitAsync(Guid chapterId, SplitChapterRequestDto dto, CancellationToken cancellationToken = default);
 	public Task<ChapterModel> MergeAsync(MergeChaptersRequestDto dto, CancellationToken cancellationToken = default);

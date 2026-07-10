@@ -9,9 +9,8 @@ using System.Threading.Tasks;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Segment;
-using Service.Contract;
 using Microsoft.EntityFrameworkCore;
+using Service.Contract;
 
 public class ImageAssetCollector(
 	IAssetRepository assetRepository,
@@ -22,7 +21,7 @@ public class ImageAssetCollector(
 		List<VolumeModel> volumes,
 		IReadOnlyDictionary<Guid, List<ChapterModel>> chapterMap,
 		CancellationToken cancellationToken = default) {
-		
+
 		var assetKeyToIdMap = await BuildAssetKeyToIdMapAsync(chapterMap, volumes, cancellationToken);
 		if (assetKeyToIdMap.Count == 0) {
 			return new Dictionary<string, ResolvedAsset>();
@@ -91,9 +90,18 @@ public class ImageAssetCollector(
 
 		foreach (var volume in volumes) {
 			var coverKey = volume.Metadata?.CoverImage;
-			if (string.IsNullOrEmpty(coverKey)) continue;
-			if (!PrefixedId.TryToGuid(coverKey, EntityPrefix.Asset, out var id)) continue;
-			if (result.ContainsKey(coverKey)) continue;
+			if (string.IsNullOrEmpty(coverKey)) {
+				continue;
+			}
+
+			if (!PrefixedId.TryToGuid(coverKey, EntityPrefix.Asset, out var id)) {
+				continue;
+			}
+
+			if (result.ContainsKey(coverKey)) {
+				continue;
+			}
+
 			result[coverKey] = id;
 		}
 

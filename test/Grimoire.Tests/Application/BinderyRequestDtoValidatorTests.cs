@@ -3,7 +3,6 @@ namespace Grimoire.Tests.Application;
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Dto.Book.Validators;
 using Grimoire.Application.Service.Strategy;
-using System.Collections.Generic;
 using Xunit;
 
 public class BinderyRequestDtoValidatorTests {
@@ -27,7 +26,7 @@ public class BinderyRequestDtoValidatorTests {
 		var request = new BinderyRequestDto {
 			Format = ExportFormat.Markdown,
 			Mode = "Single",
-			TargetVolumeIds = new List<string> { "vol_187661b1-2e65-4f40-84a1-b843d22b2707" }
+			TargetVolumeIds = ["vol_187661b1-2e65-4f40-84a1-b843d22b2707"]
 		};
 
 		var result = _validator.Validate(request);
@@ -46,7 +45,7 @@ public class BinderyRequestDtoValidatorTests {
 		var result = _validator.Validate(request);
 
 		Assert.False(result.IsValid);
-		Assert.Contains(result.Errors, e => e.PropertyName == nameof(BinderyRequestDto.TargetVolumeIds));
+		Assert.Contains(result.Errors, static e => e.PropertyName == nameof(BinderyRequestDto.TargetVolumeIds));
 	}
 
 	[Fact]
@@ -54,12 +53,12 @@ public class BinderyRequestDtoValidatorTests {
 		var request = new BinderyRequestDto {
 			Format = ExportFormat.Epub,
 			Mode = "Single",
-			TargetVolumeIds = new List<string> { "vol187661b1-2e65-4f40-84a1-b843d22b2707", "ser_187661b1-2e65-4f40-84a1-b843d22b2707" }
+			TargetVolumeIds = ["vol187661b1-2e65-4f40-84a1-b843d22b2707", "ser_187661b1-2e65-4f40-84a1-b843d22b2707"]
 		};
 
 		var result = _validator.Validate(request);
 
 		Assert.False(result.IsValid);
-		Assert.Contains(result.Errors, e => e.PropertyName.StartsWith(nameof(BinderyRequestDto.TargetVolumeIds)));
+		Assert.Contains(result.Errors, static e => e.PropertyName.StartsWith(nameof(BinderyRequestDto.TargetVolumeIds)));
 	}
 }

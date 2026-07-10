@@ -34,22 +34,16 @@ public sealed class PrefixedIdTests {
 	}
 
 	[Fact]
-	public void ToGuid_WithMissingGuid_ThrowsFormatException() {
-		Assert.Throws<FormatException>(() => PrefixedId.ToGuid("ser_not-a-guid"));
-	}
+	public void ToGuid_WithMissingGuid_ThrowsFormatException() => Assert.Throws<FormatException>(static () => PrefixedId.ToGuid("ser_not-a-guid"));
 
 	[Fact]
-	public void ToGuid_WithNoSeparator_ThrowsFormatException() {
-		Assert.Throws<FormatException>(() => PrefixedId.ToGuid("noguid"));
-	}
+	public void ToGuid_WithNoSeparator_ThrowsFormatException() => Assert.Throws<FormatException>(static () => PrefixedId.ToGuid("noguid"));
 
 	[Theory]
 	[InlineData(null)]
 	[InlineData("")]
 	[InlineData("   ")]
-	public void ToGuid_WithNullOrEmpty_ThrowsArgumentException(string? input) {
-		Assert.Throws<ArgumentException>(() => PrefixedId.ToGuid(input!));
-	}
+	public void ToGuid_WithNullOrEmpty_ThrowsArgumentException(string? input) => Assert.Throws<ArgumentException>(() => PrefixedId.ToGuid(input!));
 
 	[Fact]
 	public void TryToGuid_WithValidInput_ReturnsTrueAndGuid() {
@@ -61,14 +55,10 @@ public sealed class PrefixedIdTests {
 	}
 
 	[Fact]
-	public void TryToGuid_WithInvalidInput_ReturnsFalse() {
-		Assert.False(PrefixedId.TryToGuid("not-valid", out _));
-	}
+	public void TryToGuid_WithInvalidInput_ReturnsFalse() => Assert.False(PrefixedId.TryToGuid("not-valid", out _));
 
 	[Fact]
-	public void TryToGuid_WithNullInput_ReturnsFalse() {
-		Assert.False(PrefixedId.TryToGuid(null, out _));
-	}
+	public void TryToGuid_WithNullInput_ReturnsFalse() => Assert.False(PrefixedId.TryToGuid(null, out _));
 
 	[Fact]
 	public void TryToGuid_WithCorrectPrefix_ReturnsTrue() {
@@ -95,9 +85,7 @@ public sealed class PrefixedIdTests {
 	[InlineData(null)]
 	[InlineData("")]
 	[InlineData("noguid")]
-	public void GetPrefix_WithInvalidInput_ReturnsNull(string? input) {
-		Assert.Null(PrefixedId.GetPrefix(input));
-	}
+	public void GetPrefix_WithInvalidInput_ReturnsNull(string? input) => Assert.Null(PrefixedId.GetPrefix(input));
 
 	[Fact]
 	public void RoundTrip_ToString_ThenToGuid_IsIdentity() {

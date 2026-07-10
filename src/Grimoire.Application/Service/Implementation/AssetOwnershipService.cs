@@ -9,8 +9,6 @@ using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Common.ValueObject;
-using Domain.Entity.Book;
-using Domain.Entity.Book.Segment;
 
 public sealed class AssetOwnershipService(
 	ISeriesRepository seriesRepository,
@@ -26,7 +24,7 @@ public sealed class AssetOwnershipService(
 
 		var seriesPath = series.Path;
 		var volumes = (await volumeRepository.FindBySeriesId(seriesId, cancellationToken)).ToList();
-		
+
 		// Collect image segments under this series path
 		var imageSegments = (await segmentRepository.FindImageSegmentsBySeriesPath(seriesPath, cancellationToken)).ToList();
 
@@ -55,7 +53,7 @@ public sealed class AssetOwnershipService(
 		}
 
 		var assets = await assetRepository.FindByIdsAsync(usagePathsByAssetId.Keys, cancellationToken);
-		
+
 		foreach (var (assetId, paths) in usagePathsByAssetId) {
 			if (!assets.TryGetValue(assetId, out var asset)) {
 				continue;

@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Grimoire.Api.Constant;
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Publish;
 using Grimoire.Application.Publish.Dto;
@@ -14,197 +15,170 @@ using Grimoire.Job.Jobs;
 using Hangfire;
 using Hangfire.Common;
 
-using Grimoire.Api.Constant;
+public sealed class PublishService(
+	IBackgroundJobClient backgroundJobs,
+	JobStorage jobStorage,
+	IStorageRepository storage,
+	IUnitOfWork unitOfWork) : IPublishService {
+	private readonly IBackgroundJobClient _backgroundJobs = backgroundJobs;
+	private readonly JobStorage _jobStorage = jobStorage;
+	private readonly IStorageRepository _storage = storage;
+	private readonly IUnitOfWork _unitOfWork = unitOfWork;
 
-public sealed class PublishService : IPublishService
-{
-    private readonly IBackgroundJobClient _backgroundJobs;
-    private readonly JobStorage _jobStorage;
-    private readonly IStorageRepository _storage;
-    private readonly IUnitOfWork _unitOfWork;
+	public Task<string> EnqueueExportAsync(Guid seriesId, BinderyRequestDto request, CancellationToken cancellationToken = default) {
+		string? jobId = null;
+		_unitOfWork.RegisterPostCommitAction(() => {
+			jobId = _backgroundJobs.Enqueue<ExportJob>(
+				job => job.ExecuteAsync(
+					null!, // PerformContext — filled by Hangfire
+					seriesId,
+					request,
+					CancellationToken.None));
+			return Task.CompletedTask;
+		});
 
-    public PublishService(
-        IBackgroundJobClient backgroundJobs,
-        JobStorage jobStorage,
-        IStorageRepository storage,
-        IUnitOfWork unitOfWork)
-    {
-        _backgroundJobs = backgroundJobs;
-        _jobStorage = jobStorage;
-        _storage = storage;
-        _unitOfWork = unitOfWork;
-    }
+		return Task.FromResult(jobId ?? string.Empty);
+	}
 
-    public Task<string> EnqueueExportAsync(Guid seriesId, BinderyRequestDto request, CancellationToken cancellationToken = default)
-    {
-        string? jobId = null;
-        _unitOfWork.RegisterPostCommitAction(() =>
-        {
-            jobId = _backgroundJobs.Enqueue<ExportJob>(
-                job => job.ExecuteAsync(
-                    null!, // PerformContext — filled by Hangfire
-                    seriesId,
-                    request,
-                    CancellationToken.None));
-            return Task.CompletedTask;
-        });
+	public async Task<string> EnqueueImportAsync(
+		CreateSeriesRequestDto? seriesDto,
+		List<ImportVolumeDto>? volumesOverride,
+		Stream fileStream,
+		string fileName,
+		string contentType,
+		CancellationToken cancellationToken = default) {
+		// Upload EPUB file to staging first
+		var fileKey = await _storage.UploadFileAsync(
+			fileStream,
+			contentType,
+			fileName,
+			"staging/import",
+			cancellationToken);
 
-        return Task.FromResult(jobId ?? string.Empty);
-    }
+		var seriesJson = seriesDto is not null ? System.Text.Json.JsonSerializer.Serialize(seriesDto) : null;
+		var volumesJson = volumesOverride is not null ? System.Text.Json.JsonSerializer.Serialize(volumesOverride) : null;
 
-    public async Task<string> EnqueueImportAsync(
-        CreateSeriesRequestDto? seriesDto,
-        List<ImportVolumeDto>? volumesOverride,
-        Stream fileStream,
-        string fileName,
-        string contentType,
-        CancellationToken cancellationToken = default)
-    {
-        // Upload EPUB file to staging first
-        var fileKey = await _storage.UploadFileAsync(
-            fileStream,
-            contentType,
-            fileName,
-            "staging/import",
-            cancellationToken);
+		string? jobId = null;
+		_unitOfWork.RegisterPostCommitAction(() => {
+			jobId = _backgroundJobs.Enqueue<ImportJob>(
+				job => job.ExecuteAsync(
+					null!,
+					seriesJson,
+					volumesJson,
+					fileKey,
+					CancellationToken.None));
+			return Task.CompletedTask;
+		});
 
-        var seriesJson = seriesDto is not null ? System.Text.Json.JsonSerializer.Serialize(seriesDto) : null;
-        var volumesJson = volumesOverride is not null ? System.Text.Json.JsonSerializer.Serialize(volumesOverride) : null;
+		return jobId ?? string.Empty;
+	}
 
-        string? jobId = null;
-        _unitOfWork.RegisterPostCommitAction(() =>
-        {
-            jobId = _backgroundJobs.Enqueue<ImportJob>(
-                job => job.ExecuteAsync(
-                    null!,
-                    seriesJson,
-                    volumesJson,
-                    fileKey,
-                    CancellationToken.None));
-            return Task.CompletedTask;
-        });
+	public Task<PublishJobStatusDto?> GetJobStatusAsync(string jobId, CancellationToken cancellationToken = default) {
+		var monitor = _jobStorage.GetMonitoringApi();
+		var jobDetails = monitor.JobDetails(jobId);
 
-        return jobId ?? string.Empty;
-    }
+		if (jobDetails is null) {
+			return Task.FromResult<PublishJobStatusDto?>(null);
+		}
 
-    public Task<PublishJobStatusDto?> GetJobStatusAsync(string jobId, CancellationToken cancellationToken = default)
-    {
-        var monitor = _jobStorage.GetMonitoringApi();
-        var jobDetails = monitor.JobDetails(jobId);
+		var state = jobDetails.History
+			.Select(h => h.StateName)
+			.FirstOrDefault() ?? "Unknown";
 
-        if (jobDetails is null)
-        {
-            return Task.FromResult<PublishJobStatusDto?>(null);
-        }
+		if (state == "Succeeded") {
+			var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
+			if (succeeded?.Data is not null && succeeded.Data.TryGetValue("Result", out var resultValue) && !string.IsNullOrEmpty(resultValue)) {
+				try {
+					var result = SerializationHelper.Deserialize<JobResult>(resultValue);
+					if (result is { Success: false }) {
+						return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
+							jobId,
+							"Failed",
+							Error: result.ErrorMessage ?? "Job execution failed"));
+					}
+				}
+				catch {
+					// Fallback to completed on deserialization failure
+				}
+			}
 
-        var state = jobDetails.History
-            .Select(h => h.StateName)
-            .FirstOrDefault() ?? "Unknown";
+			return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
+				jobId,
+				"Completed",
+				DownloadUrl: $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}/download"));
+		}
 
-        if (state == "Succeeded")
-        {
-            var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
-            if (succeeded?.Data is not null && succeeded.Data.TryGetValue("Result", out var resultValue) && !string.IsNullOrEmpty(resultValue))
-            {
-                try
-                {
-                    var result = SerializationHelper.Deserialize<JobResult>(resultValue);
-                    if (result is { Success: false })
-                    {
-                        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
-                            jobId,
-                            "Failed",
-                            Error: result.ErrorMessage ?? "Job execution failed"));
-                    }
-                }
-                catch
-                {
-                    // Fallback to completed on deserialization failure
-                }
-            }
+		if (state == "Failed") {
+			var error = jobDetails.History
+				.Select(h => h.Data?.TryGetValue("ErrorMessage", out var msg) == true ? msg : null)
+				.LastOrDefault(msg => msg != null) ?? "Unknown error";
 
-            return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
-                jobId,
-                "Completed",
-                DownloadUrl: $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}/download"));
-        }
+			return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, "Failed", Error: error));
+		}
 
-        if (state == "Failed")
-        {
-            var error = jobDetails.History
-                .Select(h => h.Data?.TryGetValue("ErrorMessage", out var msg) == true ? msg : null)
-                .LastOrDefault(msg => msg != null) ?? "Unknown error";
+		int? progress = null;
+		string? stage = null;
+		try {
+			using var connection = _jobStorage.GetConnection();
+			var progressStr = connection.GetJobParameter(jobId, "Progress");
+			if (!string.IsNullOrEmpty(progressStr) && int.TryParse(progressStr, out var prog)) {
+				progress = prog;
+			}
+			stage = connection.GetJobParameter(jobId, "Stage");
+			if (string.IsNullOrEmpty(stage)) {
+				stage = null;
+			}
+		}
+		catch {
+			// Suppress errors reading progress
+		}
 
-            return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, "Failed", Error: error));
-        }
+		return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state, Progress: progress, Stage: stage));
+	}
 
-        int? progress = null;
-        string? stage = null;
-        try
-        {
-            using var connection = _jobStorage.GetConnection();
-            var progressStr = connection.GetJobParameter(jobId, "Progress");
-            if (!string.IsNullOrEmpty(progressStr) && int.TryParse(progressStr, out var prog))
-            {
-                progress = prog;
-            }
-            stage = connection.GetJobParameter(jobId, "Stage");
-            if (string.IsNullOrEmpty(stage))
-                stage = null;
-        }
-        catch
-        {
-            // Suppress errors reading progress
-        }
+	public async Task<PublishDownloadResultDto?> GetDownloadStreamAsync(string jobId, CancellationToken cancellationToken = default) {
+		var assetId = await ResolveAssetIdAsync(jobId);
+		if (assetId is null) {
+			return null;
+		}
 
-        return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(jobId, state, Progress: progress, Stage: stage));
-    }
+		var result = await _storage.GetFileStreamAsync(assetId.Value, cancellationToken);
+		if (result is null) {
+			return null;
+		}
 
-    public async Task<PublishDownloadResultDto?> GetDownloadStreamAsync(string jobId, CancellationToken cancellationToken = default)
-    {
-        var assetId = await ResolveAssetIdAsync(jobId);
-        if (assetId is null)
-        {
-            return null;
-        }
+		return new PublishDownloadResultDto(result.Stream, result.ContentType, result.FileName);
+	}
 
-        var result = await _storage.GetFileStreamAsync(assetId.Value, cancellationToken);
-        if (result is null)
-        {
-            return null;
-        }
+	private async Task<Guid?> ResolveAssetIdAsync(string jobId) {
+		var monitor = _jobStorage.GetMonitoringApi();
+		var jobDetails = monitor.JobDetails(jobId);
 
-        return new PublishDownloadResultDto(result.Stream, result.ContentType, result.FileName);
-    }
+		if (jobDetails?.History is null) {
+			return null;
+		}
 
-    private async Task<Guid?> ResolveAssetIdAsync(string jobId)
-    {
-        var monitor = _jobStorage.GetMonitoringApi();
-        var jobDetails = monitor.JobDetails(jobId);
+		var succeeded = jobDetails.History.FirstOrDefault(static h => h.StateName == "Succeeded");
+		if (succeeded?.Data is null) {
+			return null;
+		}
 
-        if (jobDetails?.History is null) return null;
+		if (!succeeded.Data.TryGetValue("Result", out var resultValue)
+			|| string.IsNullOrEmpty(resultValue)) {
+			return null;
+		}
 
-        var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
-        if (succeeded?.Data is null) return null;
+		try {
+			// Using standard Hangfire helper or custom deserialization
+			var result = SerializationHelper.Deserialize<JobResult>(resultValue);
+			if (result?.DownloadUrl is not null && Guid.TryParse(result.DownloadUrl, out var assetId)) {
+				return assetId;
+			}
 
-        if (!succeeded.Data.TryGetValue("Result", out var resultValue)
-            || string.IsNullOrEmpty(resultValue))
-        {
-            return null;
-        }
-
-        try
-        {
-            // Using standard Hangfire helper or custom deserialization
-            var result = SerializationHelper.Deserialize<JobResult>(resultValue);
-            if (result?.DownloadUrl is not null && Guid.TryParse(result.DownloadUrl, out var assetId))
-                return assetId;
-
-            return null;
-        }
-        catch
-        {
-            return null;
-        }
-    }
+			return null;
+		}
+		catch {
+			return null;
+		}
+	}
 }

@@ -7,25 +7,21 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 
 public sealed class ExportPipeline(
-    IEnumerable<IExportPipelineStep> steps,
-    ILogger<ExportPipeline> logger) : IExportPipeline
-{
-    private readonly List<IExportPipelineStep> _steps = steps.OrderBy(s => s.Order).ToList();
+	IEnumerable<IExportPipelineStep> steps,
+	ILogger<ExportPipeline> logger) : IExportPipeline {
+	private readonly List<IExportPipelineStep> _steps = [.. steps.OrderBy(static s => s.Order)];
 
-    public async Task ExecuteAsync(ExportPipelineContext context, CancellationToken cancellationToken)
-    {
-        foreach (var step in _steps)
-        {
-            var stageName = step.GetType().Name.Replace("Step", "");
-            context.CurrentStage = stageName;
-            context.ReportSubProgress(0.0);
-            logger.LogInformation("Executing export step: {StepName} (Order={Order})", step.GetType().Name, step.Order);
-            await step.ExecuteAsync(context, cancellationToken);
-            if (context.Result is { Success: false })
-            {
-                logger.LogWarning("Export pipeline stopped due to step failure in {StepName}", step.GetType().Name);
-                break;
-            }
-        }
-    }
+	public async Task ExecuteAsync(ExportPipelineContext context, CancellationToken cancellationToken) {
+		foreach (var step in _steps) {
+			var stageName = step.GetType().Name.Replace("Step", "");
+			context.CurrentStage = stageName;
+			context.ReportSubProgress(0.0);
+			logger.LogInformation("Executing export step: {StepName} (Order={Order})", step.GetType().Name, step.Order);
+			await step.ExecuteAsync(context, cancellationToken);
+			if (context.Result is { Success: false }) {
+				logger.LogWarning("Export pipeline stopped due to step failure in {StepName}", step.GetType().Name);
+				break;
+			}
+		}
+	}
 }

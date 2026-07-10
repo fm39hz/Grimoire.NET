@@ -8,7 +8,7 @@ using Scriban.Runtime;
 /// <summary>
 ///     Scriban implementation of the template engine
 /// </summary>
-	public class ScribanTemplateEngine : ITemplateEngine {
+public class ScribanTemplateEngine : ITemplateEngine {
 	private const int LoopLimit = 100_000;
 	private const string IsSplitDescriptionEnabled = "is_split_description_enabled";
 	private const string ShouldShowDescriptionInIntro = "should_show_description_in_intro";

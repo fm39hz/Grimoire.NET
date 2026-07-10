@@ -13,9 +13,9 @@ using Domain.Exception;
 using Dto.Book;
 using Dto.Book.Tree;
 using Dto.Common;
+using Grimoire.Domain.Common.ValueObject;
 using Mapper;
 using Microsoft.EntityFrameworkCore;
-using Grimoire.Domain.Common.ValueObject;
 
 public sealed class BookTreeService(
 	ISeriesRepository seriesRepository,
@@ -23,7 +23,7 @@ public sealed class BookTreeService(
 	IChapterRepository chapterRepository,
 	IUnitOfWork unitOfWork,
 	IBookMapper mapper) : CrudServiceBase<VolumeModel>, IBookTreeService {
-	
+
 	private const string DefaultShelfId = "bookshelf:default";
 	private const string DefaultShelfTitle = "Book Shelf";
 
@@ -72,21 +72,21 @@ public sealed class BookTreeService(
 					Title = series.Title,
 					Order = null,
 					ParentId = DefaultShelfId,
-					Children = volumes.Select(v => new BookTreeNodeDto {
+					Children = [.. volumes.Select(v => new BookTreeNodeDto {
 						Id = PrefixedId.ToString(EntityPrefix.Volume, v.Id),
 						Type = BookTreeNodeType.Volume,
 						Title = v.Title,
 						Order = v.Order,
 						ParentId = PrefixedId.ToString(EntityPrefix.Series, series.Id),
-						Children = chapters.Where(c => c.Path.GetVolumeId() == v.Id).Select(c => new BookTreeNodeDto {
+						Children = [.. chapters.Where(c => c.Path.GetVolumeId() == v.Id).Select(c => new BookTreeNodeDto {
 							Id = PrefixedId.ToString(EntityPrefix.Chapter, c.Id),
 							Type = BookTreeNodeType.Chapter,
 							Title = c.Title,
 							Order = c.Order,
 							ParentId = PrefixedId.ToString(EntityPrefix.Volume, v.Id),
 							Children = []
-						}).ToList()
-					}).ToList()
+						})]
+					})]
 				}
 			]
 		};
@@ -97,13 +97,11 @@ public sealed class BookTreeService(
 	public async Task<SeriesModel?> FindSeries(Guid seriesId, CancellationToken cancellationToken = default) =>
 		await seriesRepository.FindOne(seriesId, cancellationToken);
 
-	public async Task<SeriesModel> CreateSeries(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
-		return await ExecuteInTransaction(async () => {
-			var series = mapper.CreateSeries(dto);
-			series.Path = "n" + series.Id.ToString("N");
-			return await seriesRepository.Create(series, cancellationToken);
-		}, cancellationToken);
-	}
+	public async Task<SeriesModel> CreateSeries(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) => await ExecuteInTransaction(async () => {
+		var series = mapper.CreateSeries(dto);
+		series.Path = "n" + series.Id.ToString("N");
+		return await seriesRepository.Create(series, cancellationToken);
+	}, cancellationToken);
 
 	public async Task<(SeriesModel Series, bool Created)> GetOrCreateSeries(CreateSeriesRequestDto dto, CancellationToken cancellationToken = default) {
 		var normalizedTitle = dto.Title.Trim();
@@ -122,9 +120,7 @@ public sealed class BookTreeService(
 
 		mapper.UpdateSeries(dto, series);
 
-		return await ExecuteInTransaction(async () => {
-			return await seriesRepository.Update(series, cancellationToken);
-		}, cancellationToken);
+		return await ExecuteInTransaction(async () => await seriesRepository.Update(series, cancellationToken), cancellationToken);
 	}
 
 	public async Task<VolumeModel> CreateVolume(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
@@ -145,9 +141,7 @@ public sealed class BookTreeService(
 
 		mapper.UpdateVolume(dto, volume);
 
-		var result = await ExecuteInTransaction(async () => {
-			return await volumeRepository.Update(volume, cancellationToken);
-		}, cancellationToken);
+		var result = await ExecuteInTransaction(async () => await volumeRepository.Update(volume, cancellationToken), cancellationToken);
 
 		if (dto.SeriesId is not null) {
 			var newParentId = PrefixedId.ToGuid(dto.SeriesId, EntityPrefix.Series);
@@ -182,31 +176,33 @@ public sealed class BookTreeService(
 	public async Task MoveNode(Guid nodeId, Guid? newParentId, double newOrder, CancellationToken cancellationToken = default) {
 		var volume = await volumeRepository.FindOneTracked(nodeId, cancellationToken);
 		if (volume is not null) {
-			if (newParentId is null) throw new InvalidOperationException("Volume must have a parent series");
+			if (newParentId is null) {
+				throw new InvalidOperationException("Volume must have a parent series");
+			}
+
 			var series = await seriesRepository.FindOne(newParentId.Value, cancellationToken) ??
 				throw new EntityNotFoundException($"Series with id {newParentId} not found");
 
 			var oldPath = volume.Path;
 			BookPath newPath = $"{series.Path.Value}.n{volume.Id:N}";
 
-			await ExecuteInTransaction(async () => {
-				await volumeRepository.MoveVolumeAsync(volume.Id, oldPath, newPath, newOrder, cancellationToken);
-			}, cancellationToken);
+			await ExecuteInTransaction(async () => await volumeRepository.MoveVolumeAsync(volume.Id, oldPath, newPath, newOrder, cancellationToken), cancellationToken);
 			return;
 		}
 
 		var chapter = await chapterRepository.FindOneTracked(nodeId, cancellationToken);
 		if (chapter is not null) {
-			if (newParentId is null) throw new InvalidOperationException("Chapter must have a parent volume");
+			if (newParentId is null) {
+				throw new InvalidOperationException("Chapter must have a parent volume");
+			}
+
 			var parentVolume = await volumeRepository.FindOne(newParentId.Value, cancellationToken) ??
 				throw new EntityNotFoundException($"Volume with id {newParentId} not found");
 
 			var oldPath = chapter.Path;
 			BookPath newPath = $"{parentVolume.Path.Value}.n{chapter.Id:N}";
 
-			await ExecuteInTransaction(async () => {
-				await chapterRepository.MoveChapterAsync(chapter.Id, oldPath, newPath, newOrder, cancellationToken);
-			}, cancellationToken);
+			await ExecuteInTransaction(async () => await chapterRepository.MoveChapterAsync(chapter.Id, oldPath, newPath, newOrder, cancellationToken), cancellationToken);
 			return;
 		}
 
@@ -216,25 +212,19 @@ public sealed class BookTreeService(
 	public async Task<int> DeleteSubtree(Guid nodeId, CancellationToken cancellationToken = default) {
 		var series = await seriesRepository.FindOne(nodeId, cancellationToken);
 		if (series is not null) {
-			await ExecuteInTransaction(async () => {
-				await seriesRepository.DeleteSubtreeAsync(series.Id, series.Path, cancellationToken);
-			}, cancellationToken);
+			await ExecuteInTransaction(async () => await seriesRepository.DeleteSubtreeAsync(series.Id, series.Path, cancellationToken), cancellationToken);
 			return 1;
 		}
 
 		var volume = await volumeRepository.FindOne(nodeId, cancellationToken);
 		if (volume is not null) {
-			await ExecuteInTransaction(async () => {
-				await volumeRepository.DeleteSubtreeAsync(volume.Id, volume.Path, cancellationToken);
-			}, cancellationToken);
+			await ExecuteInTransaction(async () => await volumeRepository.DeleteSubtreeAsync(volume.Id, volume.Path, cancellationToken), cancellationToken);
 			return 1;
 		}
 
 		var chapter = await chapterRepository.FindOne(nodeId, cancellationToken);
 		if (chapter is not null) {
-			await ExecuteInTransaction(async () => {
-				await chapterRepository.DeleteSubtreeAsync(chapter.Id, chapter.Path, cancellationToken);
-			}, cancellationToken);
+			await ExecuteInTransaction(async () => await chapterRepository.DeleteSubtreeAsync(chapter.Id, chapter.Path, cancellationToken), cancellationToken);
 			return 1;
 		}
 

@@ -14,14 +14,14 @@ public static class LogExtension {
 		Log.Logger = new LoggerConfiguration()
 			.WriteTo.Console(outputTemplate: template).CreateBootstrapLogger();
 
-		builder.Host.UseSerilog((context, provider, configuration) => configuration
+		builder.Host.UseSerilog(static (context, provider, configuration) => configuration
 			.ReadFrom.Configuration(context.Configuration)
 			.ReadFrom.Services(provider)
 			.MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
 			.MinimumLevel.Override("System", LogEventLevel.Warning)
 			.Enrich.FromLogContext()
 			.Enrich.WithExceptionDetails()
-			.WriteTo.Async(a => a.Console(
+			.WriteTo.Async(static a => a.Console(
 				outputTemplate: template, theme: SystemConsoleTheme.Colored, applyThemeToRedirectedOutput: true)));
 		return services;
 	}

@@ -1,10 +1,10 @@
 namespace Grimoire.Application.Export;
 
 using System.Collections.Generic;
-using Dto.Book;
-using Service.Strategy;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
+using Dto.Book;
+using Service.Strategy;
 
 public interface ISectionRenderer {
 	public ExportFormat Format { get; }

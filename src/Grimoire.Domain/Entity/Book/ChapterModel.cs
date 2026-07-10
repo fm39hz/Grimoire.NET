@@ -1,29 +1,25 @@
 namespace Grimoire.Domain.Entity.Book;
 
-using Microsoft.EntityFrameworkCore;
 using Common.ValueObject;
+using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 ///     Represents a chapter within a volume
 /// </summary>
 public class ChapterModel : BaseModel {
-	private LTree _dbPath = string.Empty;
 
 	/// <summary>
 	///     The hierarchical path for this chapter node in the domain layer.
 	/// </summary>
 	public BookPath Path {
-		get => new(_dbPath.ToString());
-		set => _dbPath = (LTree)value.Value;
+		get => new(DbPath.ToString());
+		set => DbPath = (LTree)value.Value;
 	}
 
 	/// <summary>
 	///     The database-mapped LTree path. Used by EF Core and Repository queries.
 	/// </summary>
-	public LTree DbPath {
-		get => _dbPath;
-		set => _dbPath = value;
-	}
+	public LTree DbPath { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Order of this chapter within the volume

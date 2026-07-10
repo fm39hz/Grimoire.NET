@@ -2,7 +2,6 @@ namespace Grimoire.Infrastructure.Export;
 
 using System.Threading;
 using Application.Export;
-using Application.Extensions;
 using Application.Service.Strategy;
 using Common;
 using Domain.Entity.Book;

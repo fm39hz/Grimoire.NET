@@ -4,18 +4,18 @@ using FluentValidation;
 
 public class SplitChapterRequestDtoValidator : AbstractValidator<SplitChapterRequestDto> {
 	public SplitChapterRequestDtoValidator() {
-		RuleFor(x => x.SplitPoints)
+		RuleFor(static x => x.SplitPoints)
 			.NotEmpty()
 			.WithMessage("At least one split point is required");
 
-		RuleForEach(x => x.SplitPoints)
+		RuleForEach(static x => x.SplitPoints)
 			.SetValidator(new SplitPointDtoValidator());
 
 		// Validate that segment indices are strictly increasing
-		RuleFor(x => x.SplitPoints)
+		RuleFor(static x => x.SplitPoints)
 			.Must(HaveStrictlyIncreasingIndices)
 			.WithMessage("Split point segment indices must be strictly increasing (no duplicates or overlaps)")
-			.When(x => x.SplitPoints != null && x.SplitPoints.Count > 1);
+			.When(static x => x.SplitPoints != null && x.SplitPoints.Count > 1);
 	}
 
 	private static bool HaveStrictlyIncreasingIndices(List<SplitPointDto> splitPoints) {
@@ -31,11 +31,11 @@ public class SplitChapterRequestDtoValidator : AbstractValidator<SplitChapterReq
 
 public class SplitPointDtoValidator : AbstractValidator<SplitPointDto> {
 	public SplitPointDtoValidator() {
-		RuleFor(x => x.SegmentIndex)
+		RuleFor(static x => x.SegmentIndex)
 			.GreaterThan(0)
 			.WithMessage("SegmentIndex must be greater than 0 (cannot split at the beginning)");
 
-		RuleFor(x => x.NewChapterTitle)
+		RuleFor(static x => x.NewChapterTitle)
 			.NotEmpty()
 			.WithMessage("NewChapterTitle is required")
 			.MaximumLength(500)

@@ -30,13 +30,13 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 		};
 
 		var segments = new List<SegmentModel>();
-		double order = 1.0;
-		
+		var order = 1.0;
+
 		foreach (var seg in remapResult.Segments) {
 			seg.Order = order++;
 			segments.Add(seg);
 		}
-		
+
 		foreach (var fn in remapResult.Footnotes) {
 			fn.Order = order++;
 			segments.Add(fn);

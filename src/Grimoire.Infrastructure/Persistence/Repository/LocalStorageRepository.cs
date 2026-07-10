@@ -6,7 +6,6 @@ using Configuration;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 public partial class LocalStorageRepository(
@@ -27,7 +26,9 @@ public partial class LocalStorageRepository(
 		var hash = await ComputeHashAsync(content, cancellationToken);
 
 		var existing = await assetRepository.GetByFileHashAsync(hash, cancellationToken);
-		if (existing is not null) return existing;
+		if (existing is not null) {
+			return existing;
+		}
 
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
 		var assetPath = prefix is not null
@@ -58,10 +59,14 @@ public partial class LocalStorageRepository(
 
 	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) return null;
+		if (asset is null) {
+			return null;
+		}
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
-		if (!File.Exists(filePath)) return null;
+		if (!File.Exists(filePath)) {
+			return null;
+		}
 
 		return new AssetFileResult {
 			Stream = File.OpenRead(filePath),
@@ -72,7 +77,9 @@ public partial class LocalStorageRepository(
 
 	public async Task<byte[]> GetFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) return [];
+		if (asset is null) {
+			return [];
+		}
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
 		return !File.Exists(filePath) ? [] : await File.ReadAllBytesAsync(filePath, cancellationToken);
@@ -80,10 +87,15 @@ public partial class LocalStorageRepository(
 
 	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) return;
+		if (asset is null) {
+			return;
+		}
 
 		var filePath = Path.Combine(StoragePath, asset.Path);
-		if (File.Exists(filePath)) File.Delete(filePath);
+		if (File.Exists(filePath)) {
+			File.Delete(filePath);
+		}
+
 		await assetRepository.Delete(assetId, cancellationToken);
 	}
 
@@ -109,13 +121,19 @@ public partial class LocalStorageRepository(
 
 	public Task<Stream?> GetFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
 		var fullPath = Path.Combine(StoragePath, filePath);
-		if (!File.Exists(fullPath)) return Task.FromResult<Stream?>(null);
+		if (!File.Exists(fullPath)) {
+			return Task.FromResult<Stream?>(null);
+		}
+
 		return Task.FromResult<Stream?>(File.OpenRead(fullPath));
 	}
 
 	public Task DeleteFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
 		var fullPath = Path.Combine(StoragePath, filePath);
-		if (File.Exists(fullPath)) File.Delete(fullPath);
+		if (File.Exists(fullPath)) {
+			File.Delete(fullPath);
+		}
+
 		return Task.CompletedTask;
 	}
 

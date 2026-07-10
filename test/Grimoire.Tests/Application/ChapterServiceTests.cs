@@ -3,7 +3,6 @@ namespace Grimoire.Tests.Application;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Dto.Book.Segment;
@@ -70,8 +69,13 @@ public class ChapterServiceTests {
 			new() { Order = dto.Order, Title = dto.Title };
 
 		public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model) {
-			if (dto.Title is not null) model.Title = dto.Title;
-			if (dto.Order is not null) model.Order = dto.Order.Value;
+			if (dto.Title is not null) {
+				model.Title = dto.Title;
+			}
+
+			if (dto.Order is not null) {
+				model.Order = dto.Order.Value;
+			}
 		}
 
 		public void UpdateSeries(UpdateSeriesRequestDto dto, SeriesModel model) => throw new NotSupportedException();

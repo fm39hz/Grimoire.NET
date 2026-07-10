@@ -14,9 +14,7 @@ public class VolumeResolver(IBookTreeService bookTreeService) {
 		if (string.Equals(request.Mode, "Single", StringComparison.OrdinalIgnoreCase)
 			&& request.TargetVolumeIds is { Count: > 0 }) {
 			var targetSet = request.TargetVolumeIds.ToHashSet();
-			ordered = ordered
-				.Where(v => targetSet.Contains(PrefixedId.ToString(EntityPrefix.Volume, v.Id)))
-				.ToList();
+			ordered = [.. ordered.Where(v => targetSet.Contains(PrefixedId.ToString(EntityPrefix.Volume, v.Id)))];
 		}
 
 		return ordered;

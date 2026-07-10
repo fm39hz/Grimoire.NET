@@ -14,15 +14,15 @@ using Grimoire.Application.Export;
 /// </summary>
 public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilder {
 	// Full OEBPS/... path → resource
-	private readonly Dictionary<string, EpubResource> _resources = new();
+	private readonly Dictionary<string, EpubResource> _resources = [];
 
 	// Logical pageId → EPUB-relative filename (e.g. "chapter_001.xhtml")
-	private readonly Dictionary<string, string> _pageIdToPath = new();
+	private readonly Dictionary<string, string> _pageIdToPath = [];
 
 	// Resolved NavPoint tree (built in SetNavigation, used by BuildAsync)
 	private readonly List<NavPoint> _navPoints = [];
 
-	private readonly HashSet<string> _nonLinearPageIds = new();
+	private readonly HashSet<string> _nonLinearPageIds = [];
 
 	private int _volumeIndex = 1;
 	private int _chapterIndex = 1;

@@ -1,9 +1,9 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using System.Threading;
 using Database;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using System.Threading;
 using Microsoft.EntityFrameworkCore;
 
 public sealed class SourceMaterialRepository(ApplicationDbContext context)

@@ -1,5 +1,6 @@
 namespace Grimoire.Api.Controller;
 
+using System.Threading;
 using Application.Dto.Book;
 using Application.Export;
 using Application.Mapper;
@@ -10,9 +11,8 @@ using Domain.Common;
 using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Dto;
-using System.Threading;
-using Microsoft.AspNetCore.Mvc;
 using Extension;
+using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
@@ -80,7 +80,7 @@ public sealed class ChapterController(
 	[ProducesResponseType(typeof(PagedResult<ChapterListResponseDto>), 200)]
 	public async Task<IResult> FindAll(
 		[FromQuery] PaginationRequestDto pagination,
-		[FromServices] Grimoire.Application.Persistence.IChapterProjectedQuery query,
+		[FromServices] Application.Persistence.IChapterProjectedQuery query,
 		CancellationToken cancellationToken) {
 		var pagedDto = await query.FindAllProjectedAsync(pagination.PageIndex, pagination.PageSize, cancellationToken);
 		return Results.Ok(pagedDto);
@@ -91,7 +91,7 @@ public sealed class ChapterController(
 	public async Task<IResult> Create([FromBody] CreateChapterRequestDto dto, CancellationToken cancellationToken) {
 		var createdChapter = await service.Create(dto, cancellationToken);
 		var result = await service.GetWithContentAsync(createdChapter.Id, cancellationToken);
-		var responseDto = result is not null 
+		var responseDto = result is not null
 			? mapper.ToChapterDto(result.Value.Chapter, result.Value.Segments)
 			: mapper.ToChapterDto(createdChapter);
 		return Results.Created($"{responseDto.Id}", responseDto);
@@ -103,7 +103,7 @@ public sealed class ChapterController(
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Chapter);
 		var updatedChapter = await service.Update(guid, dto, cancellationToken);
 		var result = await service.GetWithContentAsync(updatedChapter.Id, cancellationToken);
-		var responseDto = result is not null 
+		var responseDto = result is not null
 			? mapper.ToChapterDto(result.Value.Chapter, result.Value.Segments)
 			: mapper.ToChapterDto(updatedChapter);
 		return Results.Ok(responseDto);
@@ -124,7 +124,7 @@ public sealed class ChapterController(
 	public async Task<IResult> Merge([FromBody] MergeChaptersRequestDto dto, CancellationToken cancellationToken) {
 		var mergedChapter = await service.MergeAsync(dto, cancellationToken);
 		var result = await service.GetWithContentAsync(mergedChapter.Id, cancellationToken);
-		var responseDto = result is not null 
+		var responseDto = result is not null
 			? mapper.ToChapterDto(result.Value.Chapter, result.Value.Segments)
 			: mapper.ToChapterDto(mergedChapter);
 		return Results.Ok(responseDto);
@@ -140,7 +140,7 @@ public sealed class ChapterController(
 		var responseDtos = new List<ChapterResponseDto>();
 		foreach (var chap in resultChapters) {
 			var result = await service.GetWithContentAsync(chap.Id, cancellationToken);
-			responseDtos.Add(result is not null 
+			responseDtos.Add(result is not null
 				? mapper.ToChapterDto(result.Value.Chapter, result.Value.Segments)
 				: mapper.ToChapterDto(chap));
 		}
@@ -163,10 +163,10 @@ public sealed class ChapterController(
 
 		var assets = await assetService.FindByIdsAsync(assetIds, cancellationToken);
 
-		return assets.Values.Select(a => new AssetListingDto {
+		return [.. assets.Values.Select(a => new AssetListingDto {
 			Id = PrefixedId.ToString(EntityPrefix.Asset, a.Id),
 			RefType = a.RefType.ToString(),
 			FileName = Path.GetFileName(a.OriginalFileName)
-		}).ToList();
+		})];
 	}
 }

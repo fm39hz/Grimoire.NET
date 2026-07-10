@@ -7,7 +7,6 @@ using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
 using Grimoire.Domain.Service;
 using Xunit;
-using Grimoire.Domain.Common.ValueObject;
 
 public sealed class ChapterSplitterTests {
 
@@ -65,7 +64,7 @@ public sealed class ChapterSplitterTests {
 	[Fact]
 	public void Split_ThreeSplitPoints_ProducesFourChapters() {
 		var chapter = new ChapterModel { Id = Guid.CreateVersion7(), Path = "n1.n2.n3", Order = 5, Title = "Original" };
-		var segs = Enumerable.Range(0, 8).Select(i => MakeSeg($"P{i}")).ToList();
+		var segs = Enumerable.Range(0, 8).Select(static i => MakeSeg($"P{i}")).ToList();
 
 		var result = ChapterSplitter.Split(chapter, segs, [(2, "Part2"), (4, "Part3"), (6, "Part4")]);
 

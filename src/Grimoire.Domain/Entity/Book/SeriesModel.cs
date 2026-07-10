@@ -1,14 +1,13 @@
 namespace Grimoire.Domain.Entity.Book;
 
-using Microsoft.EntityFrameworkCore;
-using Metadata;
 using Common.ValueObject;
+using Metadata;
+using Microsoft.EntityFrameworkCore;
 
 /// <summary>
 ///     Represents a book series (e.g., a manga series)
 /// </summary>
 public class SeriesModel : BaseModel {
-	private LTree _dbPath = string.Empty;
 
 	/// <summary>
 	///     Title of the series
@@ -19,17 +18,14 @@ public class SeriesModel : BaseModel {
 	///     The hierarchical path for this series node in the domain layer.
 	/// </summary>
 	public BookPath Path {
-		get => new(_dbPath.ToString());
-		set => _dbPath = (LTree)value.Value;
+		get => new(DbPath.ToString());
+		set => DbPath = (LTree)value.Value;
 	}
 
 	/// <summary>
 	///     The database-mapped LTree path. Used by EF Core and Repository queries.
 	/// </summary>
-	public LTree DbPath {
-		get => _dbPath;
-		set => _dbPath = value;
-	}
+	public LTree DbPath { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Strongly-typed metadata for the series

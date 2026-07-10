@@ -1,9 +1,7 @@
 namespace Grimoire.Tests.Application;
 
 using Grimoire.Application.Export;
-using Grimoire.Domain.Common;
 using Grimoire.Domain.Entity.Book;
-using Grimoire.Domain.Entity.Book.Segment;
 using Xunit;
 
 public sealed class ImageAssetCollectorStaticTests {
@@ -55,8 +53,8 @@ public sealed class ImageAssetCollectorStaticTests {
 		var assetA = MakeAsset(seriesId, "cover.png");
 		var assetB = MakeAsset(seriesId, "figure.jpg");
 		var input = new Dictionary<string, ResolvedAsset> {
-			["key-a"] = new ResolvedAsset(assetA, () => Task.FromResult<Stream?>(null)),
-			["key-b"] = new ResolvedAsset(assetB, () => Task.FromResult<Stream?>(null))
+			["key-a"] = new ResolvedAsset(assetA, static () => Task.FromResult<Stream?>(null)),
+			["key-b"] = new ResolvedAsset(assetB, static () => Task.FromResult<Stream?>(null))
 		};
 
 		var map = ImageAssetCollector.GenerateFileMap(input);
@@ -73,7 +71,7 @@ public sealed class ImageAssetCollectorStaticTests {
 		var seriesId = Guid.CreateVersion7();
 		var asset = MakeAsset(seriesId, "MyImage.PNG");
 		var input = new Dictionary<string, ResolvedAsset> {
-			["k"] = new ResolvedAsset(asset, () => Task.FromResult<Stream?>(null))
+			["k"] = new ResolvedAsset(asset, static () => Task.FromResult<Stream?>(null))
 		};
 
 		var map = ImageAssetCollector.GenerateFileMap(input);

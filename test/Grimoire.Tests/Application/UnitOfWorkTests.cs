@@ -1,7 +1,7 @@
 namespace Grimoire.Tests.Application;
 
-using Grimoire.Tests.TestInfrastructure;
 using System.Threading.Tasks;
+using Grimoire.Tests.TestInfrastructure;
 using Xunit;
 
 public class UnitOfWorkTests {

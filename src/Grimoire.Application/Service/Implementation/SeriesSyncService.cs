@@ -4,11 +4,8 @@ using System.Threading;
 using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
-using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
-using Strategy;
-using Grimoire.Domain.Common.ValueObject;
 
 public sealed class SeriesSyncService(
 	ISeriesRepository seriesRepository,
@@ -17,16 +14,16 @@ public sealed class SeriesSyncService(
 	IChapterService chapterService,
 	IAssetOwnershipService assetOwnershipService,
 	IUnitOfWork unitOfWork) : ISeriesSyncService {
- 
+
 	public async Task SyncSeriesTree(Guid seriesId, SyncSeriesRequestDto request, CancellationToken cancellationToken = default) {
 		await unitOfWork.BeginTransactionAsync(cancellationToken);
 		try {
 			var series = await seriesRepository.FindOne(seriesId, cancellationToken) ??
 				throw new EntityNotFoundException($"Series with id {seriesId} not found");
- 
+
 			var volumes = await volumeNodeService.FindVolumes(seriesId, cancellationToken);
 			var volumeOrderToId = volumes.ToDictionary(v => v.Order, v => v.Id);
- 
+
 			foreach (var volDto in request.Volumes) {
 				if (!volumeOrderToId.TryGetValue(volDto.Order, out var volId)) {
 					var created = await volumeNodeService.CreateVolume(new CreateVolumeRequestDto(
@@ -38,14 +35,14 @@ public sealed class SeriesSyncService(
 				}
 				volumeOrderToId[volDto.Order] = volId;
 			}
- 
+
 			var volumeIds = volumeOrderToId.Values.ToList();
 			var existingChapters = (await chapterRepository.FindByVolumeIdsWithContent(volumeIds, cancellationToken)).ToList();
 			var chaptersByVolAndOrder = existingChapters.ToDictionary(c => (c.Path.GetVolumeId(), c.Order));
- 
+
 			foreach (var volDto in request.Volumes) {
 				var volId = volumeOrderToId[volDto.Order];
- 
+
 				foreach (var chpDto in volDto.Chapters) {
 					var key = (volId, chpDto.Order);
 					var tempDto = new CreateChapterRequestDto(
@@ -55,12 +52,12 @@ public sealed class SeriesSyncService(
 						chpDto.Content,
 						chpDto.Footnotes,
 						chpDto.RawContent);
- 
+
 					chaptersByVolAndOrder.TryGetValue(key, out var existingChp);
 					await chapterService.UpsertAsync(volId, tempDto, existingChp, cancellationToken);
 				}
 			}
- 
+
 			await assetOwnershipService.ReconcileSeriesAsync(seriesId, cancellationToken);
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 		}

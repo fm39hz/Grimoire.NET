@@ -15,7 +15,7 @@ public static class FootnoteRemapper {
 		var idMap = new Dictionary<string, Guid>();
 		var cleanFootnotes = new List<FootnoteSegmentModel>();
 
-		foreach (var note in rawFootnotes ?? Enumerable.Empty<ImportFootnoteDto>()) {
+		foreach (var note in rawFootnotes ?? []) {
 			if (note is null || string.IsNullOrEmpty(note.InitialId)) {
 				continue;
 			}

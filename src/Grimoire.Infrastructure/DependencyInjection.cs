@@ -25,11 +25,11 @@ public static class DependencyInjection {
 		services.AddScoped<ISegmentRepository, SegmentRepository>();
 		services.AddScoped<ISeriesRepository, SeriesRepository>();
 		services.AddScoped<VolumeRepository>();
-		services.AddScoped<IVolumeRepository>(sp => sp.GetRequiredService<VolumeRepository>());
-		services.AddScoped<Application.Persistence.IVolumeProjectedQuery>(sp => sp.GetRequiredService<VolumeRepository>());
+		services.AddScoped<IVolumeRepository>(static sp => sp.GetRequiredService<VolumeRepository>());
+		services.AddScoped<Application.Persistence.IVolumeProjectedQuery>(static sp => sp.GetRequiredService<VolumeRepository>());
 		services.AddScoped<ChapterRepository>();
-		services.AddScoped<IChapterRepository>(sp => sp.GetRequiredService<ChapterRepository>());
-		services.AddScoped<Application.Persistence.IChapterProjectedQuery>(sp => sp.GetRequiredService<ChapterRepository>());
+		services.AddScoped<IChapterRepository>(static sp => sp.GetRequiredService<ChapterRepository>());
+		services.AddScoped<Application.Persistence.IChapterProjectedQuery>(static sp => sp.GetRequiredService<ChapterRepository>());
 		services.AddScoped<IAssetRepository, AssetRepository>();
 		services.AddScoped<ISourceMaterialRepository, SourceMaterialRepository>();
 		services.AddScoped<ISeriesExportRecordRepository, SeriesExportRecordRepository>();

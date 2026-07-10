@@ -2,7 +2,6 @@ namespace Grimoire.Infrastructure.Persistence.Repository;
 
 using System.Security.Cryptography;
 using System.Threading;
-using Amazon;
 using Amazon.S3;
 using Amazon.S3.Model;
 using Amazon.S3.Transfer;
@@ -82,21 +81,27 @@ public sealed partial class S3StorageRepository(
 
 	public async Task<AssetFileResult?> GetFileStreamAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) return null;
+		if (asset is null) {
+			return null;
+		}
 
 		return await GetStreamByKeyAsync(asset.Path, asset.ContentType, asset.OriginalFileName, cancellationToken);
 	}
 
 	public async Task<byte[]> GetFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) return [];
+		if (asset is null) {
+			return [];
+		}
 
 		return await GetBytesByKeyAsync(asset.Path, cancellationToken);
 	}
 
 	public async Task DeleteFileAsync(Guid assetId, CancellationToken cancellationToken = default) {
 		var asset = await assetRepository.FindOne(assetId, cancellationToken);
-		if (asset is null) return;
+		if (asset is null) {
+			return;
+		}
 
 		await DeleteByKeyAsync(asset.Path, cancellationToken);
 		await assetRepository.Delete(assetId, cancellationToken);
@@ -143,12 +148,10 @@ public sealed partial class S3StorageRepository(
 		}
 	}
 
-	public async Task DeleteFileByPathAsync(string filePath, CancellationToken cancellationToken = default) {
-		await _s3Client.DeleteObjectAsync(new DeleteObjectRequest {
-			BucketName = _config.BucketName,
-			Key = filePath
-		}, cancellationToken);
-	}
+	public async Task DeleteFileByPathAsync(string filePath, CancellationToken cancellationToken = default) => await _s3Client.DeleteObjectAsync(new DeleteObjectRequest {
+		BucketName = _config.BucketName,
+		Key = filePath
+	}, cancellationToken);
 
 	// ── helpers ──────────────────────────────────────────────────────
 
@@ -156,10 +159,14 @@ public sealed partial class S3StorageRepository(
 	private readonly Lock _bucketLock = new();
 
 	private async Task EnsureBucketAsync(CancellationToken cancellationToken = default) {
-		if (_bucketInitialized) return;
+		if (_bucketInitialized) {
+			return;
+		}
 
 		lock (_bucketLock) {
-			if (_bucketInitialized) return;
+			if (_bucketInitialized) {
+				return;
+			}
 		}
 
 		var buckets = await _s3Client.ListBucketsAsync(cancellationToken);
@@ -243,7 +250,10 @@ public sealed partial class S3StorageRepository(
 				return await action();
 			}
 			catch (AmazonS3Exception ex) when ((int)ex.StatusCode >= 500) {
-				if (attempt >= maxRetries) throw;
+				if (attempt >= maxRetries) {
+					throw;
+				}
+
 				logger.LogWarning("S3 transient error (attempt {Attempt}/{MaxRetries}): {StatusCode} {ErrorCode}",
 					attempt, maxRetries, (int)ex.StatusCode, ex.ErrorCode);
 				await Task.Delay(delay, ct);

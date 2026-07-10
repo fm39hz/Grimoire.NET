@@ -6,14 +6,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Domain.Common.Repository;
-using Domain.Common.ValueObject;
 using Domain.Entity.Book;
 
 public class ChapterLoader(IChapterRepository chapterRepository) {
 	public async Task<IReadOnlyDictionary<Guid, List<ChapterModel>>> LoadAsync(
 		IEnumerable<VolumeModel> volumes,
 		CancellationToken cancellationToken = default) {
-		var volumeList = volumes as IList<VolumeModel> ?? volumes.ToList();
+		var volumeList = volumes as IList<VolumeModel> ?? [.. volumes];
 		if (volumeList.Count == 0) {
 			return new Dictionary<Guid, List<ChapterModel>>();
 		}

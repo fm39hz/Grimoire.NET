@@ -3,7 +3,6 @@ namespace Grimoire.Api;
 using Constant;
 using Extension;
 using Hangfire;
-using Hangfire.Dashboard;
 using Hangfire.PostgreSql;
 using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
@@ -47,20 +46,18 @@ public class Program {
 		}
 
 		app.UseCors(ConfigKeys.CorsPolicyAllowAll);
-		
-		if (app.Environment.IsDevelopment())
-		{
-			app.UseHangfireDashboard("/hangfire", new DashboardOptions
-			{
+
+		if (app.Environment.IsDevelopment()) {
+			app.UseHangfireDashboard("/hangfire", new DashboardOptions {
 				Authorization = []
 			});
 		}
-		
+
 		app.MapControllers();
 
 		{
-			var progressTracker = app.Services.GetRequiredService<Grimoire.Application.Publish.IJobProgressTracker>();
-			GlobalJobFilters.Filters.Add(new Grimoire.Api.Publish.HangfireJobStateFilter(progressTracker));
+			var progressTracker = app.Services.GetRequiredService<Application.Publish.IJobProgressTracker>();
+			GlobalJobFilters.Filters.Add(new Publish.HangfireJobStateFilter(progressTracker));
 		}
 		app.UseSerilogRequestLogging(options => options.GetLevel = (httpContext, _, ex) => {
 			var path = httpContext.Request.Path.Value;
@@ -80,19 +77,18 @@ public class Program {
 
 	private static WebApplication Build(WebApplicationBuilder builder) {
 		builder.Services.AddEndpointsApiExplorer();
-		
+
 		// Hangfire — enqueue + process jobs in-process
 		// Multiple servers (e.g. +Grimoire.Job) cooperate via distributed locks
 		builder.Services.AddHangfire(config => config
 			.UsePostgreSqlStorage(options => options
 				.UseNpgsqlConnection(
 					builder.Configuration.GetConnectionString(ConfigKeys.ConnectionStringName)!)));
-		builder.Services.AddHangfireServer(options =>
-		{
+		builder.Services.AddHangfireServer(options => {
 			options.Queues = [ConfigKeys.HangfireQueueDefault, ConfigKeys.HangfireQueueExports];
 			options.WorkerCount = Math.Max(1, Environment.ProcessorCount);
 		});
-		
+
 		builder.Services.ConfigureHttpJsonOptions(options => JsonConfiguration.ApplyTo(options.SerializerOptions));
 
 		builder.Services

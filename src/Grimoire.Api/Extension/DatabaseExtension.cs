@@ -1,11 +1,11 @@
 namespace Grimoire.Api.Extension;
 
 using EntityFramework.Exceptions.PostgreSQL;
-using Infrastructure.Configuration;
 using Grimoire.Api.Constant;
+using Grimoire.Domain.Entity.Book;
+using Infrastructure.Configuration;
 using Infrastructure.Persistence.Database;
 using Infrastructure.Persistence.Seeder;
-using Grimoire.Domain.Entity.Book;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;

@@ -24,10 +24,10 @@ public static class DependencyInjection {
 		services.AddScoped<ISeriesSyncService, SeriesSyncService>();
 		services.AddScoped<IStorageService, StorageService>();
 		services.AddScoped<IBookTreeService, BookTreeService>();
-		services.AddScoped<ISeriesNodeService>(sp => sp.GetRequiredService<IBookTreeService>());
-		services.AddScoped<IVolumeNodeService>(sp => sp.GetRequiredService<IBookTreeService>());
-		services.AddScoped<IChapterNodeService>(sp => sp.GetRequiredService<IBookTreeService>());
-		services.AddScoped<INodeManagerService>(sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<ISeriesNodeService>(static sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<IVolumeNodeService>(static sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<IChapterNodeService>(static sp => sp.GetRequiredService<IBookTreeService>());
+		services.AddScoped<INodeManagerService>(static sp => sp.GetRequiredService<IBookTreeService>());
 
 		// Register mappers
 		services.AddScoped<IBookMapper, BookMapper>();

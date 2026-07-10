@@ -6,5 +6,5 @@ using Domain.Common;
 using Dto.Book;
 
 public interface IChapterProjectedQuery {
-	Task<PagedResult<ChapterListResponseDto>> FindAllProjectedAsync(int pageIndex, int pageSize, CancellationToken cancellationToken = default);
+	public Task<PagedResult<ChapterListResponseDto>> FindAllProjectedAsync(int pageIndex, int pageSize, CancellationToken cancellationToken = default);
 }

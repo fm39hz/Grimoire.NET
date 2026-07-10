@@ -5,222 +5,192 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using Constant;
 using Application.Dto.Book;
 using Application.Publish;
+using Constant;
 using Grimoire.Application.Publish.Dto;
+using Grimoire.Domain.Common;
+using Grimoire.Infrastructure.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Grimoire.Infrastructure.Configuration;
-using Grimoire.Domain.Common;
 
 [ApiController]
 [Route(RouteConstant.CONTROLLER)]
 public sealed class PublishController(
-    IPublishService publishService,
-    IJobProgressTracker progressTracker,
-    IJobProgressSubscription progressSubscription) : ControllerBase
-{
-    private static readonly TimeSpan SseSafetyPollInterval = TimeSpan.FromSeconds(3);
-    [HttpPost("series/{seriesId}/export")]
-    [ProducesResponseType(202)]
-    [ProducesResponseType(400)]
-    public async Task<IResult> ExportSeries(
-        [FromRoute] string seriesId,
-        [FromBody] BinderyRequestDto request,
-        CancellationToken cancellationToken)
-    {
-        Guid guid;
-        try
-        {
-            guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
-        }
-        catch (Exception)
-        {
-            return Results.BadRequest(ErrorMessages.InvalidSeriesIdFormat);
-        }
+	IPublishService publishService,
+	IJobProgressTracker progressTracker,
+	IJobProgressSubscription progressSubscription) : ControllerBase {
+	private static readonly TimeSpan SseSafetyPollInterval = TimeSpan.FromSeconds(3);
+	[HttpPost("series/{seriesId}/export")]
+	[ProducesResponseType(202)]
+	[ProducesResponseType(400)]
+	public async Task<IResult> ExportSeries(
+		[FromRoute] string seriesId,
+		[FromBody] BinderyRequestDto request,
+		CancellationToken cancellationToken) {
+		Guid guid;
+		try {
+			guid = PrefixedId.ToGuid(seriesId, EntityPrefix.Series);
+		}
+		catch (Exception) {
+			return Results.BadRequest(ErrorMessages.InvalidSeriesIdFormat);
+		}
 
-        var jobId = await publishService.EnqueueExportAsync(guid, request, cancellationToken);
-        var statusUrl = $"/api/{RouteConstant.VERSION}/publishes/jobs/{jobId}";
+		var jobId = await publishService.EnqueueExportAsync(guid, request, cancellationToken);
+		var statusUrl = $"/api/{RouteConstant.VERSION}/publishes/jobs/{jobId}";
 
-        return Results.Accepted(statusUrl, new
-        {
-            jobId,
-            status = SseConstants.StatusQueued,
-            statusUrl
-        });
-    }
+		return Results.Accepted(statusUrl, new {
+			jobId,
+			status = SseConstants.StatusQueued,
+			statusUrl
+		});
+	}
 
-    [HttpPost("import")]
-    [Consumes("multipart/form-data")]
-    [ProducesResponseType(202)]
-    [ProducesResponseType(400)]
-    public async Task<IResult> ImportBook(
-        [FromForm] string? series,
-        [FromForm] string? volumes,
-        IFormFile file,
-        CancellationToken cancellationToken)
-    {
-        if (file is null || file.Length == 0)
-            return Results.BadRequest(ErrorMessages.EpubFileRequired);
+	[HttpPost("import")]
+	[Consumes("multipart/form-data")]
+	[ProducesResponseType(202)]
+	[ProducesResponseType(400)]
+	public async Task<IResult> ImportBook(
+		[FromForm] string? series,
+		[FromForm] string? volumes,
+		IFormFile file,
+		CancellationToken cancellationToken) {
+		if (file is null || file.Length == 0) {
+			return Results.BadRequest(ErrorMessages.EpubFileRequired);
+		}
 
-        if (!file.FileName.EndsWith(ErrorMessages.EpubFileExtension, StringComparison.OrdinalIgnoreCase))
-            return Results.BadRequest(ErrorMessages.MustBeEpubFile);
+		if (!file.FileName.EndsWith(ErrorMessages.EpubFileExtension, StringComparison.OrdinalIgnoreCase)) {
+			return Results.BadRequest(ErrorMessages.MustBeEpubFile);
+		}
 
-        CreateSeriesRequestDto? seriesDto = null;
-        if (!string.IsNullOrEmpty(series))
-        {
-            try
-            {
-                seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(series, JsonConfiguration.JsonOptions);
-            }
-            catch (JsonException)
-            {
-                return Results.BadRequest(ErrorMessages.InvalidSeriesMetadataJson);
-            }
+		CreateSeriesRequestDto? seriesDto = null;
+		if (!string.IsNullOrEmpty(series)) {
+			try {
+				seriesDto = JsonSerializer.Deserialize<CreateSeriesRequestDto>(series, JsonConfiguration.JsonOptions);
+			}
+			catch (JsonException) {
+				return Results.BadRequest(ErrorMessages.InvalidSeriesMetadataJson);
+			}
 
-            if (seriesDto is null)
-                return Results.BadRequest(ErrorMessages.InvalidSeriesMetadataJson);
-        }
+			if (seriesDto is null) {
+				return Results.BadRequest(ErrorMessages.InvalidSeriesMetadataJson);
+			}
+		}
 
-        List<ImportVolumeDto>? volumesOverride = null;
-        if (!string.IsNullOrEmpty(volumes))
-        {
-            try
-            {
-                volumesOverride = JsonSerializer.Deserialize<List<ImportVolumeDto>>(volumes, JsonConfiguration.JsonOptions);
-            }
-            catch (JsonException)
-            {
-                return Results.BadRequest(ErrorMessages.InvalidVolumesMetadataJson);
-            }
-        }
+		List<ImportVolumeDto>? volumesOverride = null;
+		if (!string.IsNullOrEmpty(volumes)) {
+			try {
+				volumesOverride = JsonSerializer.Deserialize<List<ImportVolumeDto>>(volumes, JsonConfiguration.JsonOptions);
+			}
+			catch (JsonException) {
+				return Results.BadRequest(ErrorMessages.InvalidVolumesMetadataJson);
+			}
+		}
 
-        await using var fileStream = file.OpenReadStream();
-        var jobId = await publishService.EnqueueImportAsync(
-            seriesDto,
-            volumesOverride,
-            fileStream,
-            file.FileName,
-            file.ContentType,
-            cancellationToken);
-        var statusUrl = $"/api/{RouteConstant.VERSION}/publishes/jobs/{jobId}";
+		await using var fileStream = file.OpenReadStream();
+		var jobId = await publishService.EnqueueImportAsync(
+			seriesDto,
+			volumesOverride,
+			fileStream,
+			file.FileName,
+			file.ContentType,
+			cancellationToken);
+		var statusUrl = $"/api/{RouteConstant.VERSION}/publishes/jobs/{jobId}";
 
-        return Results.Accepted(statusUrl, new
-        {
-            jobId,
-            status = "Queued",
-            statusUrl
-        });
-    }
+		return Results.Accepted(statusUrl, new {
+			jobId,
+			status = "Queued",
+			statusUrl
+		});
+	}
 
-    [HttpGet("jobs/{jobId}")]
-    [ProducesResponseType(200)]
-    [ProducesResponseType(404)]
-    public async Task<IResult> GetStatus(string jobId, CancellationToken cancellationToken)
-    {
-        var status = await publishService.GetJobStatusAsync(jobId, cancellationToken);
-        if (status is null)
-        {
-            return Results.NotFound(new { jobId, status = SseConstants.StatusNotFound });
-        }
-        return Results.Ok(status);
-    }
+	[HttpGet("jobs/{jobId}")]
+	[ProducesResponseType(200)]
+	[ProducesResponseType(404)]
+	public async Task<IResult> GetStatus(string jobId, CancellationToken cancellationToken) {
+		var status = await publishService.GetJobStatusAsync(jobId, cancellationToken);
+		if (status is null) {
+			return Results.NotFound(new { jobId, status = SseConstants.StatusNotFound });
+		}
+		return Results.Ok(status);
+	}
 
-    [HttpGet("jobs/{jobId}/progress")]
-    public async Task GetProgressStream(string jobId, CancellationToken cancellationToken)
-    {
-        Response.Headers.Append("Content-Type", SseConstants.ContentType);
-        Response.Headers.Append("Cache-Control", SseConstants.CacheControl);
-        Response.Headers.Append("Connection", SseConstants.Connection);
+	[HttpGet("jobs/{jobId}/progress")]
+	public async Task GetProgressStream(string jobId, CancellationToken cancellationToken) {
+		Response.Headers.Append("Content-Type", SseConstants.ContentType);
+		Response.Headers.Append("Cache-Control", SseConstants.CacheControl);
+		Response.Headers.Append("Connection", SseConstants.Connection);
 
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+		using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        // 1. Send initial status
-        var initialStatus = await publishService.GetJobStatusAsync(jobId, cts.Token);
-        if (initialStatus is not null)
-        {
-            await WriteSseEventAsync(initialStatus);
-            if (initialStatus.Status == SseConstants.StatusCompleted || initialStatus.Status == SseConstants.StatusFailed)
-            {
-                return;
-            }
-        }
+		// 1. Send initial status
+		var initialStatus = await publishService.GetJobStatusAsync(jobId, cts.Token);
+		if (initialStatus is not null) {
+			await WriteSseEventAsync(initialStatus);
+			if (initialStatus.Status is SseConstants.StatusCompleted or SseConstants.StatusFailed) {
+				return;
+			}
+		}
 
-        // 2. Subscribe to in-memory tracker
-        var channel = progressSubscription.Subscribe(jobId, cts.Token);
+		// 2. Subscribe to in-memory tracker
+		var channel = progressSubscription.Subscribe(jobId, cts.Token);
 
-        // 3. Safety poller task (fallback)
-        var safetyPollTask = Task.Run(async () =>
-        {
-            try
-            {
-                while (!cts.Token.IsCancellationRequested)
-                {
-                    await Task.Delay(SseSafetyPollInterval, cts.Token);
-                    var currentStatus = await publishService.GetJobStatusAsync(jobId, cts.Token);
-                    if (currentStatus is not null)
-                    {
-                        if (currentStatus.Status == SseConstants.StatusCompleted || currentStatus.Status == SseConstants.StatusFailed)
-                        {
-                            progressTracker.CompleteJob(jobId, currentStatus.DownloadUrl);
-                            if (currentStatus.Status == SseConstants.StatusFailed)
-                            {
-                                progressTracker.FailJob(jobId, currentStatus.Error ?? ErrorMessages.JobFailed);
-                            }
-                            break;
-                        }
-                    }
-                }
-            }
-            catch (OperationCanceledException) { }
-        }, cts.Token);
+		// 3. Safety poller task (fallback)
+		var safetyPollTask = Task.Run(async () => {
+			try {
+				while (!cts.Token.IsCancellationRequested) {
+					await Task.Delay(SseSafetyPollInterval, cts.Token);
+					var currentStatus = await publishService.GetJobStatusAsync(jobId, cts.Token);
+					if (currentStatus is not null) {
+						if (currentStatus.Status is SseConstants.StatusCompleted or SseConstants.StatusFailed) {
+							progressTracker.CompleteJob(jobId, currentStatus.DownloadUrl);
+							if (currentStatus.Status == SseConstants.StatusFailed) {
+								progressTracker.FailJob(jobId, currentStatus.Error ?? ErrorMessages.JobFailed);
+							}
+							break;
+						}
+					}
+				}
+			}
+			catch (OperationCanceledException) { }
+		}, cts.Token);
 
-        // 4. Consume events and write to response stream
-        try
-        {
-            await foreach (var update in channel.WithCancellation(cts.Token))
-            {
-                await WriteSseEventAsync(update);
-                if (update.Status == SseConstants.StatusCompleted || update.Status == SseConstants.StatusFailed)
-                {
-                    break;
-                }
-            }
-        }
-        catch (OperationCanceledException)
-        {
-            // Client disconnected - normal flow
-        }
-        finally
-        {
-            await cts.CancelAsync();
-            try
-            {
-                await safetyPollTask;
-            }
-            catch { }
-        }
-    }
+		// 4. Consume events and write to response stream
+		try {
+			await foreach (var update in channel.WithCancellation(cts.Token)) {
+				await WriteSseEventAsync(update);
+				if (update.Status is SseConstants.StatusCompleted or SseConstants.StatusFailed) {
+					break;
+				}
+			}
+		}
+		catch (OperationCanceledException) {
+			// Client disconnected - normal flow
+		}
+		finally {
+			await cts.CancelAsync();
+			try {
+				await safetyPollTask;
+			}
+			catch { }
+		}
+	}
 
-    private async Task WriteSseEventAsync(PublishJobStatusDto status)
-    {
-        var json = JsonSerializer.Serialize(status, JsonConfiguration.JsonOptions);
-        await Response.WriteAsync($"{SseConstants.DataPrefix}{json}{SseConstants.LineBreak}");
-        await Response.Body.FlushAsync();
-    }
+	private async Task WriteSseEventAsync(PublishJobStatusDto status) {
+		var json = JsonSerializer.Serialize(status, JsonConfiguration.JsonOptions);
+		await Response.WriteAsync($"{SseConstants.DataPrefix}{json}{SseConstants.LineBreak}");
+		await Response.Body.FlushAsync();
+	}
 
-    [HttpGet("jobs/{jobId}/download")]
-    [ProducesResponseType(typeof(FileResult), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IResult> Download(string jobId, CancellationToken cancellationToken)
-    {
-        var result = await publishService.GetDownloadStreamAsync(jobId, cancellationToken);
-        if (result is null)
-        {
-            return Results.NotFound(new { error = ErrorMessages.ExportResultNotFound });
-        }
+	[HttpGet("jobs/{jobId}/download")]
+	[ProducesResponseType(typeof(FileResult), 200)]
+	[ProducesResponseType(404)]
+	public async Task<IResult> Download(string jobId, CancellationToken cancellationToken) {
+		var result = await publishService.GetDownloadStreamAsync(jobId, cancellationToken);
+		if (result is null) {
+			return Results.NotFound(new { error = ErrorMessages.ExportResultNotFound });
+		}
 
-        return Results.Stream(result.Stream, result.ContentType, result.FileName);
-    }
+		return Results.Stream(result.Stream, result.ContentType, result.FileName);
+	}
 }

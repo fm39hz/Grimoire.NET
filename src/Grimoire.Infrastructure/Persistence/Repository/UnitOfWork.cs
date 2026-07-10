@@ -9,14 +9,12 @@ using Domain.Common.Repository;
 using Microsoft.EntityFrameworkCore.Storage;
 
 public sealed class UnitOfWork(ApplicationDbContext context) : IUnitOfWork {
-	private readonly List<Func<Task>> _postCommitActions = new();
+	private readonly List<Func<Task>> _postCommitActions = [];
 	private IDbContextTransaction? _currentTransaction;
 	private int _transactionCount;
 
 	public async Task BeginTransactionAsync(CancellationToken cancellationToken = default) {
-		if (_currentTransaction == null) {
-			_currentTransaction = await context.Database.BeginTransactionAsync(cancellationToken);
-		}
+		_currentTransaction ??= await context.Database.BeginTransactionAsync(cancellationToken);
 		_transactionCount++;
 	}
 

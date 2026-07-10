@@ -1,9 +1,9 @@
 namespace Grimoire.Domain.Entity.Book;
 
-using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
-using Segment;
 using Common.ValueObject;
+using Microsoft.EntityFrameworkCore;
+using Segment;
 
 /// <summary>
 ///     Base class for all content segments within a chapter.
@@ -15,23 +15,19 @@ using Common.ValueObject;
 [JsonDerivedType(typeof(DividerSegmentModel), "Divider")]
 [JsonDerivedType(typeof(FootnoteSegmentModel), "Footnote")]
 public abstract class SegmentModel : BaseModel {
-	private LTree _dbPath = string.Empty;
 
 	/// <summary>
 	///     The hierarchical path for this segment node in the domain layer.
 	/// </summary>
 	public BookPath Path {
-		get => new(_dbPath.ToString());
-		set => _dbPath = (LTree)value.Value;
+		get => new(DbPath.ToString());
+		set => DbPath = (LTree)value.Value;
 	}
 
 	/// <summary>
 	///     The database-mapped LTree path. Used by EF Core and Repository queries.
 	/// </summary>
-	public LTree DbPath {
-		get => _dbPath;
-		set => _dbPath = value;
-	}
+	public LTree DbPath { get; set; } = string.Empty;
 
 	/// <summary>
 	///     Order of this segment within the chapter

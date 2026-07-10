@@ -1,12 +1,12 @@
 namespace Grimoire.Infrastructure.Configuration;
 
+using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
-using System.Linq;
 
 public static class JsonConfiguration {
 	public static readonly JsonSerializerOptions JsonOptions = new() {
@@ -20,46 +20,46 @@ public static class JsonConfiguration {
 	};
 
 	public static readonly ValueComparer<SeriesMetadata> MetadataComparer = new(
-		(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+		static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
 					JsonSerializer.Serialize(c2, JsonOptions),
-		c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
-		c => JsonSerializer.Deserialize<SeriesMetadata>(
+		static c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		static c => JsonSerializer.Deserialize<SeriesMetadata>(
 			JsonSerializer.Serialize(c, JsonOptions),
 			JsonOptions)!
 		);
 
 	public static readonly ValueComparer<List<SegmentModel>> ContentComparer = new(
-		(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+		static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
 					JsonSerializer.Serialize(c2, JsonOptions),
-		c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
-		c => JsonSerializer.Deserialize<List<SegmentModel>>(JsonSerializer.Serialize(c, JsonOptions),
+		static c => c.Aggregate(0, static (a, v) => HashCode.Combine(a, v.GetHashCode())),
+		static c => JsonSerializer.Deserialize<List<SegmentModel>>(JsonSerializer.Serialize(c, JsonOptions),
 			JsonOptions)!
 		);
 
 	public static readonly ValueComparer<List<FootnoteSegmentModel>> FootnoteComparer =
 		new(
-			(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+			static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
 						JsonSerializer.Serialize(c2, JsonOptions),
-			c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
-			c => JsonSerializer.Deserialize<List<FootnoteSegmentModel>>(
+			static c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+			static c => JsonSerializer.Deserialize<List<FootnoteSegmentModel>>(
 				JsonSerializer.Serialize(c, JsonOptions),
 				JsonOptions)!
 			);
 
 	public static readonly ValueComparer<List<TextRun>> TextRunComparer = new(
-		(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+		static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
 					JsonSerializer.Serialize(c2, JsonOptions),
-		c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
-		c => JsonSerializer.Deserialize<List<TextRun>>(
+		static c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		static c => JsonSerializer.Deserialize<List<TextRun>>(
 			JsonSerializer.Serialize(c, JsonOptions),
 			JsonOptions)!
 		);
 
 	public static readonly ValueComparer<List<TextSegmentModel>> FootnoteSegmentsComparer = new(
-		(c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+		static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
 					JsonSerializer.Serialize(c2, JsonOptions),
-		c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
-		c => JsonSerializer.Deserialize<List<TextSegmentModel>>(
+		static c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		static c => JsonSerializer.Deserialize<List<TextSegmentModel>>(
 			JsonSerializer.Serialize(c, JsonOptions),
 			JsonOptions)!
 		);

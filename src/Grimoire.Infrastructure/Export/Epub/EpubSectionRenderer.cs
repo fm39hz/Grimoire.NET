@@ -5,7 +5,6 @@ using System.Web;
 using Application.Dto.Book;
 using Application.Dto.Book.Tree;
 using Application.Export;
-using Application.Extensions;
 using Application.Service.Strategy;
 using Common;
 using Domain.Common;
@@ -30,9 +29,7 @@ public partial class EpubSectionRenderer(
 	// ── ISectionRenderer.RenderSegments (public, unchanged contract) ──────
 
 	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes = null,
-		IReadOnlyDictionary<string, string>? assetMap = null) {
-		return RenderSegments(segments, footnotes, assetMap, FootnoteStyle.Parentheses, false);
-	}
+		IReadOnlyDictionary<string, string>? assetMap = null) => RenderSegments(segments, footnotes, assetMap, FootnoteStyle.Parentheses, false);
 
 	public string RenderSegments(IEnumerable<SegmentModel> segments, List<FootnoteSegmentModel>? footnotes,
 		IReadOnlyDictionary<string, string>? assetMap, FootnoteStyle footnoteStyle, bool enableDropcap) {
@@ -81,7 +78,8 @@ public partial class EpubSectionRenderer(
 				if (enableDropcap && isFirstText) {
 					sb.Append($"<p>{RenderDropcapTextRuns(ts.Runs, footnoteMap, endnotesFile, style)}</p>");
 					isFirstText = false;
-				} else {
+				}
+				else {
 					sb.Append($"<p>{RenderTextRuns(ts.Runs, footnoteMap, endnotesFile, style)}</p>");
 					isFirstText = false;
 				}
@@ -166,15 +164,17 @@ public partial class EpubSectionRenderer(
 	private static string RenderDropcapTextRuns(IEnumerable<TextRun> runs, Dictionary<string, int>? footnoteMap = null,
 		string? endnotesFile = null, FootnoteStyle style = FootnoteStyle.Parentheses) {
 		var runsList = runs.ToList();
-		if (runsList.Count == 0) return string.Empty;
+		if (runsList.Count == 0) {
+			return string.Empty;
+		}
 
-		var firstTextRunIndex = runsList.FindIndex(r => !string.IsNullOrEmpty(r.Text));
+		var firstTextRunIndex = runsList.FindIndex(static r => !string.IsNullOrEmpty(r.Text));
 		if (firstTextRunIndex == -1) {
 			return RenderTextRuns(runsList, footnoteMap, endnotesFile, style);
 		}
 
 		var sb = new StringBuilder();
-		for (int i = 0; i < runsList.Count; i++) {
+		for (var i = 0; i < runsList.Count; i++) {
 			var run = runsList[i];
 			if (i == firstTextRunIndex) {
 				var text = HttpUtility.HtmlEncode(run.Text);
@@ -191,11 +191,13 @@ public partial class EpubSectionRenderer(
 						fullText += $"<sup><a{idAttr} class=\"footnote-ref\" epub:type=\"noteref\" href=\"{href}\">{label}</a></sup>";
 					}
 					sb.Append(fullText);
-				} else {
-					sb.Append(RenderTextRuns(new[] { run }, footnoteMap, endnotesFile, style));
 				}
-			} else {
-				sb.Append(RenderTextRuns(new[] { run }, footnoteMap, endnotesFile, style));
+				else {
+					sb.Append(RenderTextRuns([run], footnoteMap, endnotesFile, style));
+				}
+			}
+			else {
+				sb.Append(RenderTextRuns([run], footnoteMap, endnotesFile, style));
 			}
 		}
 
@@ -284,7 +286,7 @@ public partial class EpubSectionRenderer(
 				Section = section,
 				CoverLocalPath = ResolveCoverLocalPath(context),
 				ImageFileMap = context.AssetFileMap,
-				Localization = context.Structure.Localization
+				context.Structure.Localization
 			});
 
 		builder.AddPage("intro", html, PageRole.Intro);
@@ -312,7 +314,7 @@ public partial class EpubSectionRenderer(
 				context.Series.Metadata?.Description,
 				Section = section,
 				ImageFileMap = context.AssetFileMap,
-				Localization = context.Structure.Localization
+				context.Structure.Localization
 			});
 
 		builder.AddPage("description", html, PageRole.Description);
@@ -352,7 +354,7 @@ public partial class EpubSectionRenderer(
 							: null,
 					volume.Metadata?.PublicationDate,
 					volume.Metadata?.Isbn,
-					Localization = context.Structure.Localization
+					context.Structure.Localization
 				});
 			var volFileName = builder.AddPage(volId, volHtml, PageRole.VolumeTitle);
 
@@ -399,9 +401,10 @@ public partial class EpubSectionRenderer(
 					// Current behavior: footnotes inline at end of chapter
 					renderedContent = RenderSegments(segments, footnotes, context.AssetFileMap, context.Structure.FootnoteStyle, context.Structure.EnableDropcap);
 					var chHtml = templateEngine.Render("epub_chapter",
-						new { chapter.Title, RenderedContent = renderedContent, Localization = context.Structure.Localization });
+						new { chapter.Title, RenderedContent = renderedContent, context.Structure.Localization });
 					chFileName = builder.AddPage(chId, chHtml);
-				} else {
+				}
+				else {
 					// Consolidated: cross-file href, no inline footnotes
 					var segmentList = segments.ToList();
 					if (footnotes is { Count: > 0 }) {
@@ -419,7 +422,7 @@ public partial class EpubSectionRenderer(
 
 					renderedContent = sb.ToString();
 					var chHtml = templateEngine.Render("epub_chapter",
-						new { chapter.Title, RenderedContent = renderedContent, Localization = context.Structure.Localization });
+						new { chapter.Title, RenderedContent = renderedContent, context.Structure.Localization });
 					chFileName = builder.AddPage(chId, chHtml);
 
 					// Collect footnotes into accumulator
@@ -440,7 +443,8 @@ public partial class EpubSectionRenderer(
 			if (footnoteMode == FootnoteMode.PerVolume && volumeEndnotes.Count > 0) {
 				EmitEndnotesPage(builder, endnotesPageId, volumeEndnotes, context.Structure.EndnoteGrouping,
 					$"{context.Structure.Localization.FootnoteLabel} {volume.Title}", context.Structure.FootnoteStyle, context.Structure.Localization);
-			} else if (footnoteMode == FootnoteMode.Global) {
+			}
+			else if (footnoteMode == FootnoteMode.Global) {
 				globalEndnotes.AddRange(volumeEndnotes);
 			}
 
@@ -477,15 +481,16 @@ public partial class EpubSectionRenderer(
 		var sb = new StringBuilder();
 
 		if (grouping == EndnoteGrouping.ByChapter) {
-			var groups = entries.GroupBy(e => e.ChapterTitle,
-				(key, group) => (Title: key, Entries: group.ToList()));
+			var groups = entries.GroupBy(static e => e.ChapterTitle,
+				static (key, group) => (Title: key, Entries: group.ToList()));
 			foreach (var (chapterTitle, chapterEntries) in groups) {
 				sb.AppendLine($"<h3>{HttpUtility.HtmlEncode(chapterTitle)}</h3>");
 				foreach (var entry in chapterEntries) {
 					AppendEndnoteEntry(sb, entry, style);
 				}
 			}
-		} else {
+		}
+		else {
 			foreach (var entry in entries) {
 				AppendEndnoteEntry(sb, entry, style);
 			}
@@ -519,7 +524,7 @@ public partial class EpubSectionRenderer(
 		for (var i = result.Count - 1; i >= 0; i--) {
 			var segment = result[i];
 			if (segment is TextSegmentModel ts) {
-				var combinedText = string.Concat(ts.Runs.Select(r => r.Text)).Trim();
+				var combinedText = string.Concat(ts.Runs.Select(static r => r.Text)).Trim();
 				if (combinedText.Equals(labelTrimmed, StringComparison.OrdinalIgnoreCase) ||
 					combinedText.Equals(localization.FootnoteLabel, StringComparison.OrdinalIgnoreCase) ||
 					combinedText.Equals(labelTrimmed + ":", StringComparison.OrdinalIgnoreCase)) {

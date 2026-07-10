@@ -9,10 +9,8 @@ using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Domain.Service;
-using Grimoire.Domain.Common.ValueObject;
 using Dto.Book;
 using Dto.Common;
 using Mapper;
@@ -28,7 +26,7 @@ public sealed class ChapterService(
 	IIngestionStrategyFactory strategyFactory,
 	IUnitOfWork unitOfWork) : CrudServiceBase<ChapterModel>, IChapterService {
 
-	public async Task<ChapterModel?> FindOne(Guid id, CancellationToken cancellationToken = default) => 
+	public async Task<ChapterModel?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
 		await chapterRepository.FindOne(id, cancellationToken);
 
 	public async Task<PagedResult<ChapterModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default) =>
@@ -36,8 +34,10 @@ public sealed class ChapterService(
 
 	public async Task<(ChapterModel Chapter, IEnumerable<SegmentModel> Segments)?> GetWithContentAsync(Guid id, CancellationToken cancellationToken = default) {
 		var chapter = await chapterRepository.FindOne(id, cancellationToken);
-		if (chapter is null) return null;
-		
+		if (chapter is null) {
+			return null;
+		}
+
 		var segments = await segmentRepository.FindByChapterPath(chapter.Path, cancellationToken);
 		return (chapter, segments);
 	}
@@ -98,10 +98,10 @@ public sealed class ChapterService(
 		foreach (var seg in result.Segments) {
 			seg.Path = $"{result.Chapter.Path}.n{seg.Id:N}";
 		}
-		
+
 		var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
 		await segmentRepository.CreateBulk(result.Segments, cancellationToken);
-		
+
 		return (chapter, true);
 	}
 
@@ -125,7 +125,7 @@ public sealed class ChapterService(
 		return updated;
 	}
 
-	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => 
+	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) =>
 		await bookTreeService.DeleteSubtree(id, cancellationToken);
 
 	public async Task<ChapterModel> MergeAsync(MergeChaptersRequestDto dto, CancellationToken cancellationToken = default) {
@@ -237,18 +237,18 @@ public sealed class ChapterService(
 
 	public async Task<(IEnumerable<ChapterModel> Chapters, int CreatedCount, int UpdatedCount)> UpsertBulkAsync(
 		Guid seriesId,
-		System.Collections.Generic.List<(Guid VolumeId, CreateChapterRequestDto Dto)> chapters,
-		System.Action<int>? onProgress = null,
+		List<(Guid VolumeId, CreateChapterRequestDto Dto)> chapters,
+		Action<int>? onProgress = null,
 		CancellationToken cancellationToken = default) {
 
 		var volumes = await volumeRepository.FindBySeriesId(seriesId, cancellationToken);
-		var volumeIds = System.Linq.Enumerable.Select(volumes, v => v.Id).ToList();
+		var volumeIds = Enumerable.Select(volumes, v => v.Id).ToList();
 
 		var existingChapters = (await chapterRepository.FindByVolumeIds(volumeIds, cancellationToken))
 			.ToDictionary(c => (c.Path.GetVolumeId(), c.Order));
 
-		var toCreate = new System.Collections.Generic.List<ChapterModel>();
-		var toUpdate = new System.Collections.Generic.List<ChapterModel>();
+		var toCreate = new List<ChapterModel>();
+		var toUpdate = new List<ChapterModel>();
 
 		var createdCount = 0;
 		var updatedCount = 0;
@@ -291,7 +291,7 @@ public sealed class ChapterService(
 				foreach (var seg in result.Segments) {
 					seg.Path = $"{result.Chapter.Path}.n{seg.Id:N}";
 				}
-				
+
 				toCreate.Add(result.Chapter);
 				await segmentRepository.CreateBulk(result.Segments, cancellationToken);
 				createdCount++;
@@ -308,7 +308,7 @@ public sealed class ChapterService(
 			await chapterRepository.UpdateBulk(toUpdate, cancellationToken);
 		}
 
-		var allProcessed = System.Linq.Enumerable.Concat(toCreate, toUpdate);
+		var allProcessed = Enumerable.Concat(toCreate, toUpdate);
 		return (allProcessed, createdCount, updatedCount);
 	}
 }

@@ -7,47 +7,34 @@ using Grimoire.Application.Import;
 using Grimoire.Application.Publish.Dto;
 using Grimoire.Domain.Entity.Book;
 
-public sealed class ImportPipelineContext
-{
-    // Inputs
-    public IImportStrategy Strategy { get; }
-    public CreateSeriesRequestDto? SeriesDto { get; set; }
-    public List<ImportVolumeDto>? VolumesOverride { get; }
-    public Stream SourceStream { get; }
-    public string JobId { get; }
-    public System.Action<int>? OnProgress { get; set; }
+public sealed class ImportPipelineContext(
+	IImportStrategy strategy,
+	CreateSeriesRequestDto? seriesDto,
+	List<ImportVolumeDto>? volumesOverride,
+	Stream sourceStream,
+	string jobId) {
+	// Inputs
+	public IImportStrategy Strategy { get; } = strategy;
+	public CreateSeriesRequestDto? SeriesDto { get; set; } = seriesDto;
+	public List<ImportVolumeDto>? VolumesOverride { get; } = volumesOverride;
+	public Stream SourceStream { get; } = sourceStream;
+	public string JobId { get; } = jobId;
+	public Action<int>? OnProgress { get; set; }
 
-    // Inter-step State
-    public NormalizedImport? Normalized { get; set; }
-    public List<NormalizedVolume> MergedVolumes { get; set; } = [];
-    public SeriesModel? Series { get; set; }
-    public Dictionary<string, string> FileMap { get; set; } = [];
-    public List<ResolvedVolume> ResolvedVolumes { get; set; } = [];
-    public int ChaptersCreated { get; set; }
-    public int ChaptersUpdated { get; set; }
-    
-    // Output
-    public JobResult? Result { get; set; }
+	// Inter-step State
+	public NormalizedImport? Normalized { get; set; }
+	public List<NormalizedVolume> MergedVolumes { get; set; } = [];
+	public SeriesModel? Series { get; set; }
+	public Dictionary<string, string> FileMap { get; set; } = [];
+	public List<ResolvedVolume> ResolvedVolumes { get; set; } = [];
+	public int ChaptersCreated { get; set; }
+	public int ChaptersUpdated { get; set; }
 
-    // Progress stage tracking — set by pipeline before each step
-    public string? CurrentStage { get; set; }
+	// Output
+	public JobResult? Result { get; set; }
 
-    public void ReportSubProgress(double fraction)
-    {
-        OnProgress?.Invoke((int)(fraction * 100));
-    }
+	// Progress stage tracking — set by pipeline before each step
+	public string? CurrentStage { get; set; }
 
-    public ImportPipelineContext(
-        IImportStrategy strategy,
-        CreateSeriesRequestDto? seriesDto,
-        List<ImportVolumeDto>? volumesOverride,
-        Stream sourceStream,
-        string jobId)
-    {
-        Strategy = strategy;
-        SeriesDto = seriesDto;
-        VolumesOverride = volumesOverride;
-        SourceStream = sourceStream;
-        JobId = jobId;
-    }
+	public void ReportSubProgress(double fraction) => OnProgress?.Invoke((int)(fraction * 100));
 }

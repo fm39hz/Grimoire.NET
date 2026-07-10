@@ -5,12 +5,11 @@ using System.Collections.Generic;
 using System.Linq;
 using Entity.Book;
 using Entity.Book.Segment;
-using Common.ValueObject;
 
 public static class ChapterSplitter {
 	public record SplitResult(
-		ChapterModel UpdatedOriginal, 
-		IReadOnlyList<ChapterModel> NewChapters, 
+		ChapterModel UpdatedOriginal,
+		IReadOnlyList<ChapterModel> NewChapters,
 		IReadOnlyList<SegmentModel> UpdatedSegments);
 
 	public static SplitResult Split(
@@ -27,7 +26,7 @@ public static class ChapterSplitter {
 		}
 
 		// Separate normal segments from footnotes
-		var contentSegments = allSegments.Where(s => s is not FootnoteSegmentModel).OrderBy(s => s.Order).ToList();
+		var contentSegments = allSegments.Where(static s => s is not FootnoteSegmentModel).OrderBy(static s => s.Order).ToList();
 		var footnotes = allSegments.OfType<FootnoteSegmentModel>().ToList();
 
 		foreach (var (segmentIndex, _) in splitPoints) {
@@ -42,10 +41,10 @@ public static class ChapterSplitter {
 		const double orderIncrement = 0.1d;
 
 		// Calculate parent path of original chapter using client-safe helper
-		BookPath parentPath = original.Path.GetParent();
+		var parentPath = original.Path.GetParent();
 
 		var firstSplitIndex = splitPoints[0].SegmentIndex;
-		
+
 		// Original chapter keeps the first partition of content segments
 		var firstPartition = contentSegments.Take(firstSplitIndex).ToList();
 		var firstPartitionFootnotes = footnotes.PartitionFootnotes(firstPartition);
@@ -60,7 +59,7 @@ public static class ChapterSplitter {
 			fn.Path = $"{original.Path.Value}.n{fn.Id:N}";
 			updatedSegments.Add(fn);
 		}
-		
+
 		resultChapters.Add(original);
 		var currentIndex = firstSplitIndex;
 
@@ -104,9 +103,7 @@ public static class ChapterSplitter {
 		this IReadOnlyList<FootnoteSegmentModel> allFootnotes,
 		IEnumerable<SegmentModel> segments) {
 		var referencedIds = segments.ExtractReferencedFootnoteIds();
-		return allFootnotes
-			.Where(f => referencedIds.Contains(f.Id.ToString()))
-			.ToList();
+		return [.. allFootnotes.Where(f => referencedIds.Contains(f.Id.ToString()))];
 	}
 
 	private static HashSet<string> ExtractReferencedFootnoteIds(this IEnumerable<SegmentModel> segments) {

@@ -17,16 +17,12 @@ public sealed class SectionTypeUtilTests {
 	[InlineData("toc", BookSection.Toc)]
 	[InlineData("tableofcontents", BookSection.TableOfContents)]
 	[InlineData("TABLEOFCONTENTS", BookSection.TableOfContents)]
-	public void FromString_KnownValues_ReturnCorrectSection(string input, BookSection expected) {
-		Assert.Equal(expected, SectionTypeUtil.FromString(input));
-	}
+	public void FromString_KnownValues_ReturnCorrectSection(string input, BookSection expected) => Assert.Equal(expected, SectionTypeUtil.FromString(input));
 
 	[Theory]
 	[InlineData("unknown")]
 	[InlineData("")]
 	[InlineData("random-garbage")]
 	[InlineData("introduction")]
-	public void FromString_UnknownValues_ReturnUnknown(string input) {
-		Assert.Equal(BookSection.Unknown, SectionTypeUtil.FromString(input));
-	}
+	public void FromString_UnknownValues_ReturnUnknown(string input) => Assert.Equal(BookSection.Unknown, SectionTypeUtil.FromString(input));
 }

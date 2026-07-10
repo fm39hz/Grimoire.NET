@@ -1,11 +1,9 @@
 namespace Grimoire.Tests.Application;
 
 using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
-using Grimoire.Application.Dto.Book.Segment;
 using Grimoire.Application.Service.Strategy;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;

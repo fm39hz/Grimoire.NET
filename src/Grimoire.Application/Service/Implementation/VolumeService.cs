@@ -18,13 +18,9 @@ public sealed class VolumeService(
 	public async Task<PagedResult<VolumeModel>> FindAll(PaginationRequest request, CancellationToken cancellationToken = default) =>
 		await GetPagedResultAsync(repository, request, cancellationToken);
 
-	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		return await volumeNodeService.CreateVolume(dto, cancellationToken);
-	}
+	public async Task<VolumeModel> Create(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) => await volumeNodeService.CreateVolume(dto, cancellationToken);
 
-	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
-		return await volumeNodeService.UpdateVolume(id, dto, cancellationToken);
-	}
+	public async Task<VolumeModel> Update(Guid id, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) => await volumeNodeService.UpdateVolume(id, dto, cancellationToken);
 
 	public async Task<int> Delete(Guid id, CancellationToken cancellationToken = default) => await nodeManagerService.DeleteSubtree(id, cancellationToken);
 

@@ -11,7 +11,7 @@ public sealed class AuditInterceptor : SaveChangesInterceptor {
 	public override InterceptionResult<int> SavingChanges(
 		DbContextEventData eventData,
 		InterceptionResult<int> result) {
-		
+
 		UpdateAuditFields(eventData.Context);
 		return base.SavingChanges(eventData, result);
 	}
@@ -20,15 +20,17 @@ public sealed class AuditInterceptor : SaveChangesInterceptor {
 		DbContextEventData eventData,
 		InterceptionResult<int> result,
 		CancellationToken cancellationToken = default) {
-		
+
 		UpdateAuditFields(eventData.Context);
 		return base.SavingChangesAsync(eventData, result, cancellationToken);
 	}
 
 	private static void UpdateAuditFields(DbContext? context) {
-		if (context is null) return;
+		if (context is null) {
+			return;
+		}
 
-		foreach (var entry in context.ChangeTracker.Entries<BaseModel>().Where(e => e.State == EntityState.Modified)) {
+		foreach (var entry in context.ChangeTracker.Entries<BaseModel>().Where(static e => e.State == EntityState.Modified)) {
 			entry.Entity.MarkAsUpdated();
 		}
 	}

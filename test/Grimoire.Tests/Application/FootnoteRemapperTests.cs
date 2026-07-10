@@ -3,7 +3,6 @@ namespace Grimoire.Tests.Application;
 using System.Linq;
 using Grimoire.Application.Common;
 using Grimoire.Application.Dto.Book;
-using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
 using Xunit;
 

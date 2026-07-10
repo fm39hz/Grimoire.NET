@@ -59,7 +59,7 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 
 	public Task<IEnumerable<T>> FindByIds(IEnumerable<Guid> ids, CancellationToken cancellationToken = default) {
 		var set = ids.ToHashSet();
-		return Task.FromResult<IEnumerable<T>>(Items.Where(i => set.Contains(i.Id)).ToList());
+		return Task.FromResult<IEnumerable<T>>([.. Items.Where(i => set.Contains(i.Id))]);
 	}
 
 	public virtual Task<int> Delete(Guid id, CancellationToken cancellationToken = default) =>
@@ -72,42 +72,30 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 }
 
 public sealed class InMemorySegmentRepository : InMemoryRepository<SegmentModel>, ISegmentRepository {
-	public Task<IEnumerable<SegmentModel>> FindByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
-		return Task.FromResult<IEnumerable<SegmentModel>>(Items.Where(s => s.Path.IsDescendantOf(chapterPath)).OrderBy(s => s.Order).ToList());
-	}
+	public Task<IEnumerable<SegmentModel>> FindByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) => Task.FromResult<IEnumerable<SegmentModel>>([.. Items.Where(s => s.Path.IsDescendantOf(chapterPath)).OrderBy(s => s.Order)]);
 
 	public Task DeleteByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
 		Items.RemoveAll(s => s.Path.IsDescendantOf(chapterPath));
 		return Task.CompletedTask;
 	}
 
-	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default) {
-		return Task.FromResult<IEnumerable<ImageSegmentModel>>(Items.OfType<ImageSegmentModel>().Where(s => s.Path.IsDescendantOf(seriesPath)).ToList());
-	}
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default) => Task.FromResult<IEnumerable<ImageSegmentModel>>([.. Items.OfType<ImageSegmentModel>().Where(s => s.Path.IsDescendantOf(seriesPath))]);
 
 	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default) {
 		var paths = chapterPaths.ToList();
 		return Task.FromResult<IEnumerable<ImageSegmentModel>>(
-			Items.OfType<ImageSegmentModel>()
-				.Where(s => paths.Any(p => s.Path.IsDescendantOf(p)))
-				.ToList()
+			[.. Items.OfType<ImageSegmentModel>().Where(s => paths.Any(p => s.Path.IsDescendantOf(p)))]
 		);
 	}
 }
 
-public sealed class InMemorySeriesRepository : InMemoryRepository<SeriesModel>, ISeriesRepository {
-	private readonly InMemoryVolumeRepository? _volumes;
-	private readonly InMemoryChapterRepository? _chapters;
-	private readonly InMemorySegmentRepository? _segments;
-
-	public InMemorySeriesRepository(
-		InMemoryVolumeRepository? volumes = null,
-		InMemoryChapterRepository? chapters = null,
-		InMemorySegmentRepository? segments = null) {
-		_volumes = volumes;
-		_chapters = chapters;
-		_segments = segments;
-	}
+public sealed class InMemorySeriesRepository(
+	InMemoryVolumeRepository? volumes = null,
+	InMemoryChapterRepository? chapters = null,
+	InMemorySegmentRepository? segments = null) : InMemoryRepository<SeriesModel>, ISeriesRepository {
+	private readonly InMemoryVolumeRepository? _volumes = volumes;
+	private readonly InMemoryChapterRepository? _chapters = chapters;
+	private readonly InMemorySegmentRepository? _segments = segments;
 
 	public Task<SeriesModel?> FindOneByTitle(string title, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(s => s.Title == title));
@@ -121,22 +109,17 @@ public sealed class InMemorySeriesRepository : InMemoryRepository<SeriesModel>, 
 	}
 }
 
-public sealed class InMemoryVolumeRepository : InMemoryRepository<VolumeModel>, IVolumeRepository {
-	private readonly InMemoryChapterRepository? _chapters;
-	private readonly InMemorySegmentRepository? _segments;
-
-	public InMemoryVolumeRepository(
-		InMemoryChapterRepository? chapters = null,
-		InMemorySegmentRepository? segments = null) {
-		_chapters = chapters;
-		_segments = segments;
-	}
+public sealed class InMemoryVolumeRepository(
+	InMemoryChapterRepository? chapters = null,
+	InMemorySegmentRepository? segments = null) : InMemoryRepository<VolumeModel>, IVolumeRepository {
+	private readonly InMemoryChapterRepository? _chapters = chapters;
+	private readonly InMemorySegmentRepository? _segments = segments;
 
 	public Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<VolumeModel>>(Items.Where(v => v.Path.GetSeriesId() == seriesId).OrderBy(v => v.Order).ToList());
+		Task.FromResult<IEnumerable<VolumeModel>>([.. Items.Where(v => v.Path.GetSeriesId() == seriesId).OrderBy(v => v.Order)]);
 
 	public Task<IEnumerable<VolumeModel>> FindBySeriesId(Guid seriesId, int pageIndex, int pageSize, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<VolumeModel>>(Items.Where(v => v.Path.GetSeriesId() == seriesId).OrderBy(v => v.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList());
+		Task.FromResult<IEnumerable<VolumeModel>>([.. Items.Where(v => v.Path.GetSeriesId() == seriesId).OrderBy(v => v.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize)]);
 
 	public Task<int> CountBySeriesId(Guid seriesId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.Count(v => v.Path.GetSeriesId() == seriesId));
@@ -161,25 +144,21 @@ public sealed class InMemoryVolumeRepository : InMemoryRepository<VolumeModel>, 
 	}
 }
 
-public sealed class InMemoryChapterRepository : InMemoryRepository<ChapterModel>, IChapterRepository {
-	private readonly InMemorySegmentRepository? _segments;
-
-	public InMemoryChapterRepository(InMemorySegmentRepository? segments = null) {
-		_segments = segments;
-	}
+public sealed class InMemoryChapterRepository(InMemorySegmentRepository? segments = null) : InMemoryRepository<ChapterModel>, IChapterRepository {
+	private readonly InMemorySegmentRepository? _segments = segments;
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => c.Path.GetVolumeId() == volumeId).OrderBy(c => c.Order).ToList());
+		Task.FromResult<IEnumerable<ChapterModel>>([.. Items.Where(c => c.Path.GetVolumeId() == volumeId).OrderBy(c => c.Order)]);
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeId(Guid volumeId, int pageIndex, int pageSize, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => c.Path.GetVolumeId() == volumeId).OrderBy(c => c.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToList());
+		Task.FromResult<IEnumerable<ChapterModel>>([.. Items.Where(c => c.Path.GetVolumeId() == volumeId).OrderBy(c => c.Order).Skip((pageIndex - 1) * pageSize).Take(pageSize)]);
 
 	public Task<int> CountByVolumeId(Guid volumeId, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.Count(c => c.Path.GetVolumeId() == volumeId));
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIds(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) {
 		var set = volumeIds.ToHashSet();
-		return Task.FromResult<IEnumerable<ChapterModel>>(Items.Where(c => set.Contains(c.Path.GetVolumeId())).OrderBy(c => c.Path.GetVolumeId()).ThenBy(c => c.Order).ToList());
+		return Task.FromResult<IEnumerable<ChapterModel>>([.. Items.Where(c => set.Contains(c.Path.GetVolumeId())).OrderBy(c => c.Path.GetVolumeId()).ThenBy(c => c.Order)]);
 	}
 
 	public Task<IEnumerable<ChapterModel>> FindByVolumeIdsWithContent(IEnumerable<Guid> volumeIds, CancellationToken cancellationToken = default) =>
@@ -219,7 +198,7 @@ public sealed class InMemoryAssetRepository : InMemoryRepository<AssetModel>, IA
 
 public sealed class InMemorySourceMaterialRepository : InMemoryRepository<SourceMaterial>, ISourceMaterialRepository {
 	public Task<IEnumerable<SourceMaterial>> FindBySeriesId(Guid seriesId, CancellationToken cancellationToken = default) =>
-		Task.FromResult<IEnumerable<SourceMaterial>>(Items.Where(s => s.SeriesId == seriesId).ToList());
+		Task.FromResult<IEnumerable<SourceMaterial>>([.. Items.Where(s => s.SeriesId == seriesId)]);
 }
 
 public sealed class NoOpUnitOfWork : IUnitOfWork {
@@ -227,5 +206,5 @@ public sealed class NoOpUnitOfWork : IUnitOfWork {
 	public Task CommitTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	public Task RollbackTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
-	public void RegisterPostCommitAction(System.Func<Task> action) => action().GetAwaiter().GetResult();
+	public void RegisterPostCommitAction(Func<Task> action) => action().GetAwaiter().GetResult();
 }

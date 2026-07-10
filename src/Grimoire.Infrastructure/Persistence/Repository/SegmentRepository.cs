@@ -15,7 +15,7 @@ public sealed class SegmentRepository(ApplicationDbContext context)
 	: CrudRepository<SegmentModel>(context), ISegmentRepository {
 
 	public async Task<IEnumerable<SegmentModel>> FindByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
-		LTree ltreePath = (LTree)chapterPath.Value;
+		var ltreePath = (LTree)chapterPath.Value;
 		return await Entities
 			.AsNoTracking()
 			.Where(s => s.DbPath.IsDescendantOf(ltreePath))
@@ -24,14 +24,14 @@ public sealed class SegmentRepository(ApplicationDbContext context)
 	}
 
 	public async Task DeleteByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
-		LTree ltreePath = (LTree)chapterPath.Value;
+		var ltreePath = (LTree)chapterPath.Value;
 		await Entities
 			.Where(s => s.DbPath.IsDescendantOf(ltreePath))
 			.ExecuteDeleteAsync(cancellationToken);
 	}
 
 	public async Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default) {
-		LTree ltreePath = (LTree)seriesPath.Value;
+		var ltreePath = (LTree)seriesPath.Value;
 		return await Entities
 			.AsNoTracking()
 			.OfType<ImageSegmentModel>()
@@ -41,7 +41,10 @@ public sealed class SegmentRepository(ApplicationDbContext context)
 
 	public async Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default) {
 		var paths = chapterPaths.Select(p => (LTree)p.Value).ToList();
-		if (paths.Count == 0) return [];
+		if (paths.Count == 0) {
+			return [];
+		}
+
 		return await Entities
 			.AsNoTracking()
 			.OfType<ImageSegmentModel>()

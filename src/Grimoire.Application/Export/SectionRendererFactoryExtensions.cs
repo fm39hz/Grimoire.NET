@@ -1,12 +1,12 @@
 namespace Grimoire.Application.Export;
 
 using System;
-using Service.Strategy;
 using Domain.Exception;
+using Service.Strategy;
 
 public static class SectionRendererFactoryExtensions {
 	public static ISectionRenderer ResolveAndValidate(this ISectionRendererFactory factory, string format, out ExportFormat exportFormat) {
-		if (!Enum.TryParse<ExportFormat>(format, true, out exportFormat)) {
+		if (!Enum.TryParse(format, true, out exportFormat)) {
 			throw new ArgumentException($"Unsupported format: {format}");
 		}
 

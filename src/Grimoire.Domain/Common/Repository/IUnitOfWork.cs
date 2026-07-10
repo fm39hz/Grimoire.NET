@@ -29,5 +29,5 @@ public interface IUnitOfWork {
 	/// <summary>
 	///     Registers an action to run after the transaction successfully commits
 	/// </summary>
-	public void RegisterPostCommitAction(System.Func<Task> action);
+	public void RegisterPostCommitAction(Func<Task> action);
 }

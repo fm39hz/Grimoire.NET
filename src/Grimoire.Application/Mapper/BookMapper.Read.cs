@@ -5,9 +5,9 @@ using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
 using Dto.Book.Segment;
-using Riok.Mapperly.Abstractions;
-using Microsoft.EntityFrameworkCore;
 using Grimoire.Domain.Common.ValueObject;
+using Microsoft.EntityFrameworkCore;
+using Riok.Mapperly.Abstractions;
 
 public partial class BookMapper {
 #pragma warning disable RMG012
@@ -24,18 +24,18 @@ public partial class BookMapper {
 		UpdatedAt = model.UpdatedAt
 	};
 
-	public ChapterResponseDto ToChapterDto(ChapterModel model) => ToChapterDto(model, Array.Empty<SegmentModel>());
+	public ChapterResponseDto ToChapterDto(ChapterModel model) => ToChapterDto(model, []);
 
 	public ChapterResponseDto ToChapterDto(ChapterModel model, IEnumerable<SegmentModel> segments) {
-		var contentSegments = segments.Where(s => s is not FootnoteSegmentModel).OrderBy(s => s.Order).ToList();
+		var contentSegments = segments.Where(static s => s is not FootnoteSegmentModel).OrderBy(static s => s.Order).ToList();
 		var footnotes = segments.OfType<FootnoteSegmentModel>().ToList();
 		return new ChapterResponseDto {
 			Id = MapChapterId(model.Id),
 			VolumeId = GetVolumeIdFromPath(model.Path),
 			Title = model.Title,
 			Order = model.Order,
-			Content = contentSegments.Select(MapSegment).ToList(),
-			Footnotes = footnotes.Select(ToFootnoteDto).ToList(),
+			Content = [.. contentSegments.Select(MapSegment)],
+			Footnotes = [.. footnotes.Select(ToFootnoteDto)],
 			CreatedAt = model.CreatedAt,
 			UpdatedAt = model.UpdatedAt
 		};
@@ -86,8 +86,8 @@ public partial class BookMapper {
 		return guid != Guid.Empty ? PrefixedId.ToString(EntityPrefix.Volume, guid) : string.Empty;
 	}
 
-	public System.Linq.IQueryable<VolumeResponseDto> ProjectToVolumeDto(System.Linq.IQueryable<VolumeModel> query) =>
-		query.Select(v => new VolumeResponseDto {
+	public IQueryable<VolumeResponseDto> ProjectToVolumeDto(IQueryable<VolumeModel> query) =>
+		query.Select(static v => new VolumeResponseDto {
 			Id = "vol_" + v.Id,
 			SeriesId = "ser_" + ((string)v.DbPath).Substring(1, 8) + "-" + ((string)v.DbPath).Substring(9, 4) + "-" + ((string)v.DbPath).Substring(13, 4) + "-" + ((string)v.DbPath).Substring(17, 4) + "-" + ((string)v.DbPath).Substring(21, 12),
 			Title = v.Title,
@@ -96,8 +96,8 @@ public partial class BookMapper {
 			UpdatedAt = v.UpdatedAt
 		});
 
-	public System.Linq.IQueryable<ChapterListResponseDto> ProjectToChapterListDto(System.Linq.IQueryable<ChapterModel> query) =>
-		query.Select(c => new ChapterListResponseDto {
+	public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query) =>
+		query.Select(static c => new ChapterListResponseDto {
 			Id = "chap_" + c.Id,
 			VolumeId = "vol_" + ((string)c.DbPath).Substring(35, 8) + "-" + ((string)c.DbPath).Substring(43, 4) + "-" + ((string)c.DbPath).Substring(47, 4) + "-" + ((string)c.DbPath).Substring(51, 4) + "-" + ((string)c.DbPath).Substring(55, 12),
 			Title = c.Title,

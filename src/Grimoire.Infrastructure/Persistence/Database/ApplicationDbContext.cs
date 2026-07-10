@@ -5,7 +5,6 @@ using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
-using Grimoire.Domain.Entity;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,100 +27,100 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.HasPostgresExtension("ltree");
 
-		modelBuilder.Entity<SeriesModel>(entity => {
-			entity.Property(s => s.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<SeriesModel>(static entity => {
+			entity.Property(static s => s.Id).ValueGeneratedOnAdd();
 
-			entity.Property(s => s.Title)
+			entity.Property(static s => s.Title)
 				.HasMaxLength(500)
 				.IsRequired();
 
-			entity.Ignore(s => s.Path);
+			entity.Ignore(static s => s.Path);
 
-			entity.Property(s => s.DbPath)
+			entity.Property(static s => s.DbPath)
 				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
-			entity.Property(s => s.Metadata)
+			entity.Property(static s => s.Metadata)
 				.HasColumnType("jsonb")
 				.HasConversion(
-					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
-					v => JsonSerializer.Deserialize<SeriesMetadata>(v, JsonConfiguration.JsonOptions) ??
+					static v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					static v => JsonSerializer.Deserialize<SeriesMetadata>(v, JsonConfiguration.JsonOptions) ??
 						new SeriesMetadata()
 					)
 				.Metadata.SetValueComparer(JsonConfiguration.MetadataComparer);
-			entity.HasIndex(s => s.Metadata).HasMethod("gin");
-			entity.HasIndex(s => s.Title).IsUnique();
-			entity.HasIndex(s => s.DbPath).HasMethod("gist");
+			entity.HasIndex(static s => s.Metadata).HasMethod("gin");
+			entity.HasIndex(static s => s.Title).IsUnique();
+			entity.HasIndex(static s => s.DbPath).HasMethod("gist");
 
-			entity.HasMany(s => s.GlossaryTerms)
-				.WithOne(g => g.Series)
-				.HasForeignKey(g => g.SeriesId)
+			entity.HasMany(static s => s.GlossaryTerms)
+				.WithOne(static g => g.Series)
+				.HasForeignKey(static g => g.SeriesId)
 				.OnDelete(DeleteBehavior.Cascade);
 
-			entity.HasMany(s => s.SourceMaterials)
-				.WithOne(sm => sm.Series)
-				.HasForeignKey(sm => sm.SeriesId)
+			entity.HasMany(static s => s.SourceMaterials)
+				.WithOne(static sm => sm.Series)
+				.HasForeignKey(static sm => sm.SeriesId)
 				.OnDelete(DeleteBehavior.Cascade);
 		});
 
-		modelBuilder.Entity<VolumeModel>(entity => {
-			entity.Property(v => v.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<VolumeModel>(static entity => {
+			entity.Property(static v => v.Id).ValueGeneratedOnAdd();
 
-			entity.Property(v => v.Title)
+			entity.Property(static v => v.Title)
 				.HasMaxLength(500)
 				.IsRequired()
 				.UseCollation("natural_sort");
 
-			entity.Ignore(v => v.Path);
+			entity.Ignore(static v => v.Path);
 
-			entity.Property(v => v.DbPath)
+			entity.Property(static v => v.DbPath)
 				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
-			entity.HasIndex(v => v.DbPath).HasMethod("gist");
-			entity.HasIndex(v => new { v.DbPath, v.Order }).IsUnique();
-			entity.OwnsOne(v => v.Metadata, metaBuilder => metaBuilder.ToJson());
+			entity.HasIndex(static v => v.DbPath).HasMethod("gist");
+			entity.HasIndex(static v => new { v.DbPath, v.Order }).IsUnique();
+			entity.OwnsOne(static v => v.Metadata, static metaBuilder => metaBuilder.ToJson());
 		});
 
-		modelBuilder.Entity<ChapterModel>(entity => {
-			entity.Property(c => c.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<ChapterModel>(static entity => {
+			entity.Property(static c => c.Id).ValueGeneratedOnAdd();
 
-			entity.Property(c => c.Title)
+			entity.Property(static c => c.Title)
 				.HasMaxLength(500)
 				.IsRequired()
 				.UseCollation("natural_sort");
 
-			entity.Property(c => c.Status);
+			entity.Property(static c => c.Status);
 
-			entity.Ignore(c => c.Path);
+			entity.Ignore(static c => c.Path);
 
-			entity.Property(c => c.DbPath)
+			entity.Property(static c => c.DbPath)
 				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
-			entity.HasIndex(c => c.DbPath).HasMethod("gist");
-			entity.HasIndex(c => new { c.DbPath, c.Order }).IsUnique();
-			entity.HasIndex(c => c.Status);
+			entity.HasIndex(static c => c.DbPath).HasMethod("gist");
+			entity.HasIndex(static c => new { c.DbPath, c.Order }).IsUnique();
+			entity.HasIndex(static c => c.Status);
 		});
 
-		modelBuilder.Entity<SegmentModel>(entity => {
-			entity.HasKey(s => s.Id);
-			entity.Property(s => s.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<SegmentModel>(static entity => {
+			entity.HasKey(static s => s.Id);
+			entity.Property(static s => s.Id).ValueGeneratedOnAdd();
 
-			entity.Ignore(s => s.Path);
+			entity.Ignore(static s => s.Path);
 
-			entity.Property(s => s.DbPath)
+			entity.Property(static s => s.DbPath)
 				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
-			entity.Property(s => s.Order).IsRequired();
+			entity.Property(static s => s.Order).IsRequired();
 
-			entity.HasIndex(s => s.DbPath).HasMethod("gist");
-			entity.HasIndex(s => new { s.DbPath, s.Order }).IsUnique();
+			entity.HasIndex(static s => s.DbPath).HasMethod("gist");
+			entity.HasIndex(static s => new { s.DbPath, s.Order }).IsUnique();
 
 			entity.HasDiscriminator<string>("SegmentType")
 				.HasValue<TextSegmentModel>("Text")
@@ -130,92 +129,88 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasValue<FootnoteSegmentModel>("Footnote");
 		});
 
-		modelBuilder.Entity<TextSegmentModel>(entity => {
-			entity.Property(t => t.Runs)
+		modelBuilder.Entity<TextSegmentModel>(static entity => entity.Property(static t => t.Runs)
 				.HasColumnType("jsonb")
 				.HasConversion(
-					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
-					v => JsonSerializer.Deserialize<List<TextRun>>(v, JsonConfiguration.JsonOptions) ??
+					static v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					static v => JsonSerializer.Deserialize<List<TextRun>>(v, JsonConfiguration.JsonOptions) ??
 						new List<TextRun>()
-				).Metadata.SetValueComparer(JsonConfiguration.TextRunComparer);
+				).Metadata.SetValueComparer(JsonConfiguration.TextRunComparer));
+
+		modelBuilder.Entity<ImageSegmentModel>(static entity => {
+			entity.Property(static i => i.AssetKey).HasMaxLength(500).IsRequired();
+			entity.Property(static i => i.Caption).HasMaxLength(1000);
 		});
 
-		modelBuilder.Entity<ImageSegmentModel>(entity => {
-			entity.Property(i => i.AssetKey).HasMaxLength(500).IsRequired();
-			entity.Property(i => i.Caption).HasMaxLength(1000);
-		});
-
-		modelBuilder.Entity<FootnoteSegmentModel>(entity => {
-			entity.Property(f => f.Segments)
+		modelBuilder.Entity<FootnoteSegmentModel>(static entity => entity.Property(static f => f.Segments)
 				.HasColumnType("jsonb")
 				.HasConversion(
-					v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
-					v => JsonSerializer.Deserialize<List<TextSegmentModel>>(v, JsonConfiguration.JsonOptions) ??
+					static v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					static v => JsonSerializer.Deserialize<List<TextSegmentModel>>(v, JsonConfiguration.JsonOptions) ??
 						new List<TextSegmentModel>()
-				).Metadata.SetValueComparer(JsonConfiguration.FootnoteSegmentsComparer);
-		});
+				).Metadata.SetValueComparer(JsonConfiguration.FootnoteSegmentsComparer));
 
-		modelBuilder.Entity<GlossaryTerm>(entity => {
-			entity.Property(g => g.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<GlossaryTerm>(static entity => {
+			entity.Property(static g => g.Id).ValueGeneratedOnAdd();
 
-			entity.Property(g => g.Term)
+			entity.Property(static g => g.Term)
 				.HasMaxLength(500)
 				.IsRequired();
 
-			entity.Property(g => g.Definition)
+			entity.Property(static g => g.Definition)
 				.IsRequired();
 
-			entity.Property(g => g.Type)
+			entity.Property(static g => g.Type)
 				.HasMaxLength(100);
 
-			entity.HasIndex(g => g.Term);
-			entity.HasIndex(g => g.SeriesId);
+			entity.HasIndex(static g => g.Term);
+			entity.HasIndex(static g => g.SeriesId);
 		});
 
-		modelBuilder.Entity<SourceMaterial>(entity => {
-			entity.Property(sm => sm.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<SourceMaterial>(static entity => {
+			entity.Property(static sm => sm.Id).ValueGeneratedOnAdd();
 
-			entity.Property(sm => sm.Title)
+			entity.Property(static sm => sm.Title)
 				.HasMaxLength(500)
 				.IsRequired();
 
-			entity.Property(sm => sm.MarkdownContent)
+			entity.Property(static sm => sm.MarkdownContent)
 				.HasColumnType("text")
 				.IsRequired();
 
-			entity.Property(sm => sm.SourceUrl)
+			entity.Property(static sm => sm.SourceUrl)
 				.HasMaxLength(2000);
 
-			entity.HasIndex(sm => sm.SeriesId);
+			entity.HasIndex(static sm => sm.SeriesId);
 		});
 
-		modelBuilder.Entity<AssetModel>(entity => {
-			entity.Property(a => a.Id).ValueGeneratedOnAdd();
+		modelBuilder.Entity<AssetModel>(static entity => {
+			entity.Property(static a => a.Id).ValueGeneratedOnAdd();
 
-			entity.Property(a => a.Path)
+			entity.Property(static a => a.Path)
 				.HasMaxLength(1000)
 				.IsRequired();
 
-			entity.Property(a => a.FileHash)
+			entity.Property(static a => a.FileHash)
 				.HasMaxLength(64)
 				.IsRequired();
 
-			entity.Property(a => a.RefType)
+			entity.Property(static a => a.RefType)
 				.HasMaxLength(50)
 				.IsRequired();
 
-			entity.HasIndex(a => a.SeriesId);
-			entity.HasIndex(a => a.OwnerNodeId);
-			entity.HasIndex(a => a.FileHash);
-			entity.HasIndex(a => new { a.SeriesId, a.FileHash });
-			entity.HasIndex(a => a.RefType);
+			entity.HasIndex(static a => a.SeriesId);
+			entity.HasIndex(static a => a.OwnerNodeId);
+			entity.HasIndex(static a => a.FileHash);
+			entity.HasIndex(static a => new { a.SeriesId, a.FileHash });
+			entity.HasIndex(static a => a.RefType);
 
 		});
 
-		modelBuilder.Entity<SeriesExportRecord>(entity => {
-			entity.Property(e => e.Id).ValueGeneratedOnAdd();
-			entity.Property(e => e.Format).HasMaxLength(50).IsRequired();
-			entity.HasIndex(e => new { e.SeriesId, e.Format }).IsUnique();
+		modelBuilder.Entity<SeriesExportRecord>(static entity => {
+			entity.Property(static e => e.Id).ValueGeneratedOnAdd();
+			entity.Property(static e => e.Format).HasMaxLength(50).IsRequired();
+			entity.HasIndex(static e => new { e.SeriesId, e.Format }).IsUnique();
 		});
 	}
 }

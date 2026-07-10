@@ -17,9 +17,9 @@ public static class NetworkExtension {
 				RouteConstant.VERSION,
 				new OpenApiInfo { Title = $"{RouteConstant.PROJECT_NAME} API", Version = RouteConstant.VERSION }
 				);
-			opt.CustomSchemaIds(type => type.FullName);
+			opt.CustomSchemaIds(static type => type.FullName);
 		});
-		builder.Services.AddCors(options => options.AddPolicy(ConfigKeys.CorsPolicyAllowAll, policy => policy.AllowAnyOrigin()
+		builder.Services.AddCors(static options => options.AddPolicy(ConfigKeys.CorsPolicyAllowAll, static policy => policy.AllowAnyOrigin()
 			.AllowAnyHeader()
 			.AllowAnyMethod()));
 		return service;

@@ -1,10 +1,10 @@
 namespace Grimoire.Infrastructure.Persistence.Repository;
 
+using System.Threading;
 using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity;
 using Microsoft.EntityFrameworkCore;
-using System.Threading;
 using Persistence.Database;
 
 public abstract class CrudRepository<T>(ApplicationDbContext context) : IRepository<T> where T : BaseModel, IModel {
@@ -17,7 +17,7 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 		await Entities.FirstOrDefaultAsync(entity => entity.Id == id, cancellationToken);
 
 	public virtual async Task<PagedResult<T>> FindAll(int pageIndex, int pageSize, CancellationToken cancellationToken = default) {
-		var query = Entities.AsNoTracking().OrderBy(e => e.Id);
+		var query = Entities.AsNoTracking().OrderBy(static e => e.Id);
 		var count = await query.CountAsync(cancellationToken);
 		var items = await query.Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync(cancellationToken);
 		return new PagedResult<T>(items, count, pageIndex, pageSize);
@@ -41,7 +41,8 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 			.FirstOrDefault(e => e.Entity.Id == entity.Id);
 		if (trackedEntry is null) {
 			Entities.Update(entity);
-		} else if (trackedEntry.Entity != entity) {
+		}
+		else if (trackedEntry.Entity != entity) {
 			trackedEntry.State = EntityState.Detached;
 			Entities.Update(entity);
 		}
@@ -63,9 +64,7 @@ public abstract class CrudRepository<T>(ApplicationDbContext context) : IReposit
 		foreach (var entity in entityList) {
 			var trackedEntry = context.ChangeTracker.Entries<T>()
 				.FirstOrDefault(e => e.Entity.Id == entity.Id);
-			if (trackedEntry is not null) {
-				trackedEntry.State = EntityState.Detached;
-			}
+			trackedEntry?.State = EntityState.Detached;
 		}
 		Entities.UpdateRange(entityList);
 		await context.SaveChangesAsync(cancellationToken);

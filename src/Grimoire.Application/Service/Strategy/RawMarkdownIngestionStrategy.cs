@@ -1,12 +1,11 @@
 namespace Grimoire.Application.Service.Strategy;
 
-using System.Threading;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
-using Grimoire.Domain.Common.ValueObject;
 
 /// <summary>
 ///     Strategy for ingesting raw Markdown content
@@ -35,12 +34,12 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 		var volume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
 					throw new InvalidOperationException($"Volume with ID {volumeId} not found");
 
-		Guid seriesId = volume.Path.GetSeriesId();
+		var seriesId = volume.Path.GetSeriesId();
 
 		// Parse RawContent into segments (simple split by newline)
 		var lines = dto.RawContent!.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 		var segments = new List<SegmentModel>();
-		double order = 1.0;
+		var order = 1.0;
 
 		foreach (var line in lines) {
 			var trimmedLine = line.Trim();

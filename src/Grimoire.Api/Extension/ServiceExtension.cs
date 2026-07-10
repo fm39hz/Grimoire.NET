@@ -13,13 +13,13 @@ public static class ServiceExtension {
 	public static IServiceCollection AddServices(this IServiceCollection service, WebApplicationBuilder builder) {
 		service.AddApplication();
 		service.AddInfrastructure(builder.Configuration);
-		
+
 		// Register IPublishService
 		service.AddScoped<IPublishService, PublishService>();
 		service.AddSingleton<JobProgressBus>();
-		service.AddSingleton<IJobProgressTracker>(sp => sp.GetRequiredService<JobProgressBus>());
-		service.AddSingleton<IJobProgressSubscription>(sp => sp.GetRequiredService<JobProgressBus>());
-		
+		service.AddSingleton<IJobProgressTracker>(static sp => sp.GetRequiredService<JobProgressBus>());
+		service.AddSingleton<IJobProgressSubscription>(static sp => sp.GetRequiredService<JobProgressBus>());
+
 		// Register Hangfire jobs so in-process server can resolve them
 		service.AddTransient<ExportJob>();
 		service.AddTransient<ImportJob>();
