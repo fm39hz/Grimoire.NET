@@ -31,7 +31,7 @@ public static class ExportUtilities {
 		FootnoteStyle.Parentheses => $"({number})",
 		FootnoteStyle.Asterisk => new string('*', number),
 		FootnoteStyle.SuperScript => number.ToString(),
-		FootnoteStyle.SquareBrackets => throw new NotImplementedException(),
+		FootnoteStyle.SquareBrackets => $"[{number}]",
 		_ => $"[{number}]"
 	};
 

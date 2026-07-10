@@ -267,7 +267,7 @@ public partial class EpubSectionRenderer(
 			BookSection.Toc or BookSection.TableOfContents => RenderToc(builder, context.Structure),
 			BookSection.Description => RenderDescription(context, section, builder),
 			BookSection.Content or BookSection.Chapters => RenderContent(context, builder),
-			BookSection.Unknown => throw new NotImplementedException(),
+			BookSection.Unknown => throw new NotSupportedException($"Cannot render unknown book section type: {section.Type}"),
 			_ => []
 		};
 

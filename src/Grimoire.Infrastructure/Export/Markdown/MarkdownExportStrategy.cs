@@ -91,7 +91,7 @@ public partial class MarkdownExportStrategy(
 		public void SetNavigation(IReadOnlyList<NavEntry> navEntries) {
 		}
 
-		public Task<Stream> BuildAsync(CancellationToken cancellationToken = default) => throw new NotImplementedException("MarkdownPackageBuilder does not support BuildAsync");
+		public Task<Stream> BuildAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException("MarkdownPackageBuilder does not support building multi-file packages.");
 	}
 
 

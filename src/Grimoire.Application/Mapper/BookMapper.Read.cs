@@ -58,7 +58,7 @@ public partial class BookMapper {
 		ImageSegmentModel i => ToImageDto(i),
 		DividerSegmentModel d => ToDividerDto(d),
 		FootnoteSegmentModel f => ToFootnoteDto(f),
-		_ => throw new NotImplementedException($"Unknown segment type: {model.GetType().Name}")
+		_ => throw new NotSupportedException($"Segment type '{model.GetType().Name}' mapping is not supported.")
 	};
 
 	// ID conversion helpers for Mapperly
