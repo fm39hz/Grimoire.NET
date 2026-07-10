@@ -9,4 +9,5 @@ public static class EntityPrefix {
 	public const string Chapter = "chp";
 	public const string Asset = "ast";
 	public const string Segment = "seg";
+	public const string IngestionAudit = "aud";
 }

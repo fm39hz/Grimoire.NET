@@ -47,7 +47,9 @@ public class ChapterServiceTests {
 					new PersistenceStep(Chapters, Volumes, Segments, Sources),
 					new LcaOwnershipStep(new FakeAssetOwnershipService())
 				],
-				unitOfWork
+				unitOfWork,
+				Volumes,
+				new InMemoryIngestionAuditRepository()
 			);
 			Service = new ChapterService(Chapters, Volumes, Sources, Segments, BookTree, mapper, strategyFactory, unitOfWork, ingestionCoordinator);
 		}
@@ -55,6 +57,8 @@ public class ChapterServiceTests {
 		private sealed class FakeAssetOwnershipService : IAssetOwnershipService {
 			public Task ReconcileSeriesAsync(Guid seriesId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 		}
+
+
 
 		public async Task<(Guid SeriesId, Guid VolumeId)> SeedSeriesAndVolume() {
 			var seriesId = Guid.CreateVersion7();
@@ -102,6 +106,7 @@ public class ChapterServiceTests {
 		public SeriesResponseDto ToSeriesDto(SeriesModel model) => throw new NotSupportedException();
 		public VolumeResponseDto ToVolumeDto(VolumeModel model) => throw new NotSupportedException();
 		public AssetResponseDto ToAssetDto(AssetModel model) => throw new NotSupportedException();
+		public IngestionAuditResponseDto ToIngestionAuditDto(IngestionAuditRecord model) => throw new NotSupportedException();
 		public TextSegmentDto ToTextSegmentDto(TextSegmentModel model) => throw new NotSupportedException();
 		public IQueryable<VolumeResponseDto> ProjectToVolumeDto(IQueryable<VolumeModel> query) => throw new NotSupportedException();
 		public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query) => throw new NotSupportedException();

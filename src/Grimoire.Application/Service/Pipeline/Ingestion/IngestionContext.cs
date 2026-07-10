@@ -17,4 +17,8 @@ public sealed class IngestionContext(Guid volumeId, CreateChapterRequestDto dto)
 	public ChapterModel Chapter { get; set; } = null!;
 	public List<SegmentModel> Segments { get; } = [];
 	public SourceMaterial? SourceMaterial { get; set; }
+
+	// Ingestion Audit tracking
+	public string SourceType { get; set; } = "Markdown";
+	public Guid? AuditRecordId { get; set; }
 }

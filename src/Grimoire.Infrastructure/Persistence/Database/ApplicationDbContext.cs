@@ -17,6 +17,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<SourceMaterial> SourceMaterials { get; set; } = null!;
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SeriesExportRecord> SeriesExportRecords { get; set; } = null!;
+	[UsedImplicitly] public DbSet<IngestionAuditRecord> IngestionAuditRecords { get; set; } = null!;
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
@@ -211,6 +212,13 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.Property(static e => e.Id).ValueGeneratedOnAdd();
 			entity.Property(static e => e.Format).HasMaxLength(50).IsRequired();
 			entity.HasIndex(static e => new { e.SeriesId, e.Format }).IsUnique();
+		});
+
+		modelBuilder.Entity<IngestionAuditRecord>(static entity => {
+			entity.Property(static e => e.Id).ValueGeneratedOnAdd();
+			entity.Property(static e => e.SourceType).HasMaxLength(50).IsRequired();
+			entity.Property(static e => e.Status).HasMaxLength(50).IsRequired();
+			entity.HasIndex(static e => e.SeriesId);
 		});
 	}
 }

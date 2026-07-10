@@ -208,3 +208,8 @@ public sealed class NoOpUnitOfWork : IUnitOfWork {
 	public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
 	public void RegisterPostCommitAction(Func<Task> action) => action().GetAwaiter().GetResult();
 }
+
+public sealed class InMemoryIngestionAuditRepository : InMemoryRepository<IngestionAuditRecord>, IIngestionAuditRepository {
+	public Task<IEnumerable<IngestionAuditRecord>> GetBySeriesIdAsync(Guid seriesId, int limit = 20, CancellationToken cancellationToken = default) =>
+		Task.FromResult<IEnumerable<IngestionAuditRecord>>([.. Items.Where(r => r.SeriesId == seriesId).OrderByDescending(r => r.StartedAt).Take(limit)]);
+}

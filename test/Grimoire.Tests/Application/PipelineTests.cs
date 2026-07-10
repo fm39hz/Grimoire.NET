@@ -15,7 +15,7 @@ using Xunit;
 public sealed class PipelineTests {
 
 	[Fact]
-	public async Task IngestionPipeline_ExecutesAllStepsSuccessfully() {
+	public async Task IngestionPipeline_ExecutesAllStepsSuccessfully_AndLogsAudit() {
 		// Arrange
 		var volumeId = Guid.CreateVersion7();
 		var dto = new CreateChapterRequestDto(
@@ -50,7 +50,8 @@ public sealed class PipelineTests {
 			new PersistenceStep(chapters, volumes, segments, sources)
 		};
 
-		var coordinator = new IngestionCoordinator(steps, uow);
+		var auditRepo = new InMemoryIngestionAuditRepository();
+		var coordinator = new IngestionCoordinator(steps, uow, volumes, auditRepo);
 
 		// Act
 		await coordinator.ExecuteAsync(context);
@@ -62,5 +63,15 @@ public sealed class PipelineTests {
 
 		var savedChapter = await chapters.FindOne(context.Chapter.Id);
 		Assert.NotNull(savedChapter);
+
+		// Verify audit logs
+		Assert.Single(auditRepo.Items);
+		var audit = auditRepo.Items[0];
+		Assert.Equal("Success", audit.Status);
+		Assert.Equal("Markdown", audit.SourceType);
+		Assert.NotNull(context.AuditRecordId);
+		Assert.Equal(audit.Id, context.AuditRecordId);
 	}
+
+
 }

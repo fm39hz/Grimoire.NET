@@ -76,6 +76,19 @@ public partial class BookMapper {
 
 	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 
+	public IngestionAuditResponseDto ToIngestionAuditDto(IngestionAuditRecord model) => new(
+		MapIngestionAuditId(model.Id),
+		MapSeriesId(model.SeriesId),
+		model.SourceType,
+		model.Status,
+		model.ErrorMessage,
+		model.Summary,
+		model.StartedAt,
+		model.CompletedAt
+	);
+
+	private static string MapIngestionAuditId(Guid id) => PrefixedId.ToString(EntityPrefix.IngestionAudit, id);
+
 	private static string GetSeriesIdFromPath(BookPath path) {
 		var guid = path.GetSeriesId();
 		return guid != Guid.Empty ? PrefixedId.ToString(EntityPrefix.Series, guid) : string.Empty;

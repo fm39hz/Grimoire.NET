@@ -33,6 +33,7 @@ public static class DependencyInjection {
 		services.AddScoped<IAssetRepository, AssetRepository>();
 		services.AddScoped<ISourceMaterialRepository, SourceMaterialRepository>();
 		services.AddScoped<ISeriesExportRecordRepository, SeriesExportRecordRepository>();
+		services.AddScoped<IIngestionAuditRepository, IngestionAuditRepository>();
 
 		// Register storage configuration
 		var storageSection = configuration.GetSection(StorageConfiguration.SECTION_NAME);

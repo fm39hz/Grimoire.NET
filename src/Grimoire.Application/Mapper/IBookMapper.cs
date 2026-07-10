@@ -12,6 +12,7 @@ public interface IBookMapper {
 	public SeriesResponseDto ToSeriesDto(SeriesModel model);
 	public VolumeResponseDto ToVolumeDto(VolumeModel model);
 	public AssetResponseDto ToAssetDto(AssetModel model);
+	public IngestionAuditResponseDto ToIngestionAuditDto(IngestionAuditRecord model);
 	public IQueryable<VolumeResponseDto> ProjectToVolumeDto(IQueryable<VolumeModel> query);
 	public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query);
 	public SeriesModel CreateSeries(CreateSeriesRequestDto dto);
