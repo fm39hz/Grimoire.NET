@@ -6,6 +6,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Database;
 using Domain.Common.Repository;
+using Domain.Common.ValueObject;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Microsoft.EntityFrameworkCore;
@@ -13,35 +14,38 @@ using Microsoft.EntityFrameworkCore;
 public sealed class SegmentRepository(ApplicationDbContext context)
 	: CrudRepository<SegmentModel>(context), ISegmentRepository {
 
-	public async Task<IEnumerable<SegmentModel>> FindByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default) {
+	public async Task<IEnumerable<SegmentModel>> FindByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
+		LTree ltreePath = (LTree)chapterPath.Value;
 		return await Entities
 			.AsNoTracking()
-			.Where(s => s.Path.IsDescendantOf(chapterPath))
+			.Where(s => s.DbPath.IsDescendantOf(ltreePath))
 			.OrderBy(s => s.Order)
 			.ToListAsync(cancellationToken);
 	}
 
-	public async Task DeleteByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default) {
+	public async Task DeleteByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
+		LTree ltreePath = (LTree)chapterPath.Value;
 		await Entities
-			.Where(s => s.Path.IsDescendantOf(chapterPath))
+			.Where(s => s.DbPath.IsDescendantOf(ltreePath))
 			.ExecuteDeleteAsync(cancellationToken);
 	}
 
-	public async Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(LTree seriesPath, CancellationToken cancellationToken = default) {
+	public async Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default) {
+		LTree ltreePath = (LTree)seriesPath.Value;
 		return await Entities
 			.AsNoTracking()
 			.OfType<ImageSegmentModel>()
-			.Where(s => s.Path.IsDescendantOf(seriesPath))
+			.Where(s => s.DbPath.IsDescendantOf(ltreePath))
 			.ToListAsync(cancellationToken);
 	}
 
-	public async Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<LTree> chapterPaths, CancellationToken cancellationToken = default) {
-		var paths = chapterPaths.ToList();
+	public async Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default) {
+		var paths = chapterPaths.Select(p => (LTree)p.Value).ToList();
 		if (paths.Count == 0) return [];
 		return await Entities
 			.AsNoTracking()
 			.OfType<ImageSegmentModel>()
-			.Where(s => paths.Any(p => s.Path.IsDescendantOf(p)))
+			.Where(s => paths.Any(p => s.DbPath.IsDescendantOf(p)))
 			.ToListAsync(cancellationToken);
 	}
 }

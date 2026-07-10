@@ -7,7 +7,7 @@ using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
 using Grimoire.Domain.Service;
 using Xunit;
-using Grimoire.Domain.Common.Extensions;
+using Grimoire.Domain.Common.ValueObject;
 
 public sealed class ChapterSplitterTests {
 
@@ -49,8 +49,8 @@ public sealed class ChapterSplitterTests {
 		Assert.Equal(chapter.Id, result.UpdatedOriginal.Id);
 
 		// Original keeps seg0, new chapter gets seg1
-		var segs0 = result.UpdatedSegments.Where(s => s.Path.IsDescendantOfClient(result.UpdatedOriginal.Path)).ToList();
-		var segs1 = result.UpdatedSegments.Where(s => s.Path.IsDescendantOfClient(result.NewChapters[1].Path)).ToList();
+		var segs0 = result.UpdatedSegments.Where(s => s.Path.IsDescendantOf(result.UpdatedOriginal.Path)).ToList();
+		var segs1 = result.UpdatedSegments.Where(s => s.Path.IsDescendantOf(result.NewChapters[1].Path)).ToList();
 
 		Assert.Single(segs0);
 		Assert.Equal("Para 0", ((TextSegmentModel)segs0[0]).Runs.First().Text);

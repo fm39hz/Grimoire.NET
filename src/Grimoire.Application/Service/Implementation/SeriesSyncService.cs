@@ -8,7 +8,7 @@ using Domain.Entity.Book;
 using Domain.Exception;
 using Dto.Book;
 using Strategy;
-using Grimoire.Domain.Common.Extensions;
+using Grimoire.Domain.Common.ValueObject;
 
 public sealed class SeriesSyncService(
 	ISeriesRepository seriesRepository,

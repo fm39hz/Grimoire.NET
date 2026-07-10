@@ -5,12 +5,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Entity.Book;
 using Entity.Book.Segment;
-
-using Microsoft.EntityFrameworkCore;
+using ValueObject;
 
 public interface ISegmentRepository : IRepository<SegmentModel> {
-	public Task<IEnumerable<SegmentModel>> FindByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default);
-	public Task DeleteByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default);
-	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(LTree seriesPath, CancellationToken cancellationToken = default);
-	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<LTree> chapterPaths, CancellationToken cancellationToken = default);
+	public Task<IEnumerable<SegmentModel>> FindByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default);
+	public Task DeleteByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default);
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default);
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default);
 }

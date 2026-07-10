@@ -1,25 +1,35 @@
 namespace Grimoire.Domain.Entity.Book;
 
 using Microsoft.EntityFrameworkCore;
-
 using Metadata;
+using Common.ValueObject;
 
 /// <summary>
 ///     Represents a book series (e.g., a manga series)
 /// </summary>
 public class SeriesModel : BaseModel {
+	private LTree _dbPath = string.Empty;
+
 	/// <summary>
 	///     Title of the series
 	/// </summary>
 	public required string Title { get; set; }
 
 	/// <summary>
-	///     The hierarchical ltree path for this series node.
-	///     Using Microsoft.EntityFrameworkCore.LTree directly in Domain (pragmatic design)
-	///     to leverage native PG LTree operations (LCA, IsDescendantOf, Subpath) both in SQL LINQ
-	///     and in-memory tests, avoiding custom C# string parsing workarounds.
+	///     The hierarchical path for this series node in the domain layer.
 	/// </summary>
-	public LTree Path { get; set; } = string.Empty;
+	public BookPath Path {
+		get => new(_dbPath.ToString());
+		set => _dbPath = (LTree)value.Value;
+	}
+
+	/// <summary>
+	///     The database-mapped LTree path. Used by EF Core and Repository queries.
+	/// </summary>
+	public LTree DbPath {
+		get => _dbPath;
+		set => _dbPath = value;
+	}
 
 	/// <summary>
 	///     Strongly-typed metadata for the series

@@ -8,10 +8,9 @@ using System.Threading.Tasks;
 using Contract;
 using Domain.Common;
 using Domain.Common.Repository;
+using Domain.Common.ValueObject;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
-using Microsoft.EntityFrameworkCore;
-using Domain.Common.Extensions;
 
 public sealed class AssetOwnershipService(
 	ISeriesRepository seriesRepository,
@@ -21,7 +20,7 @@ public sealed class AssetOwnershipService(
 
 	public async Task ReconcileSeriesAsync(Guid seriesId, CancellationToken cancellationToken = default) {
 		var series = await seriesRepository.FindOne(seriesId, cancellationToken);
-		if (series is null || series.Path.GetNLevelClient() == 0) {
+		if (series is null || series.Path.Level == 0) {
 			return;
 		}
 
@@ -31,8 +30,8 @@ public sealed class AssetOwnershipService(
 		// Collect image segments under this series path
 		var imageSegments = (await segmentRepository.FindImageSegmentsBySeriesPath(seriesPath, cancellationToken)).ToList();
 
-		// Map asset ID to lists of usage path LTree objects
-		var usagePathsByAssetId = new Dictionary<Guid, List<LTree>>();
+		// Map asset ID to lists of usage path BookPath objects
+		var usagePathsByAssetId = new Dictionary<Guid, List<BookPath>>();
 
 		// 1. Series Cover usage
 		AddUsagePath(usagePathsByAssetId, series.Metadata?.CoverImage, seriesPath);
@@ -45,8 +44,8 @@ public sealed class AssetOwnershipService(
 		// 3. Image Segment usages
 		foreach (var segment in imageSegments) {
 			// A segment's path is s.v.c.seg, we normalize it to chapter level (s.v.c)
-			if (segment.Path.GetNLevelClient() >= 3) {
-				var chapterPath = segment.Path.GetSubpathClient(0, 3);
+			if (segment.Path.Level >= 3) {
+				var chapterPath = segment.Path.GetSubpath(0, 3);
 				AddUsagePath(usagePathsByAssetId, segment.AssetKey, chapterPath);
 			}
 		}
@@ -62,8 +61,8 @@ public sealed class AssetOwnershipService(
 				continue;
 			}
 
-			var lcaPath = paths.FindLowestCommonAncestorClient();
-			if (lcaPath is null || lcaPath.Value.GetNLevelClient() == 0) {
+			var lcaPath = BookPath.FindLowestCommonAncestor(paths);
+			if (lcaPath is null || lcaPath.Value.Level == 0) {
 				continue;
 			}
 
@@ -78,7 +77,7 @@ public sealed class AssetOwnershipService(
 		}
 	}
 
-	private static void AddUsagePath(Dictionary<Guid, List<LTree>> result, string? assetKey, LTree path) {
+	private static void AddUsagePath(Dictionary<Guid, List<BookPath>> result, string? assetKey, BookPath path) {
 		if (!PrefixedId.TryToGuid(assetKey, EntityPrefix.Asset, out var assetId)) {
 			return;
 		}

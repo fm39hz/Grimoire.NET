@@ -7,11 +7,10 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grimoire.Domain.Common;
 using Grimoire.Domain.Common.Repository;
+using Grimoire.Domain.Common.ValueObject;
 using Grimoire.Domain.Entity;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
-using Microsoft.EntityFrameworkCore;
-using Grimoire.Domain.Common.Extensions;
 
 public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel {
 	public List<T> Items { get; } = [];
@@ -73,24 +72,24 @@ public abstract class InMemoryRepository<T> : IRepository<T> where T : BaseModel
 }
 
 public sealed class InMemorySegmentRepository : InMemoryRepository<SegmentModel>, ISegmentRepository {
-	public Task<IEnumerable<SegmentModel>> FindByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default) {
-		return Task.FromResult<IEnumerable<SegmentModel>>(Items.Where(s => s.Path.IsDescendantOfClient(chapterPath)).OrderBy(s => s.Order).ToList());
+	public Task<IEnumerable<SegmentModel>> FindByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
+		return Task.FromResult<IEnumerable<SegmentModel>>(Items.Where(s => s.Path.IsDescendantOf(chapterPath)).OrderBy(s => s.Order).ToList());
 	}
 
-	public Task DeleteByChapterPath(LTree chapterPath, CancellationToken cancellationToken = default) {
-		Items.RemoveAll(s => s.Path.IsDescendantOfClient(chapterPath));
+	public Task DeleteByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default) {
+		Items.RemoveAll(s => s.Path.IsDescendantOf(chapterPath));
 		return Task.CompletedTask;
 	}
 
-	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(LTree seriesPath, CancellationToken cancellationToken = default) {
-		return Task.FromResult<IEnumerable<ImageSegmentModel>>(Items.OfType<ImageSegmentModel>().Where(s => s.Path.IsDescendantOfClient(seriesPath)).ToList());
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default) {
+		return Task.FromResult<IEnumerable<ImageSegmentModel>>(Items.OfType<ImageSegmentModel>().Where(s => s.Path.IsDescendantOf(seriesPath)).ToList());
 	}
 
-	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<LTree> chapterPaths, CancellationToken cancellationToken = default) {
+	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default) {
 		var paths = chapterPaths.ToList();
 		return Task.FromResult<IEnumerable<ImageSegmentModel>>(
 			Items.OfType<ImageSegmentModel>()
-				.Where(s => paths.Any(p => s.Path.IsDescendantOfClient(p)))
+				.Where(s => paths.Any(p => s.Path.IsDescendantOf(p)))
 				.ToList()
 		);
 	}
@@ -113,11 +112,11 @@ public sealed class InMemorySeriesRepository : InMemoryRepository<SeriesModel>, 
 	public Task<SeriesModel?> FindOneByTitle(string title, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(s => s.Title == title));
 
-	public Task DeleteSubtreeAsync(Guid seriesId, LTree path, CancellationToken cancellationToken = default) {
+	public Task DeleteSubtreeAsync(Guid seriesId, BookPath path, CancellationToken cancellationToken = default) {
 		Items.RemoveAll(s => s.Id == seriesId);
-		_volumes?.Items.RemoveAll(v => v.Path.IsDescendantOfClient(path));
-		_chapters?.Items.RemoveAll(c => c.Path.IsDescendantOfClient(path));
-		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOfClient(path));
+		_volumes?.Items.RemoveAll(v => v.Path.IsDescendantOf(path));
+		_chapters?.Items.RemoveAll(c => c.Path.IsDescendantOf(path));
+		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOf(path));
 		return Task.CompletedTask;
 	}
 }
@@ -145,7 +144,7 @@ public sealed class InMemoryVolumeRepository : InMemoryRepository<VolumeModel>, 
 	public Task<VolumeModel?> FindBySeriesIdAndOrder(Guid seriesId, double order, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(v => v.Path.GetSeriesId() == seriesId && v.Order == order));
 
-	public Task MoveVolumeAsync(Guid volumeId, LTree oldPath, LTree newPath, double newOrder, CancellationToken cancellationToken = default) {
+	public Task MoveVolumeAsync(Guid volumeId, BookPath oldPath, BookPath newPath, double newOrder, CancellationToken cancellationToken = default) {
 		var volume = Items.FirstOrDefault(v => v.Id == volumeId);
 		if (volume is not null) {
 			volume.Path = newPath;
@@ -154,10 +153,10 @@ public sealed class InMemoryVolumeRepository : InMemoryRepository<VolumeModel>, 
 		return Task.CompletedTask;
 	}
 
-	public Task DeleteSubtreeAsync(Guid volumeId, LTree path, CancellationToken cancellationToken = default) {
+	public Task DeleteSubtreeAsync(Guid volumeId, BookPath path, CancellationToken cancellationToken = default) {
 		Items.RemoveAll(v => v.Id == volumeId);
-		_chapters?.Items.RemoveAll(c => c.Path.IsDescendantOfClient(path));
-		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOfClient(path));
+		_chapters?.Items.RemoveAll(c => c.Path.IsDescendantOf(path));
+		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOf(path));
 		return Task.CompletedTask;
 	}
 }
@@ -189,7 +188,7 @@ public sealed class InMemoryChapterRepository : InMemoryRepository<ChapterModel>
 	public Task<ChapterModel?> FindByVolumeIdAndOrder(Guid volumeId, double order, CancellationToken cancellationToken = default) =>
 		Task.FromResult(Items.FirstOrDefault(c => c.Path.GetVolumeId() == volumeId && c.Order == order));
 
-	public Task MoveChapterAsync(Guid chapterId, LTree oldPath, LTree newPath, double newOrder, CancellationToken cancellationToken = default) {
+	public Task MoveChapterAsync(Guid chapterId, BookPath oldPath, BookPath newPath, double newOrder, CancellationToken cancellationToken = default) {
 		var chapter = Items.FirstOrDefault(c => c.Id == chapterId);
 		if (chapter is not null) {
 			chapter.Path = newPath;
@@ -198,9 +197,9 @@ public sealed class InMemoryChapterRepository : InMemoryRepository<ChapterModel>
 		return Task.CompletedTask;
 	}
 
-	public Task DeleteSubtreeAsync(Guid chapterId, LTree path, CancellationToken cancellationToken = default) {
+	public Task DeleteSubtreeAsync(Guid chapterId, BookPath path, CancellationToken cancellationToken = default) {
 		Items.RemoveAll(c => c.Id == chapterId);
-		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOfClient(path));
+		_segments?.Items.RemoveAll(s => s.Path.IsDescendantOf(path));
 		return Task.CompletedTask;
 	}
 }

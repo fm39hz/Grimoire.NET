@@ -7,6 +7,7 @@ using Dto.Book;
 using Dto.Book.Segment;
 using Riok.Mapperly.Abstractions;
 using Microsoft.EntityFrameworkCore;
+using Grimoire.Domain.Common.ValueObject;
 
 public partial class BookMapper {
 #pragma warning disable RMG012
@@ -75,34 +76,20 @@ public partial class BookMapper {
 
 	private static string MapAssetId(Guid id) => PrefixedId.ToString(EntityPrefix.Asset, id);
 
-	private static string GetSeriesIdFromPath(LTree path) {
-		string pathStr = path.ToString();
-		if (string.IsNullOrEmpty(pathStr)) return string.Empty;
-		var parts = pathStr.Split('.');
-		if (parts.Length > 0 && parts[0].Length > 1 && parts[0].StartsWith('n')) {
-			if (Guid.TryParseExact(parts[0][1..], "N", out var guid)) {
-				return PrefixedId.ToString(EntityPrefix.Series, guid);
-			}
-		}
-		return string.Empty;
+	private static string GetSeriesIdFromPath(BookPath path) {
+		var guid = path.GetSeriesId();
+		return guid != Guid.Empty ? PrefixedId.ToString(EntityPrefix.Series, guid) : string.Empty;
 	}
 
-	private static string GetVolumeIdFromPath(LTree path) {
-		string pathStr = path.ToString();
-		if (string.IsNullOrEmpty(pathStr)) return string.Empty;
-		var parts = pathStr.Split('.');
-		if (parts.Length > 1 && parts[1].Length > 1 && parts[1].StartsWith('n')) {
-			if (Guid.TryParseExact(parts[1][1..], "N", out var guid)) {
-				return PrefixedId.ToString(EntityPrefix.Volume, guid);
-			}
-		}
-		return string.Empty;
+	private static string GetVolumeIdFromPath(BookPath path) {
+		var guid = path.GetVolumeId();
+		return guid != Guid.Empty ? PrefixedId.ToString(EntityPrefix.Volume, guid) : string.Empty;
 	}
 
 	public System.Linq.IQueryable<VolumeResponseDto> ProjectToVolumeDto(System.Linq.IQueryable<VolumeModel> query) =>
 		query.Select(v => new VolumeResponseDto {
 			Id = "vol_" + v.Id,
-			SeriesId = "ser_" + ((string)v.Path).Substring(1, 8) + "-" + ((string)v.Path).Substring(9, 4) + "-" + ((string)v.Path).Substring(13, 4) + "-" + ((string)v.Path).Substring(17, 4) + "-" + ((string)v.Path).Substring(21, 12),
+			SeriesId = "ser_" + ((string)v.DbPath).Substring(1, 8) + "-" + ((string)v.DbPath).Substring(9, 4) + "-" + ((string)v.DbPath).Substring(13, 4) + "-" + ((string)v.DbPath).Substring(17, 4) + "-" + ((string)v.DbPath).Substring(21, 12),
 			Title = v.Title,
 			Order = v.Order,
 			CreatedAt = v.CreatedAt,
@@ -112,7 +99,7 @@ public partial class BookMapper {
 	public System.Linq.IQueryable<ChapterListResponseDto> ProjectToChapterListDto(System.Linq.IQueryable<ChapterModel> query) =>
 		query.Select(c => new ChapterListResponseDto {
 			Id = "chap_" + c.Id,
-			VolumeId = "vol_" + ((string)c.Path).Substring(35, 8) + "-" + ((string)c.Path).Substring(43, 4) + "-" + ((string)c.Path).Substring(47, 4) + "-" + ((string)c.Path).Substring(51, 4) + "-" + ((string)c.Path).Substring(55, 12),
+			VolumeId = "vol_" + ((string)c.DbPath).Substring(35, 8) + "-" + ((string)c.DbPath).Substring(43, 4) + "-" + ((string)c.DbPath).Substring(47, 4) + "-" + ((string)c.DbPath).Substring(51, 4) + "-" + ((string)c.DbPath).Substring(55, 12),
 			Title = c.Title,
 			Order = c.Order,
 			UpdatedAt = c.UpdatedAt

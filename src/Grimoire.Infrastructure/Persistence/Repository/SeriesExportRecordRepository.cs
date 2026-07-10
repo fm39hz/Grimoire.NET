@@ -28,17 +28,17 @@ public sealed class SeriesExportRecordRepository(ApplicationDbContext context)
             .FirstOrDefaultAsync(cancellationToken);
 
         var volumeDt = await Context.Volumes
-            .Where(v => v.Path.MatchesLQuery($"{seriesPath}.*"))
+            .Where(v => v.DbPath.MatchesLQuery($"{seriesPath}.*"))
             .Select(v => (DateTime?)v.UpdatedAt)
             .MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
         var chapterDt = await Context.Chapters
-            .Where(c => c.Path.MatchesLQuery($"{seriesPath}.*.*"))
+            .Where(c => c.DbPath.MatchesLQuery($"{seriesPath}.*.*"))
             .Select(c => (DateTime?)c.UpdatedAt)
             .MaxAsync(cancellationToken) ?? DateTime.MinValue;
 
         var segmentDt = await Context.Segments
-            .Where(s => s.Path.IsDescendantOf(seriesPath))
+            .Where(s => s.DbPath.IsDescendantOf(seriesPath))
             .Select(s => (DateTime?)s.UpdatedAt)
             .MaxAsync(cancellationToken) ?? DateTime.MinValue;
 

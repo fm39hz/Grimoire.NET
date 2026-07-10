@@ -6,7 +6,7 @@ using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
-using Grimoire.Domain.Common.Extensions;
+using Grimoire.Domain.Common.ValueObject;
 
 /// <summary>
 ///     Strategy for ingesting raw Markdown content

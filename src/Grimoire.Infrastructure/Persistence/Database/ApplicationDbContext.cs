@@ -35,7 +35,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasMaxLength(500)
 				.IsRequired();
 
-			entity.Property(s => s.Path)
+			entity.Ignore(s => s.Path);
+
+			entity.Property(s => s.DbPath)
+				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
@@ -49,7 +52,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.Metadata.SetValueComparer(JsonConfiguration.MetadataComparer);
 			entity.HasIndex(s => s.Metadata).HasMethod("gin");
 			entity.HasIndex(s => s.Title).IsUnique();
-			entity.HasIndex(s => s.Path).HasMethod("gist");
+			entity.HasIndex(s => s.DbPath).HasMethod("gist");
 
 			entity.HasMany(s => s.GlossaryTerms)
 				.WithOne(g => g.Series)
@@ -70,13 +73,16 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.IsRequired()
 				.UseCollation("natural_sort");
 
-			entity.Property(v => v.Path)
+			entity.Ignore(v => v.Path);
+
+			entity.Property(v => v.DbPath)
+				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
-			entity.HasIndex(v => v.Path).HasMethod("gist");
-			entity.HasIndex(v => new { v.Path, v.Order }).IsUnique();
-			entity.OwnsOne(s => s.Metadata, metaBuilder => metaBuilder.ToJson());
+			entity.HasIndex(v => v.DbPath).HasMethod("gist");
+			entity.HasIndex(v => new { v.DbPath, v.Order }).IsUnique();
+			entity.OwnsOne(v => v.Metadata, metaBuilder => metaBuilder.ToJson());
 		});
 
 		modelBuilder.Entity<ChapterModel>(entity => {
@@ -89,12 +95,15 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 			entity.Property(c => c.Status);
 
-			entity.Property(c => c.Path)
+			entity.Ignore(c => c.Path);
+
+			entity.Property(c => c.DbPath)
+				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
-			entity.HasIndex(c => c.Path).HasMethod("gist");
-			entity.HasIndex(c => new { c.Path, c.Order }).IsUnique();
+			entity.HasIndex(c => c.DbPath).HasMethod("gist");
+			entity.HasIndex(c => new { c.DbPath, c.Order }).IsUnique();
 			entity.HasIndex(c => c.Status);
 		});
 
@@ -102,14 +111,17 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.HasKey(s => s.Id);
 			entity.Property(s => s.Id).ValueGeneratedOnAdd();
 
-			entity.Property(s => s.Path)
+			entity.Ignore(s => s.Path);
+
+			entity.Property(s => s.DbPath)
+				.HasColumnName("Path")
 				.HasColumnType("ltree")
 				.IsRequired();
 
 			entity.Property(s => s.Order).IsRequired();
 
-			entity.HasIndex(s => s.Path).HasMethod("gist");
-			entity.HasIndex(s => new { s.Path, s.Order }).IsUnique();
+			entity.HasIndex(s => s.DbPath).HasMethod("gist");
+			entity.HasIndex(s => new { s.DbPath, s.Order }).IsUnique();
 
 			entity.HasDiscriminator<string>("SegmentType")
 				.HasValue<TextSegmentModel>("Text")

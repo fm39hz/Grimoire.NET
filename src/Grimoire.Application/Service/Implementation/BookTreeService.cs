@@ -15,7 +15,7 @@ using Dto.Book.Tree;
 using Dto.Common;
 using Mapper;
 using Microsoft.EntityFrameworkCore;
-using Grimoire.Domain.Common.Extensions;
+using Grimoire.Domain.Common.ValueObject;
 
 public sealed class BookTreeService(
 	ISeriesRepository seriesRepository,
@@ -187,7 +187,7 @@ public sealed class BookTreeService(
 				throw new EntityNotFoundException($"Series with id {newParentId} not found");
 
 			var oldPath = volume.Path;
-			LTree newPath = $"{series.Path}.n{volume.Id:N}";
+			BookPath newPath = $"{series.Path.Value}.n{volume.Id:N}";
 
 			await ExecuteInTransaction(async () => {
 				await volumeRepository.MoveVolumeAsync(volume.Id, oldPath, newPath, newOrder, cancellationToken);
@@ -202,7 +202,7 @@ public sealed class BookTreeService(
 				throw new EntityNotFoundException($"Volume with id {newParentId} not found");
 
 			var oldPath = chapter.Path;
-			LTree newPath = $"{parentVolume.Path}.n{chapter.Id:N}";
+			BookPath newPath = $"{parentVolume.Path.Value}.n{chapter.Id:N}";
 
 			await ExecuteInTransaction(async () => {
 				await chapterRepository.MoveChapterAsync(chapter.Id, oldPath, newPath, newOrder, cancellationToken);

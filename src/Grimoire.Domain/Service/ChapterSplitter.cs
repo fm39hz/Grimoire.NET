@@ -5,8 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Entity.Book;
 using Entity.Book.Segment;
-using Microsoft.EntityFrameworkCore;
-using Common.Extensions;
+using Common.ValueObject;
 
 public static class ChapterSplitter {
 	public record SplitResult(
@@ -43,7 +42,7 @@ public static class ChapterSplitter {
 		const double orderIncrement = 0.1d;
 
 		// Calculate parent path of original chapter using client-safe helper
-		LTree parentPath = original.Path.GetParent();
+		BookPath parentPath = original.Path.GetParent();
 
 		var firstSplitIndex = splitPoints[0].SegmentIndex;
 		
@@ -54,11 +53,11 @@ public static class ChapterSplitter {
 		// Keep original chapter's segments at their current path prefix, but they need to be returned as updated
 		// because some footnotes might be removed from the original chapter.
 		foreach (var seg in firstPartition) {
-			seg.Path = $"{original.Path}.n{seg.Id:N}";
+			seg.Path = $"{original.Path.Value}.n{seg.Id:N}";
 			updatedSegments.Add(seg);
 		}
 		foreach (var fn in firstPartitionFootnotes) {
-			fn.Path = $"{original.Path}.n{fn.Id:N}";
+			fn.Path = $"{original.Path.Value}.n{fn.Id:N}";
 			updatedSegments.Add(fn);
 		}
 		
@@ -75,7 +74,7 @@ public static class ChapterSplitter {
 			var partitionFootnotes = footnotes.PartitionFootnotes(partition);
 
 			var newChapterId = Guid.CreateVersion7();
-			var newChapterPath = $"{parentPath}.n{newChapterId:N}";
+			var newChapterPath = $"{parentPath.Value}.n{newChapterId:N}";
 			var newChapter = new ChapterModel {
 				Id = newChapterId,
 				Title = newTitle,

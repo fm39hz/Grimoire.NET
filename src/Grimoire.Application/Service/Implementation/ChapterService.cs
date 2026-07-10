@@ -12,7 +12,7 @@ using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Domain.Exception;
 using Domain.Service;
-using Grimoire.Domain.Common.Extensions;
+using Grimoire.Domain.Common.ValueObject;
 using Dto.Book;
 using Dto.Common;
 using Mapper;
