@@ -10,6 +10,10 @@ using Publish.Import;
 using Publish.Import.Steps;
 using Service.Contract;
 using Service.Implementation;
+using Service.Pipeline.Ingestion;
+using Service.Pipeline.Ingestion.Steps;
+using Service.Pipeline.Publishing;
+using Service.Pipeline.Publishing.Steps;
 using Service.Strategy;
 
 public static class DependencyInjection {
@@ -69,6 +73,17 @@ public static class DependencyInjection {
 		services.AddScoped<IImportPipelineStep, VolumeTreeResolutionStep>();
 		services.AddScoped<IImportPipelineStep, ChapterImportStep>();
 		services.AddScoped<IImportPipelineStep, ReconcileOwnershipStep>();
+
+		// Register Ingestion Pipeline
+		services.AddScoped<IngestionCoordinator>();
+		services.AddScoped<IIngestionPipelineStep, ParseContentStep>();
+		services.AddScoped<IIngestionPipelineStep, PersistenceStep>();
+		services.AddScoped<IIngestionPipelineStep, LcaOwnershipStep>();
+
+		// Register Publishing Pipeline
+		services.AddScoped<PublishingCoordinator>();
+		services.AddScoped<IPublishingPipelineStep, BuildContextStep>();
+		services.AddScoped<IPublishingPipelineStep, SerializationStep>();
 
 		return services;
 	}

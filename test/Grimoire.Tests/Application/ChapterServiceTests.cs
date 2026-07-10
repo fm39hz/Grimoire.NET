@@ -7,7 +7,10 @@ using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Dto.Book.Segment;
 using Grimoire.Application.Mapper;
+using Grimoire.Application.Service.Contract;
 using Grimoire.Application.Service.Implementation;
+using Grimoire.Application.Service.Pipeline.Ingestion;
+using Grimoire.Application.Service.Pipeline.Ingestion.Steps;
 using Grimoire.Application.Service.Strategy;
 using Grimoire.Domain.Common;
 using Grimoire.Domain.Entity.Book;
@@ -38,7 +41,19 @@ public class ChapterServiceTests {
 				new RawMarkdownIngestionStrategy(Volumes)
 			]);
 			var unitOfWork = new NoOpUnitOfWork();
-			Service = new ChapterService(Chapters, Volumes, Sources, Segments, BookTree, mapper, strategyFactory, unitOfWork);
+			var ingestionCoordinator = new IngestionCoordinator(
+				[
+					new ParseContentStep(strategyFactory),
+					new PersistenceStep(Chapters, Volumes, Segments, Sources),
+					new LcaOwnershipStep(new FakeAssetOwnershipService())
+				],
+				unitOfWork
+			);
+			Service = new ChapterService(Chapters, Volumes, Sources, Segments, BookTree, mapper, strategyFactory, unitOfWork, ingestionCoordinator);
+		}
+
+		private sealed class FakeAssetOwnershipService : IAssetOwnershipService {
+			public Task ReconcileSeriesAsync(Guid seriesId, CancellationToken cancellationToken = default) => Task.CompletedTask;
 		}
 
 		public async Task<(Guid SeriesId, Guid VolumeId)> SeedSeriesAndVolume() {

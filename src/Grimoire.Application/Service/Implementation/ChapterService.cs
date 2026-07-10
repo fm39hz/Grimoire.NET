@@ -14,6 +14,7 @@ using Domain.Service;
 using Dto.Book;
 using Dto.Common;
 using Mapper;
+using Pipeline.Ingestion;
 using Strategy;
 
 public sealed class ChapterService(
@@ -24,7 +25,8 @@ public sealed class ChapterService(
 	INodeManagerService bookTreeService,
 	IBookMapper mapper,
 	IIngestionStrategyFactory strategyFactory,
-	IUnitOfWork unitOfWork) : CrudServiceBase<ChapterModel>, IChapterService {
+	IUnitOfWork unitOfWork,
+	IngestionCoordinator ingestionCoordinator) : CrudServiceBase<ChapterModel>, IChapterService {
 
 	public async Task<ChapterModel?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
 		await chapterRepository.FindOne(id, cancellationToken);
@@ -65,44 +67,13 @@ public sealed class ChapterService(
 	}
 
 	public async Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, ChapterModel? existing, CancellationToken cancellationToken = default) {
-		var strategy = strategyFactory.GetStrategy(dto);
-		var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
-		var parentVolume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
-			throw new EntityNotFoundException($"Volume with id {volumeId} not found");
+		var context = new IngestionContext(volumeId, dto) {
+			ExistingChapter = existing
+		};
 
-		if (existing is not null) {
-			existing.Title = result.Chapter.Title;
-			existing.Status = result.Chapter.Status;
-			existing.Path = $"{parentVolume.Path}.n{existing.Id:N}";
+		await ingestionCoordinator.ExecuteAsync(context, cancellationToken);
 
-			if (result.Source is not null) {
-				await sourceRepository.Create(result.Source, cancellationToken);
-			}
-
-			// Overwrite segments
-			await segmentRepository.DeleteByChapterPath(existing.Path, cancellationToken);
-			foreach (var seg in result.Segments) {
-				seg.Path = $"{existing.Path}.n{seg.Id:N}";
-			}
-			await segmentRepository.CreateBulk(result.Segments, cancellationToken);
-
-			await chapterRepository.Update(existing, cancellationToken);
-			return (existing, false);
-		}
-
-		if (result.Source is not null) {
-			await sourceRepository.Create(result.Source, cancellationToken);
-		}
-
-		result.Chapter.Path = $"{parentVolume.Path}.n{result.Chapter.Id:N}";
-		foreach (var seg in result.Segments) {
-			seg.Path = $"{result.Chapter.Path}.n{seg.Id:N}";
-		}
-
-		var chapter = await chapterRepository.Create(result.Chapter, cancellationToken);
-		await segmentRepository.CreateBulk(result.Segments, cancellationToken);
-
-		return (chapter, true);
+		return (context.Chapter, existing == null);
 	}
 
 	public async Task<ChapterModel> Update(Guid id, UpdateChapterRequestDto dto, CancellationToken cancellationToken = default) {
@@ -247,68 +218,32 @@ public sealed class ChapterService(
 		var existingChapters = (await chapterRepository.FindByVolumeIds(volumeIds, cancellationToken))
 			.ToDictionary(c => (c.Path.GetVolumeId(), c.Order));
 
-		var toCreate = new List<ChapterModel>();
-		var toUpdate = new List<ChapterModel>();
-
+		var results = new List<ChapterModel>();
 		var createdCount = 0;
 		var updatedCount = 0;
 		var processed = 0;
 
-		foreach (var item in chapters) {
-			var volumeId = item.VolumeId;
-			var dto = item.Dto;
-			var parentVolume = volumes.FirstOrDefault(v => v.Id == volumeId) ??
-				throw new EntityNotFoundException($"Volume with id {volumeId} not found");
+		foreach (var (volId, dto) in chapters) {
+			existingChapters.TryGetValue((volId, dto.Order), out var existing);
 
-			var strategy = strategyFactory.GetStrategy(dto);
-			var result = await strategy.ExecuteAsync(dto, volumeId, cancellationToken);
+			var context = new IngestionContext(volId, dto) {
+				ExistingChapter = existing
+			};
 
-			if (existingChapters.TryGetValue((volumeId, dto.Order), out var existing)) {
-				existing.Title = result.Chapter.Title;
-				existing.Status = result.Chapter.Status;
-				existing.Path = $"{parentVolume.Path}.n{existing.Id:N}";
+			await ingestionCoordinator.ExecuteAsync(context, cancellationToken);
 
-				if (result.Source is not null) {
-					await sourceRepository.Create(result.Source, cancellationToken);
-				}
-
-				// Overwrite segments
-				await segmentRepository.DeleteByChapterPath(existing.Path, cancellationToken);
-				foreach (var seg in result.Segments) {
-					seg.Path = $"{existing.Path}.n{seg.Id:N}";
-				}
-				await segmentRepository.CreateBulk(result.Segments, cancellationToken);
-
-				toUpdate.Add(existing);
-				updatedCount++;
+			results.Add(context.Chapter);
+			if (existing == null) {
+				createdCount++;
 			}
 			else {
-				if (result.Source is not null) {
-					await sourceRepository.Create(result.Source, cancellationToken);
-				}
-
-				result.Chapter.Path = $"{parentVolume.Path}.n{result.Chapter.Id:N}";
-				foreach (var seg in result.Segments) {
-					seg.Path = $"{result.Chapter.Path}.n{seg.Id:N}";
-				}
-
-				toCreate.Add(result.Chapter);
-				await segmentRepository.CreateBulk(result.Segments, cancellationToken);
-				createdCount++;
+				updatedCount++;
 			}
 
 			processed++;
 			onProgress?.Invoke((int)((double)processed / chapters.Count * 100));
 		}
 
-		if (toCreate.Count > 0) {
-			await chapterRepository.CreateBulk(toCreate, cancellationToken);
-		}
-		if (toUpdate.Count > 0) {
-			await chapterRepository.UpdateBulk(toUpdate, cancellationToken);
-		}
-
-		var allProcessed = Enumerable.Concat(toCreate, toUpdate);
-		return (allProcessed, createdCount, updatedCount);
+		return (results, createdCount, updatedCount);
 	}
 }
