@@ -1,187 +1,141 @@
 ---
 tags:
-    - fm39hz/project-grimoire
-    - api
+    - grimoire/api
+    - technical-specification
 ---
 
-# VOLUME III: FEATURE SPECS & API (MVP v1.1)
+# Volume III: REST API Features
 
-Tất cả các API được thiết kế theo chuẩn RESTful và phân nhóm theo 5 Controller tương ứng với tính năng của hệ thống. Prefix đường dẫn mặc định là: `api/v1/[controller]`
+All endpoints reside under the base routing path `/api/v1/`.
 
 ---
 
-## 1. File API (Quản lý File & Media)
-**Route Base:** `api/v1/file`
+## 1. File API
+Manages media asset uploads (covers, illustrations) and storage downloads.
 
-Quản lý luồng tải lên và tải xuống các asset (Cover, Content Images) lưu tại Storage.
-
-### 1.1. Upload File (Smart Upload)
-Tải ảnh/asset lên hệ thống. Tự động kiểm tra trùng lặp thông qua Hash (MD5/SHA256) của file để tối ưu bộ nhớ.
-- **Endpoint:** `POST /api/v1/file/upload/{seriesId}`
-- **Request Type:** `multipart/form-data`
-- **Path Parameter:**
-  - `seriesId` (string, required): Mã định danh series (dạng `ser_...`).
-- **Query Parameter:**
-  - `refType` (string, optional): Loại tham chiếu asset (`"Content"` hoặc `"Cover"`). Mặc định là `"Content"`.
-- **Response (200 OK):** Trả về DTO thông tin asset chứa `AssetKey` (Path trong S3).
+### 1.1. Upload File
+* **Endpoint**: `POST /api/v1/file/series/{seriesId}`
+* **Request Format**: `multipart/form-data`
+* **Query Parameters**:
+  * `refType` (optional): `"Content"` or `"Cover"` (default: `"Content"`)
+* **Response**: Returns asset key and hash details on success.
 
 ### 1.2. Get File Stream
-Tải/Lấy nội dung file ảnh để hiển thị.
-- **Endpoint:** `GET /api/v1/file/{assetId}`
-- **Response (200 OK):** Stream nhị phân của file cùng với `ContentType` tương ứng.
+* **Endpoint**: `GET /api/v1/file/{assetId}`
+* **Response**: Stream of the file content with appropriate MIME headers.
 
 ### 1.3. Delete File
-Xóa asset ra khỏi hệ thống.
-- **Endpoint:** `DELETE /api/v1/file/{assetId}`
-- **Response (204 No Content):** Xóa thành công.
+* **Endpoint**: `DELETE /api/v1/file/{assetId}`
+* **Response**: `204 No Content`
 
 ---
 
-## 2. Series API (Quản lý Bộ truyện)
-**Route Base:** `api/v1/series`
+## 2. Series API
+Manages book collection metadata and structure trees.
 
-### 2.1. List Series (Phân trang)
-- **Endpoint:** `GET /api/v1/series`
-- **Query Parameters:** `pageIndex`, `pageSize`.
-- **Response (200 OK):** Danh sách Series kèm thông tin phân trang.
+### 2.1. List Series
+* **Endpoint**: `GET /api/v1/series`
+* **Query Parameters**: `pageIndex`, `pageSize`
 
 ### 2.2. Get Series Detail
-- **Endpoint:** `GET /api/v1/series/{id}`
-- **Query Parameter:** `timestamp` (bool, optional): Hiển thị ngày tạo/sửa. Mặc định `false`.
+* **Endpoint**: `GET /api/v1/series/{id}`
 
 ### 2.3. Get Series Content (Description)
-Lấy tóm tắt bộ truyện đã qua render định dạng.
-- **Endpoint:** `GET /api/v1/series/{id}/content`
-- **Query Parameter:** `format` (string, optional): `"markdown"` hoặc `"html"`. Mặc định `"markdown"`.
+* **Endpoint**: `GET /api/v1/series/{id}/content`
+* **Query Parameters**:
+  * `format` (optional): `"markdown"` or `"html"` (default: `"markdown"`)
 
 ### 2.4. Get Series Book Tree
-Lấy toàn bộ cấu trúc cây thư mục (Canonical Book Tree) của Series.
-- **Endpoint:** `GET /api/v1/series/{id}/tree`
-- **Response (200 OK):** Trả về cấu trúc cây `BookTreeDto` gồm danh sách các volume và chapter con được sắp xếp theo thứ tự chuẩn.
+* **Endpoint**: `GET /api/v1/series/{id}/tree`
+* **Description**: Returns the entire book structure (volumes, chapters, and relative orders) in a nested tree JSON.
 
-### 2.5. Create/Get Series
-Tạo mới series (hoặc trả về series hiện có nếu trùng tiêu đề).
-- **Endpoint:** `POST /api/v1/series`
-- **Body:** `CreateSeriesRequestDto`
-- **Response (201 Created / 200 OK):** Series detail DTO.
+### 2.5. Create/Sync Series
+* **Endpoints**:
+  * `POST /api/v1/series` (Create series)
+  * `POST /api/v1/series/{id}/sync` (Reorder and sync structural paths)
 
-### 2.6. Update Series
-- **Endpoint:** `PATCH /api/v1/series/{id}`
-- **Body:** `UpdateSeriesRequestDto`
-
-### 2.7. Delete Series
-- **Endpoint:** `DELETE /api/v1/series/{id}`
-
-### 2.8. Get Series Volumes
-- **Endpoint:** `GET /api/v1/series/{id}/volumes`
-
-### 2.9. Sync Series Tree
-Đồng bộ hóa thứ tự và liên kết cấu trúc cây từ phía Client.
-- **Endpoint:** `POST /api/v1/series/{id}/sync`
-- **Body:** `SyncSeriesRequestDto`
+### 2.6. Update / Delete Series
+* **Endpoints**:
+  * `PATCH /api/v1/series/{id}`
+  * `DELETE /api/v1/series/{id}`
 
 ---
 
-## 3. Volume API (Quản lý Tập)
-**Route Base:** `api/v1/volume`
+## 3. Volume API
+Manages individual book volumes.
 
-### 3.1. Create Volume
-- **Endpoint:** `POST /api/v1/volume`
-- **Body:** `CreateVolumeRequestDto`
+### 3.1. Create / Update / Delete Volume
+* **Endpoints**:
+  * `POST /api/v1/volume`
+  * `PATCH /api/v1/volume/{id}`
+  * `DELETE /api/v1/volume/{id}`
 
-### 3.2. Update Volume
-- **Endpoint:** `PATCH /api/v1/volume/{id}`
-- **Body:** `UpdateVolumeRequestDto`
-
-### 3.3. Delete Volume
-- **Endpoint:** `DELETE /api/v1/volume/{id}`
-
-### 3.4. Get Chapters in Volume
-- **Endpoint:** `GET /api/v1/volume/{id}/chapters`
+### 3.2. Get Volume Chapters
+* **Endpoint**: `GET /api/v1/volume/{id}/chapters`
 
 ---
 
-## 4. Chapter API (Quản lý Chương)
-**Route Base:** `api/v1/chapter`
+## 4. Chapter API
+Manages chapter metadata and structural edits.
 
-### 4.1. Get Chapter Detail
-- **Endpoint:** `GET /api/v1/chapter/{id}`
+### 4.1. Get Chapter Detail & Content
+* **Endpoints**:
+  * `GET /api/v1/chapter/{id}`
+  * `GET /api/v1/chapter/{id}/content` (Returns rendered Markdown or HTML)
 
-### 4.2. Get Chapter Content (Rendered)
-Lấy nội dung chi tiết của chương đã render sang HTML hoặc Markdown.
-- **Endpoint:** `GET /api/v1/chapter/{id}/content`
-- **Query Parameter:** `format` (string): `"html"` hoặc `"markdown"`. Mặc định là `"markdown"`.
-- **Response (200 OK):**
-  ```json
-  {
-    "data": "nội dung đã render...",
-    "type": "text/markdown",
-    "assets": []
-  }
-  ```
+### 4.2. Create / Update Chapter
+* **Endpoints**:
+  * `POST /api/v1/chapter` (Creates chapter and parses content into segments)
+  * `PATCH /api/v1/chapter/{id}` (Updates metadata or replaces segments)
 
-### 4.3. Create/Import Chapter
-Nhận dữ liệu từ Tool Scraper để tạo mới chương kèm nội dung segments.
-- **Endpoint:** `POST /api/v1/chapter`
-- **Body:** `CreateChapterRequestDto`
-
-### 4.4. Update Chapter
-Cập nhật thông tin tiêu đề, thứ tự hoặc cập nhật mảng segments mới.
-- **Endpoint:** `PATCH /api/v1/chapter/{id}`
-- **Body:** `UpdateChapterRequestDto`
-
-### 4.5. Split Chapter
-Chia một chương thành nhiều chương con dựa vào vị trí segment chỉ định.
-- **Endpoint:** `POST /api/v1/chapter/{id}/split`
-- **Body:**
-  ```json
-  {
-    "splitPoints": [
-      { "segmentIndex": 25, "newChapterTitle": "Phần II" }
-    ]
-  }
-  ```
-
-### 4.6. Merge Chapters
-Gộp nhiều chương lại thành một chương duy nhất.
-- **Endpoint:** `POST /api/v1/chapter/merge`
-- **Body:** `MergeChaptersRequestDto`
+### 4.3. Split / Merge Chapters
+* **Endpoints**:
+  * `POST /api/v1/chapter/{id}/split` (Splits chapter at designated segment positions)
+  * `POST /api/v1/chapter/merge` (Combines multiple chapters into one)
 
 ---
 
-## 5. Publish API (Đóng gói & Xuất bản)
-**Route Base:** `api/v1/publish`
+## 5. Segment API (AI Sandboxed Operations)
+Provides fine-grained access to individual content segments within chapters.
 
-Hệ thống xử lý xuất/nhập sách dưới nền (Background Job) thông qua Hangfire Worker.
+### 5.1. List Chapter Segments
+* **Endpoint**: `GET /api/v1/chapters/{chapterId}/segments`
+* **Response**: Ordered list of segments, showing types and content previews.
 
-### 5.1. Export Series Anthology (Publish Job)
-Tạo task đóng gói bộ truyện hoặc tập truyện thành EPUB hoặc các định dạng khác.
-- **Endpoint:** `POST /api/v1/publish/export?seriesId={seriesId}`
-- **Body:**
-  ```json
-  {
-    "format": "Epub",
-    "mode": "Anthology",
-    "targetVolumeIds": [],
-    "structure": null
-  }
-  ```
-- **Response (202 Accepted):** Trả về ID của Background Job và URL theo dõi trạng thái.
+### 5.2. Get / Update Segment
+* **Endpoints**:
+  * `GET /api/v1/segments/{id}` (Read segment text or asset metadata)
+  * `PUT /api/v1/segments/{id}` (Updates text. Allowed on text segments only)
 
-### 5.2. Import EPUB Book
-Nhập và phân tách tự động file EPUB tải lên thành Series/Volume/Chapter tương ứng trong DB.
-- **Endpoint:** `POST /api/v1/publish/import`
-- **Request Type:** `multipart/form-data`
-- **Body (Form):**
-  - `series`: Metadata JSON string của Series.
-  - `volumes`: (Optional) Metadata JSON string ghi đè cho các Volume.
-  - `file`: File `.epub` cần import.
-- **Response (202 Accepted):** Trả về ID của Import Background Job.
+### 5.3. Split / Merge Segments
+* **Endpoints**:
+  * `POST /api/v1/segments/{id}/split` (Splits a text paragraph segment at a character offset)
+  * `POST /api/v1/segments/merge` (Combines adjacent segments)
 
-### 5.3. Get Job Status
-- **Endpoint:** `GET /api/v1/publish/jobs/{jobId}`
+---
 
-### 5.4. Download Export Result
-Tải xuống thành phẩm (EPUB/ZIP) sau khi Job đóng gói hoàn thành.
-- **Endpoint:** `GET /api/v1/publish/jobs/{jobId}/download`
-- **Response (200 OK):** File Stream kết quả tải xuống.
+## 6. Ingestion Audit API
+Retrieves history logs of sync and ingestion sessions.
+
+### 6.1. Get Ingestion History
+* **Endpoint**: `GET /api/v1/ingestion-audits/series/{seriesId}`
+* **Query Parameters**: `limit` (default: 20)
+
+---
+
+## 7. Publish API
+Handles background publication compiles.
+
+### 7.1. Export Series Anthology
+* **Endpoint**: `POST /api/v1/publish/export?seriesId={seriesId}`
+* **Response**: `202 Accepted` with Background Job tracking ID.
+
+### 7.2. Import EPUB
+* **Endpoint**: `POST /api/v1/publish/import`
+* **Response**: `202 Accepted` with Background Job tracking ID.
+
+### 7.3. Job Progress Stream
+* **Endpoint**: `GET /api/v1/publish/jobs/{jobId}/progress` (Server-Sent Events stream)
+
+### 7.4. Download Export Result
+* **Endpoint**: `GET /api/v1/publish/jobs/{jobId}/download`
