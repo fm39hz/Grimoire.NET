@@ -28,6 +28,9 @@ public class CreateChapterRequestDtoValidator : AbstractValidator<CreateChapterR
 			.WithMessage("Either Content or RawContent must be provided")
 			.Must(static x => !(x.Content != null && !string.IsNullOrEmpty(x.RawContent)))
 			.WithMessage("Cannot provide both Content and RawContent - only one is allowed");
+
+		RuleForEach(static x => x.Content)
+			.SetValidator(new SegmentDtoValidator());
 	}
 
 	private static bool BeValidVolumeId(string volumeId) => PrefixedId.TryToGuid(volumeId, EntityPrefix.Volume, out _);

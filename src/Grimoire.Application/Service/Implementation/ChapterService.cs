@@ -66,9 +66,13 @@ public sealed class ChapterService(
 		return await UpsertAsync(volumeId, dto, existing, cancellationToken);
 	}
 
-	public async Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, ChapterModel? existing, CancellationToken cancellationToken = default) {
+	public async Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, ChapterModel? existing, CancellationToken cancellationToken = default) =>
+		await UpsertAsync(volumeId, dto, existing, null, cancellationToken);
+
+	public async Task<(ChapterModel Chapter, bool Created)> UpsertAsync(Guid volumeId, CreateChapterRequestDto dto, ChapterModel? existing, Guid? seriesId, CancellationToken cancellationToken = default) {
 		var context = new IngestionContext(volumeId, dto) {
-			ExistingChapter = existing
+			ExistingChapter = existing,
+			SeriesId = seriesId
 		};
 
 		await ingestionCoordinator.ExecuteAsync(context, cancellationToken);

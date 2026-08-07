@@ -4,11 +4,12 @@ using System.Threading;
 using Common;
 using Domain.Entity.Book;
 using Dto.Book;
+using Mapper;
 
 /// <summary>
 ///     Strategy for ingesting pre-processed content (Content is already segmented)
 /// </summary>
-public class PreProcessedIngestionStrategy : IIngestionStrategy {
+public class PreProcessedIngestionStrategy(IBookMapper mapper) : IIngestionStrategy {
 	public bool CanHandle(CreateChapterRequestDto dto) =>
 		// Can handle if Content array exists (even if empty)
 		dto.Content is not null;
@@ -18,7 +19,8 @@ public class PreProcessedIngestionStrategy : IIngestionStrategy {
 			throw new InvalidOperationException("This strategy cannot handle the provided DTO");
 		}
 
-		var remapResult = FootnoteRemapper.Remap(dto.Content!, dto.Footnotes);
+		var contentSegments = dto.Content!.Select(mapper.MapToSegment).ToList();
+		var remapResult = FootnoteRemapper.Remap(contentSegments, dto.Footnotes);
 
 		var chapterId = Guid.CreateVersion7();
 

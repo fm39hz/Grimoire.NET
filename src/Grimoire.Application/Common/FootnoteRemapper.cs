@@ -3,6 +3,7 @@ namespace Grimoire.Application.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
+using Mapper;
 
 public static class FootnoteRemapper {
 	public record Result(
@@ -22,7 +23,13 @@ public static class FootnoteRemapper {
 
 			var systemId = Guid.CreateVersion7();
 			idMap[note.InitialId] = systemId;
-			cleanFootnotes.Add(new FootnoteSegmentModel { Id = systemId, Segments = note.Segments });
+			cleanFootnotes.Add(new FootnoteSegmentModel {
+				Id = systemId,
+				Segments = [.. note.Segments.Select(static s => new TextSegmentModel {
+					Id = Guid.TryParse(s.Id, out var g) ? g : Guid.CreateVersion7(),
+					Runs = [.. s.Runs.Select(static r => new TextRun(r.Text, r.IsBold, r.IsItalic, r.FootnoteId))]
+				})]
+			});
 		}
 
 		var cleanContent = new List<SegmentModel>();

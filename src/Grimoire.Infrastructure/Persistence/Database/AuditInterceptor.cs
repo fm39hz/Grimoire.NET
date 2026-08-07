@@ -3,7 +3,7 @@ namespace Grimoire.Infrastructure.Persistence.Database;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Grimoire.Domain.Entity;
+using Domain.Entity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 

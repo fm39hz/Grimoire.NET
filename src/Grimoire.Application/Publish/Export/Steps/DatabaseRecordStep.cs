@@ -8,7 +8,8 @@ using Grimoire.Domain.Common.Repository;
 using Grimoire.Domain.Entity.Book;
 
 public sealed class DatabaseRecordStep(
-	ISeriesExportRecordRepository exportRecords) : IExportPipelineStep {
+	ISeriesExportRecordRepository exportRecords,
+	IUnitOfWork unitOfWork) : IExportPipelineStep {
 	public int Order => 40;
 
 	public async Task ExecuteAsync(ExportPipelineContext context, CancellationToken cancellationToken) {
@@ -16,21 +17,30 @@ public sealed class DatabaseRecordStep(
 			return;
 		}
 
-		var formatDir = context.Request.Format.ToString().ToLowerInvariant();
-		var prevRecord = await exportRecords.GetBySeriesAndFormatAsync(context.SeriesId, formatDir, cancellationToken);
+		await unitOfWork.BeginTransactionAsync(cancellationToken);
+		try {
+			var formatDir = context.Request.Format.ToString().ToLowerInvariant();
+			var prevRecord = await exportRecords.GetBySeriesAndFormatAsync(context.SeriesId, formatDir, cancellationToken);
 
-		if (prevRecord is not null) {
-			prevRecord.LastExportedAt = DateTime.UtcNow;
-			prevRecord.AssetId = context.AssetId.Value;
-			await exportRecords.Update(prevRecord, cancellationToken);
+			if (prevRecord is not null) {
+				prevRecord.LastExportedAt = DateTime.UtcNow;
+				prevRecord.AssetId = context.AssetId.Value;
+				await exportRecords.Update(prevRecord, cancellationToken);
+			}
+			else {
+				await exportRecords.Create(new SeriesExportRecord {
+					SeriesId = context.SeriesId,
+					Format = formatDir,
+					LastExportedAt = DateTime.UtcNow,
+					AssetId = context.AssetId.Value
+				}, cancellationToken);
+			}
+
+			await unitOfWork.CommitTransactionAsync(cancellationToken);
 		}
-		else {
-			await exportRecords.Create(new SeriesExportRecord {
-				SeriesId = context.SeriesId,
-				Format = formatDir,
-				LastExportedAt = DateTime.UtcNow,
-				AssetId = context.AssetId.Value
-			}, cancellationToken);
+		catch {
+			await unitOfWork.RollbackTransactionAsync(cancellationToken);
+			throw;
 		}
 
 		context.Result = JobResult.Ok(

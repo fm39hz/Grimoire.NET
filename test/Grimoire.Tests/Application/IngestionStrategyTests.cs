@@ -4,6 +4,8 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
+using Grimoire.Application.Dto.Book.Segment;
+using Grimoire.Application.Mapper;
 using Grimoire.Application.Service.Strategy;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
@@ -11,12 +13,13 @@ using Grimoire.Tests.TestInfrastructure;
 using Xunit;
 
 public class IngestionStrategyTests {
+	private static readonly BookMapper Mapper = new();
 
 	// ── PreProcessedIngestionStrategy Tests ───────────────────────────────────
 
 	[Fact]
 	public void PreProcessedIngestionStrategy_CanHandle_ValidContent_ReturnsTrue() {
-		var strategy = new PreProcessedIngestionStrategy();
+		var strategy = new PreProcessedIngestionStrategy(Mapper);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
@@ -31,7 +34,7 @@ public class IngestionStrategyTests {
 
 	[Fact]
 	public void PreProcessedIngestionStrategy_CanHandle_NullContent_ReturnsFalse() {
-		var strategy = new PreProcessedIngestionStrategy();
+		var strategy = new PreProcessedIngestionStrategy(Mapper);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
@@ -46,13 +49,13 @@ public class IngestionStrategyTests {
 
 	[Fact]
 	public async Task PreProcessedIngestionStrategy_ExecuteAsync_ReturnsResult() {
-		var strategy = new PreProcessedIngestionStrategy();
+		var strategy = new PreProcessedIngestionStrategy(Mapper);
 		var volumeId = Guid.NewGuid();
 		var originalFootnoteId = Guid.NewGuid().ToString();
 
-		var segment = new TextSegmentModel {
-			Id = Guid.NewGuid(),
-			Runs = [new TextRun("text") { FootnoteId = originalFootnoteId }]
+		var segment = new TextSegmentDto {
+			Id = Guid.NewGuid().ToString(),
+			Runs = [new TextRunDto("text", FootnoteId: originalFootnoteId)]
 		};
 		var footnote = new ImportFootnoteDto { InitialId = originalFootnoteId };
 
@@ -84,7 +87,7 @@ public class IngestionStrategyTests {
 
 	[Fact]
 	public async Task PreProcessedIngestionStrategy_ExecuteAsync_CannotHandle_ThrowsInvalidOperationException() {
-		var strategy = new PreProcessedIngestionStrategy();
+		var strategy = new PreProcessedIngestionStrategy(Mapper);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
@@ -210,7 +213,7 @@ public class IngestionStrategyTests {
 
 	[Fact]
 	public void IngestionStrategyFactory_GetStrategy_ReturnsFirstMatchingStrategy() {
-		var strategy1 = new PreProcessedIngestionStrategy();
+		var strategy1 = new PreProcessedIngestionStrategy(Mapper);
 		var repo = new InMemoryVolumeRepository();
 		var strategy2 = new RawMarkdownIngestionStrategy(repo);
 

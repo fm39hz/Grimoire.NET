@@ -4,6 +4,7 @@ using Domain.Common;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 using Dto.Book;
+using Mapper;
 using Service.Contract;
 
 public sealed record ChapterImportResult {
@@ -18,7 +19,7 @@ public interface IChapterImportHandler {
 		CancellationToken cancellationToken = default);
 }
 
-public sealed class ChapterImportHandler(IChapterService chapterService) : IChapterImportHandler {
+public sealed class ChapterImportHandler(IChapterService chapterService, IBookMapper mapper) : IChapterImportHandler {
 
 	public async Task<ChapterImportResult> ImportAsync(
 		Guid volumeId,
@@ -26,7 +27,9 @@ public sealed class ChapterImportHandler(IChapterService chapterService) : IChap
 		Dictionary<string, string> imageFileMap,
 		CancellationToken cancellationToken = default) {
 
-		var segments = RemapImages(chapter.Segments, imageFileMap);
+		var segments = RemapImages(chapter.Segments, imageFileMap)
+			.Select(mapper.ToSegmentDto)
+			.ToList();
 
 		var dto = new CreateChapterRequestDto(
 			PrefixedId.ToString(EntityPrefix.Volume, volumeId),

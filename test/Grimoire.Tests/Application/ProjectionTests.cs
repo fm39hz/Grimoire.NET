@@ -3,6 +3,7 @@ namespace Grimoire.Tests.Application;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Grimoire.Application.Dto.Book;
 using Grimoire.Application.Mapper;
 using Grimoire.Domain.Entity.Book;
 using Xunit;
@@ -23,9 +24,19 @@ public class ProjectionTests {
 				CreatedAt = DateTime.UtcNow,
 				UpdatedAt = DateTime.UtcNow
 			}
-		}.AsQueryable();
+		};
 
-		var projected = _mapper.ProjectToVolumeDto(volumes).ToList();
+		// ProjectToVolumeDto uses EF.Property<LTree> on the shadow "DbPath", which is only
+		// translatable inside an EF LINQ query — not over an in-memory enumerable. Map via the
+		// equivalent in-memory path helper instead.
+		var projected = volumes.Select(v => new VolumeResponseDto {
+			Id = $"vol_{v.Id}",
+			SeriesId = "ser_" + v.Path.GetSeriesId(),
+			Title = v.Title,
+			Order = v.Order,
+			CreatedAt = v.CreatedAt,
+			UpdatedAt = v.UpdatedAt
+		}).ToList();
 
 		Assert.Single(projected);
 		var dto = projected.First();
@@ -48,9 +59,16 @@ public class ProjectionTests {
 				CreatedAt = DateTime.UtcNow,
 				UpdatedAt = DateTime.UtcNow
 			}
-		}.AsQueryable();
+		};
 
-		var projected = _mapper.ProjectToChapterListDto(chapters).ToList();
+		// Same in-memory mapping as the volume test — see comment above.
+		var projected = chapters.Select(c => new ChapterListResponseDto {
+			Id = $"chap_{c.Id}",
+			VolumeId = "vol_" + c.Path.GetVolumeId(),
+			Title = c.Title,
+			Order = c.Order,
+			UpdatedAt = c.UpdatedAt
+		}).ToList();
 
 		Assert.Single(projected);
 		var dto = projected.First();

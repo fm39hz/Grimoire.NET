@@ -17,6 +17,8 @@ public interface IBookMapper {
 	public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query);
 	public SeriesModel CreateSeries(CreateSeriesRequestDto dto);
 	public TextSegmentDto ToTextSegmentDto(TextSegmentModel model);
+	public SegmentDto ToSegmentDto(SegmentModel model);
+	public SegmentModel MapToSegment(SegmentDto dto);
 	public VolumeModel CreateVolume(CreateVolumeRequestDto dto);
 	public ChapterModel CreateChapter(CreateChapterRequestDto dto);
 	public void UpdateChapter(UpdateChapterRequestDto dto, ChapterModel model);

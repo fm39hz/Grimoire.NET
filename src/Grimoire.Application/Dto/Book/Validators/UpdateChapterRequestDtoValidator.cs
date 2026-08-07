@@ -18,6 +18,11 @@ public class UpdateChapterRequestDtoValidator : AbstractValidator<UpdateChapterR
 		When(x => x.VolumeId != null, () => RuleFor(x => x.VolumeId)
 			.Must(BeValidVolumeId)
 			.WithMessage("VolumeId must be a valid volume ID with 'vol_' prefix"));
+
+		RuleForEach(static x => x.Content)
+			.SetValidator(new SegmentDtoValidator());
+		RuleForEach(static x => x.Footnotes)
+			.SetValidator(new SegmentDtoValidator());
 	}
 
 	private static bool BeValidVolumeId(string? volumeId) => PrefixedId.TryToGuid(volumeId, EntityPrefix.Volume, out _);

@@ -54,8 +54,12 @@ public sealed class SeriesSyncService(
 						chpDto.RawContent);
 
 					chaptersByVolAndOrder.TryGetValue(key, out var existingChp);
-					await chapterService.UpsertAsync(volId, tempDto, existingChp, cancellationToken);
+					await chapterService.UpsertAsync(volId, tempDto, existingChp, seriesId, cancellationToken);
 				}
+
+				// Bound the EF change tracker: the sync loop stays inside one outer transaction, so
+				// writes are already issued — detaching keeps each later SaveChanges O(1) instead of O(n²).
+				unitOfWork.DetachTrackedEntities();
 			}
 
 			await assetOwnershipService.ReconcileSeriesAsync(seriesId, cancellationToken);

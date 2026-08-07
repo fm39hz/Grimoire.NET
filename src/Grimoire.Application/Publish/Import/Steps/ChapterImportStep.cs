@@ -6,13 +6,15 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Grimoire.Application.Dto.Book;
+using Grimoire.Application.Mapper;
 using Grimoire.Application.Service.Contract;
 using Grimoire.Domain.Common;
 using Grimoire.Domain.Entity.Book;
 using Grimoire.Domain.Entity.Book.Segment;
 
 public sealed class ChapterImportStep(
-	IChapterService chapterService) : IImportPipelineStep {
+	IChapterService chapterService,
+	IBookMapper mapper) : IImportPipelineStep {
 	public int Order => 50;
 
 	public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken) {
@@ -31,7 +33,9 @@ public sealed class ChapterImportStep(
 					continue;
 				}
 
-				var segments = RemapImages(chEntry.Segments, context.FileMap);
+				var segments = RemapImages(chEntry.Segments, context.FileMap)
+					.Select(mapper.ToSegmentDto)
+					.ToList();
 
 				var dto = new CreateChapterRequestDto(
 					PrefixedId.ToString(EntityPrefix.Volume, vol.Id),

@@ -6,21 +6,25 @@ using System.Linq;
 using AngleSharp.Dom;
 using AngleSharp.Html.Parser;
 using Application.Dto.Book;
+using Application.Dto.Book.Segment;
 using Application.Import;
+using Application.Mapper;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Segment;
 
 public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
 	private static readonly HtmlParser Parser = new();
 	private readonly Dictionary<string, IInlineTagHandler> _handlers;
+	private readonly IBookMapper _mapper;
 
-	public XhtmlSegmentParser(IEnumerable<IInlineTagHandler> handlers) {
+	public XhtmlSegmentParser(IEnumerable<IInlineTagHandler> handlers, IBookMapper mapper) {
 		_handlers = new Dictionary<string, IInlineTagHandler>(StringComparer.OrdinalIgnoreCase);
 		foreach (var handler in handlers) {
 			foreach (var tag in handler.SupportedTags) {
 				_handlers[tag] = handler;
 			}
 		}
+		_mapper = mapper;
 	}
 
 	public ParsedChapter Parse(string html, IReadOnlyDictionary<string, byte[]> images) {
@@ -40,7 +44,7 @@ public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
 		}
 
 		foreach (var (id, aside) in footnoteAsides) {
-			var noteSegments = new List<TextSegmentModel>();
+			var noteSegments = new List<TextSegmentDto>();
 			foreach (var child in aside.ChildNodes) {
 				if (child is IElement childEl && childEl.TagName.Equals("P", StringComparison.OrdinalIgnoreCase)) {
 					var childSegments = new List<SegmentModel>();
@@ -56,7 +60,7 @@ public sealed class XhtmlSegmentParser : IXhtmlSegmentParser {
 
 					foreach (var seg in childSegments) {
 						if (seg is TextSegmentModel textSeg) {
-							noteSegments.Add(textSeg);
+							noteSegments.Add(_mapper.ToTextSegmentDto(textSeg));
 						}
 					}
 				}

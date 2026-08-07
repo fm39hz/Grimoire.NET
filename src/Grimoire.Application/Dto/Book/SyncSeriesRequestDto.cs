@@ -1,7 +1,7 @@
 namespace Grimoire.Application.Dto.Book;
 
-using Domain.Entity.Book;
 using Metadata;
+using Segment;
 
 public record SyncSeriesRequestDto(List<SyncVolumeDto> Volumes);
 
@@ -15,7 +15,7 @@ public record SyncVolumeDto(
 public record SyncChapterDto(
 	double Order,
 	string Title,
-	List<SegmentModel>? Content,
+	List<SegmentDto>? Content,
 	List<ImportFootnoteDto>? Footnotes,
 	string? RawContent
 );

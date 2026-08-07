@@ -12,6 +12,12 @@ public sealed class IngestionContext(Guid volumeId, CreateChapterRequestDto dto)
 	public Guid VolumeId { get; } = volumeId;
 	public CreateChapterRequestDto RequestDto { get; } = dto;
 
+	/// <summary>
+	///     Series id owning the target volume. Resolved once by the caller (sync loop / bulk import)
+	///     so the coordinator does not re-fetch the volume per chapter.
+	/// </summary>
+	public Guid? SeriesId { get; init; }
+
 	// Entities generated and enriched during the pipeline steps
 	public ChapterModel? ExistingChapter { get; set; }
 	public ChapterModel Chapter { get; set; } = null!;

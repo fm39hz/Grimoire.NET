@@ -20,9 +20,9 @@ public sealed class IngestionCoordinator(
 	public async Task ExecuteAsync(IngestionContext context, CancellationToken cancellationToken = default) {
 		var orderedSteps = steps.OrderBy(s => s.ExecutionOrder).ToList();
 
-		var volume = await volumeRepository.FindOne(context.VolumeId, cancellationToken) ??
-			throw new InvalidOperationException($"Volume with ID {context.VolumeId} not found");
-		var seriesId = volume.Path.GetSeriesId();
+		// The caller resolves the series id once per sync/import run; for single-chapter creates the
+		// service populates it from the owning volume. Falls back to a volume lookup when absent.
+		var seriesId = context.SeriesId ?? await ResolveSeriesIdAsync(context, cancellationToken);
 
 		var startedAt = DateTimeOffset.UtcNow;
 
@@ -31,10 +31,10 @@ public sealed class IngestionCoordinator(
 			foreach (var step in orderedSteps) {
 				await step.ExecuteAsync(context, cancellationToken);
 			}
-			await unitOfWork.SaveChangesAsync(cancellationToken);
-			await unitOfWork.CommitTransactionAsync(cancellationToken);
 
-			// Log successful ingestion audit
+			// Audit record is created inside the same transaction as the chapter + segments, so the
+			// chapter and its audit trail commit (or roll back) atomically — no separate post-commit
+			// INSERT that could be lost on a crash, and one less round-trip per chapter.
 			var auditRecord = new IngestionAuditRecord {
 				SeriesId = seriesId,
 				SourceType = context.SourceType,
@@ -45,11 +45,15 @@ public sealed class IngestionCoordinator(
 			};
 			await auditRepository.Create(auditRecord, cancellationToken);
 			context.AuditRecordId = auditRecord.Id;
+
+			await unitOfWork.SaveChangesAsync(cancellationToken);
+			await unitOfWork.CommitTransactionAsync(cancellationToken);
 		}
 		catch (Exception ex) {
 			await unitOfWork.RollbackTransactionAsync(cancellationToken);
 
-			// Log failed ingestion audit
+			// Failure audit is written after the rollback — it must survive even though the
+			// chapter transaction was undone.
 			var auditRecord = new IngestionAuditRecord {
 				SeriesId = seriesId,
 				SourceType = context.SourceType,
@@ -62,5 +66,11 @@ public sealed class IngestionCoordinator(
 			context.AuditRecordId = auditRecord.Id;
 			throw;
 		}
+	}
+
+	private async Task<Guid> ResolveSeriesIdAsync(IngestionContext context, CancellationToken cancellationToken) {
+		var volume = await volumeRepository.FindOne(context.VolumeId, cancellationToken) ??
+			throw new InvalidOperationException($"Volume with ID {context.VolumeId} not found");
+		return volume.Path.GetSeriesId();
 	}
 }

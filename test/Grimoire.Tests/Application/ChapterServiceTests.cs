@@ -37,7 +37,7 @@ public class ChapterServiceTests {
 			var mapper = new FakeBookMapper();
 			BookTree = new BookTreeService(Series, Volumes, Chapters, new NoOpUnitOfWork(), mapper);
 			var strategyFactory = new IngestionStrategyFactory([
-				new PreProcessedIngestionStrategy(),
+				new PreProcessedIngestionStrategy(new BookMapper()),
 				new RawMarkdownIngestionStrategy(Volumes)
 			]);
 			var unitOfWork = new NoOpUnitOfWork();
@@ -108,6 +108,8 @@ public class ChapterServiceTests {
 		public AssetResponseDto ToAssetDto(AssetModel model) => throw new NotSupportedException();
 		public IngestionAuditResponseDto ToIngestionAuditDto(IngestionAuditRecord model) => throw new NotSupportedException();
 		public TextSegmentDto ToTextSegmentDto(TextSegmentModel model) => throw new NotSupportedException();
+		public SegmentDto ToSegmentDto(SegmentModel model) => throw new NotSupportedException();
+		public SegmentModel MapToSegment(SegmentDto dto) => throw new NotSupportedException();
 		public IQueryable<VolumeResponseDto> ProjectToVolumeDto(IQueryable<VolumeModel> query) => throw new NotSupportedException();
 		public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query) => throw new NotSupportedException();
 	}
@@ -141,7 +143,7 @@ public class ChapterServiceTests {
 			Order: 1,
 			Title: "New Chapter",
 			Content: [
-				new TextSegmentModel { Runs = [new TextRun("Paragraph 1")] }
+				new TextSegmentDto { Runs = [new TextRunDto("Paragraph 1")] }
 			],
 			Footnotes: [],
 			RawContent: null

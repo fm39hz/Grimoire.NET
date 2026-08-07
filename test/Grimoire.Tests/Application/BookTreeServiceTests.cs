@@ -75,6 +75,8 @@ public sealed class BookTreeServiceTests {
 		public AssetResponseDto ToAssetDto(AssetModel model) => throw new NotSupportedException();
 		public IngestionAuditResponseDto ToIngestionAuditDto(IngestionAuditRecord model) => throw new NotSupportedException();
 		public TextSegmentDto ToTextSegmentDto(TextSegmentModel model) => throw new NotSupportedException();
+		public SegmentDto ToSegmentDto(SegmentModel model) => throw new NotSupportedException();
+		public SegmentModel MapToSegment(SegmentDto dto) => throw new NotSupportedException();
 		public IQueryable<VolumeResponseDto> ProjectToVolumeDto(IQueryable<VolumeModel> query) => throw new NotSupportedException();
 		public IQueryable<ChapterListResponseDto> ProjectToChapterListDto(IQueryable<ChapterModel> query) => throw new NotSupportedException();
 	}
