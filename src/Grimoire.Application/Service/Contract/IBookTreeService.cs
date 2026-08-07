@@ -29,6 +29,9 @@ public interface IChapterNodeService {
 public interface INodeManagerService {
 	public Task MoveNode(Guid nodeId, Guid? newParentId, double newOrder, CancellationToken cancellationToken = default);
 	public Task<int> DeleteSubtree(Guid nodeId, CancellationToken cancellationToken = default);
+	public Task<VolumeModel> MergeVolumesAsync(Guid baseVolumeId, IReadOnlyList<Guid> volumeIds, CancellationToken cancellationToken = default);
+	public Task<VolumeModel> SplitVolumeAsync(Guid volumeId, double atChapterOrder, string newVolumeTitle, CancellationToken cancellationToken = default);
+	public Task ReorderSiblingsAsync(Guid parentId, IReadOnlyList<Guid> orderedChildIds, CancellationToken cancellationToken = default);
 }
 
 

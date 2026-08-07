@@ -2,6 +2,7 @@ namespace Grimoire.Api.Controller;
 
 using System.Threading;
 using Application.Dto.Book;
+using Application.Dto.Book.Restructure;
 using Application.Dto.Book.Tree;
 using Application.Export;
 using Application.Mapper;
@@ -20,6 +21,7 @@ public sealed class SeriesController(
 	ISeriesService service,
 	ISeriesSyncService syncService,
 	IBookTreeService bookTreeService,
+	IBookRestructureService restructureService,
 	IBookMapper mapper,
 	ISectionRendererFactory rendererFactory) : ControllerBase {
 	[HttpGet("{id}")]
@@ -96,6 +98,16 @@ public sealed class SeriesController(
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
 		await syncService.SyncSeriesTree(guid, dto, cancellationToken);
 		return Results.Ok();
+	}
+
+	[HttpPost("{id}/restructure")]
+	[ProducesResponseType(typeof(BookTreeDto), 200)]
+	[ProducesResponseType(400)]
+	[ProducesResponseType(404)]
+	public async Task<IResult> Restructure(string id, [FromBody] BookRestructureRequestDto dto, CancellationToken cancellationToken) {
+		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var tree = await restructureService.ExecuteAsync(dto, cancellationToken);
+		return Results.Ok(tree);
 	}
 
 	[HttpGet("{id}/tree")]

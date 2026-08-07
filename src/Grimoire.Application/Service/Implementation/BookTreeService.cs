@@ -230,4 +230,98 @@ public sealed class BookTreeService(
 
 		return 0;
 	}
+
+	/// <summary>
+	///     Merges multiple volumes into a base volume: every chapter in the target volumes is moved
+	///     into the base volume (re-pathing its subtree), then each emptied target volume is deleted.
+	///     All volumes must belong to the same series.
+	/// </summary>
+	public async Task<VolumeModel> MergeVolumesAsync(Guid baseVolumeId, IReadOnlyList<Guid> volumeIds, CancellationToken cancellationToken = default) {
+		var baseVolume = await volumeRepository.FindOne(baseVolumeId, cancellationToken) ??
+			throw new EntityNotFoundException($"Volume with id {baseVolumeId} not found");
+		var baseSeriesId = baseVolume.Path.GetSeriesId();
+
+		var targets = new List<VolumeModel>(volumeIds.Count);
+		foreach (var volId in volumeIds) {
+			if (volId == baseVolumeId) {
+				throw new InvalidOperationException("Base volume cannot also be a merge target");
+			}
+			var vol = await volumeRepository.FindOne(volId, cancellationToken) ??
+				throw new EntityNotFoundException($"Volume with id {volId} not found");
+			if (vol.Path.GetSeriesId() != baseSeriesId) {
+				throw new InvalidOperationException("All volumes to merge must belong to the same series");
+			}
+			targets.Add(vol);
+		}
+
+		foreach (var vol in targets) {
+			var chapters = await chapterRepository.FindByVolumeId(vol.Id, cancellationToken);
+			foreach (var chapter in chapters) {
+				// Order appended after base's chapters — fractional offset keeps uniqueness.
+				await MoveNode(chapter.Id, baseVolumeId, chapter.Order, cancellationToken);
+			}
+			await DeleteSubtree(vol.Id, cancellationToken);
+		}
+
+		return baseVolume;
+	}
+
+	/// <summary>
+	///     Splits a volume at a chapter boundary: a new volume is created under the same series and
+	///     every chapter at/after <c>atChapterOrder</c> is moved into it. Returns the new volume.
+	/// </summary>
+	public async Task<VolumeModel> SplitVolumeAsync(Guid volumeId, double atChapterOrder, string newVolumeTitle, CancellationToken cancellationToken = default) {
+		var volume = await volumeRepository.FindOne(volumeId, cancellationToken) ??
+			throw new EntityNotFoundException($"Volume with id {volumeId} not found");
+		var seriesId = volume.Path.GetSeriesId();
+
+		var chapters = (await chapterRepository.FindByVolumeId(volumeId, cancellationToken)).ToList();
+		var toMove = chapters.Where(c => c.Order >= atChapterOrder).OrderBy(c => c.Order).ToList();
+		if (toMove.Count == 0) {
+			throw new InvalidOperationException("No chapters at or after the given boundary to move");
+		}
+
+		var series = await seriesRepository.FindOne(seriesId, cancellationToken) ??
+			throw new EntityNotFoundException($"Series with id {seriesId} not found");
+
+		var newVolume = await CreateVolume(new CreateVolumeRequestDto(
+			PrefixedId.ToString(EntityPrefix.Series, seriesId),
+			volume.Order + 0.5,
+			newVolumeTitle,
+			null), cancellationToken);
+
+		// Re-order moved chapters to start at 1 in the new volume.
+		var newOrder = 1.0;
+		foreach (var chapter in toMove) {
+			await MoveNode(chapter.Id, newVolume.Id, newOrder++, cancellationToken);
+		}
+
+		return newVolume;
+	}
+
+	/// <summary>
+	///     Reorders sibling nodes (volumes under a series, or chapters under a volume) by moving each
+	///     to its index position. Uses fractional doubles so no sibling renumbering is required.
+	/// </summary>
+	public async Task ReorderSiblingsAsync(Guid parentId, IReadOnlyList<Guid> orderedChildIds, CancellationToken cancellationToken = default) {
+		var parent = await seriesRepository.FindOne(parentId, cancellationToken);
+		if (parent is not null) {
+			var order = 1.0;
+			foreach (var childId in orderedChildIds) {
+				await MoveNode(childId, parentId, order++, cancellationToken);
+			}
+			return;
+		}
+
+		var parentVolume = await volumeRepository.FindOne(parentId, cancellationToken);
+		if (parentVolume is not null) {
+			var order = 1.0;
+			foreach (var childId in orderedChildIds) {
+				await MoveNode(childId, parentId, order++, cancellationToken);
+			}
+			return;
+		}
+
+		throw new EntityNotFoundException($"Parent with id {parentId} not found as Series or Volume");
+	}
 }

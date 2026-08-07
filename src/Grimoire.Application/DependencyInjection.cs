@@ -26,6 +26,8 @@ public static class DependencyInjection {
 		services.AddScoped<IAssetService, AssetService>();
 		services.AddScoped<IAssetOwnershipService, AssetOwnershipService>();
 		services.AddScoped<ISeriesSyncService, SeriesSyncService>();
+		services.AddScoped<IBookRestructureService, BookRestructureService>();
+		services.AddScoped<ISegmentService, SegmentService>();
 		services.AddScoped<IStorageService, StorageService>();
 		services.AddScoped<IBookTreeService, BookTreeService>();
 		services.AddScoped<ISeriesNodeService>(static sp => sp.GetRequiredService<IBookTreeService>());
