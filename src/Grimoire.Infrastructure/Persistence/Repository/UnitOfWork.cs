@@ -74,6 +74,8 @@ public sealed class UnitOfWork(ApplicationDbContext context) : IUnitOfWork {
 		_postCommitActions.Add(action);
 	}
 
+	public void DetachTrackedEntities() => context.ChangeTracker.Clear();
+
 	public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => await context.SaveChangesAsync(cancellationToken);
 }
 

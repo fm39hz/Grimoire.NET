@@ -27,6 +27,14 @@ public interface IUnitOfWork {
 	public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
 	/// <summary>
+	///     Detaches all tracked entities from the change tracker without discarding
+	///     the transaction. Long-lived workflows that save many entities in one outer
+	///     transaction (bulk import) must call this after each batch; otherwise the
+	///     tracker accumulates every entity and each later save is O(n²).
+	/// </summary>
+	public void DetachTrackedEntities();
+
+	/// <summary>
 	///     Registers an action to run after the transaction successfully commits
 	/// </summary>
 	public void RegisterPostCommitAction(Func<Task> action);

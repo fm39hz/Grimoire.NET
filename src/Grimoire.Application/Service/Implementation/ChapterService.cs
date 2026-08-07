@@ -233,6 +233,13 @@ public sealed class ChapterService(
 
 			await ingestionCoordinator.ExecuteAsync(context, cancellationToken);
 
+			// Bulk import runs inside one outer transaction (ImportPipeline), so the unit-of-work
+			// never actually commits until the end — the change tracker would otherwise accumulate
+			// every chapter's entities and make each later SaveChanges O(n²). Detach after each
+			// chapter to keep the tracker bounded; atomicity isn't affected (still in the outer
+			// transaction, writes are already issued).
+			unitOfWork.DetachTrackedEntities();
+
 			results.Add(context.Chapter);
 			if (existing == null) {
 				createdCount++;

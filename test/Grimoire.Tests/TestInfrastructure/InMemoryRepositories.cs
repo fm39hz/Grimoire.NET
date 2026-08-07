@@ -207,6 +207,7 @@ public sealed class NoOpUnitOfWork : IUnitOfWork {
 	public Task RollbackTransactionAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 	public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) => Task.FromResult(0);
 	public void RegisterPostCommitAction(Func<Task> action) => action().GetAwaiter().GetResult();
+	public void DetachTrackedEntities() { }
 }
 
 public sealed class InMemoryIngestionAuditRepository : InMemoryRepository<IngestionAuditRecord>, IIngestionAuditRepository {
