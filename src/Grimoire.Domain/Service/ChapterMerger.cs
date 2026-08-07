@@ -17,8 +17,14 @@ public static class ChapterMerger {
 
 		var updatedSegments = new List<SegmentModel>();
 
-		// Sort base segments by Order
+		// Include the base chapter's own segments (remapped to the base path and re-sequenced).
+		// MergeAsync deletes segments by base path before rewriting, so the base's content must be
+		// returned here or it would be permanently lost when source chapters are merged into it.
 		var currentBaseSegments = baseSegments.OrderBy(static s => s.Order).ToList();
+		foreach (var seg in currentBaseSegments) {
+			seg.Path = $"{baseChapter.Path}.n{seg.Id:N}";
+			updatedSegments.Add(seg);
+		}
 
 		// Start new order offset from the end of the base chapter's content segments
 		var contentSegments = currentBaseSegments.Where(static s => s is not FootnoteSegmentModel).ToList();

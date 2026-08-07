@@ -21,4 +21,12 @@ public sealed class IngestionContext(Guid volumeId, CreateChapterRequestDto dto)
 	// Ingestion Audit tracking
 	public string SourceType { get; set; } = "Markdown";
 	public Guid? AuditRecordId { get; set; }
+
+	/// <summary>
+	///     True when this ingestion is one chapter of a bulk import (e.g. EPUB/Markdown via
+	///     <see cref="UpsertBulkAsync"/>). Bulk import reconciles asset ownership once for the whole
+	///     series at the end, so per-chapter steps that do a full-series scan must be skipped to
+	///     avoid O(chapters²) work.
+	/// </summary>
+	public bool IsBulkImport { get; set; }
 }

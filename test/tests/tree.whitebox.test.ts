@@ -7,43 +7,55 @@ const read = async (relativePath: string) =>
 	await Bun.file(path.join(repoRoot, relativePath)).text();
 
 describe("unified book tree whitebox", () => {
-	test("BookNode is the persisted hierarchy model and BookShelf stays logical", async () => {
+	test("Series/Volume/Chapter/Segment are the persisted hierarchy models and BookShelf stays logical", async () => {
 		const nodeType = await read("src/Grimoire.Domain/Entity/Book/BookNodeType.cs");
-		const nodeModel = await read("src/Grimoire.Domain/Entity/Book/BookNodeModel.cs");
+		const seriesModel = await read("src/Grimoire.Domain/Entity/Book/SeriesModel.cs");
+		const volumeModel = await read("src/Grimoire.Domain/Entity/Book/VolumeModel.cs");
+		const chapterModel = await read("src/Grimoire.Domain/Entity/Book/ChapterModel.cs");
+		const segmentModel = await read("src/Grimoire.Domain/Entity/Book/SegmentModel.cs");
 
 		expect(nodeType).toContain("Series");
 		expect(nodeType).toContain("Volume");
 		expect(nodeType).toContain("Chapter");
 		expect(nodeType).not.toContain("BookShelf");
-		expect(nodeModel).toContain("Guid? ParentId");
-		expect(nodeModel).toContain("double Order");
-		expect(nodeModel).toContain("required string Title");
+
+		// The four node types are persisted entities with an ltree DbPath.
+		expect(seriesModel).toContain("LTree DbPath");
+		expect(volumeModel).toContain("LTree DbPath");
+		expect(chapterModel).toContain("LTree DbPath");
+		expect(segmentModel).toContain("LTree DbPath");
 	});
 
-	test("EF mapping of book_nodes table", async () => {
+	test("EF mapping of the book tree tables", async () => {
 		const dbContext = await read("src/Grimoire.Infrastructure/Persistence/Database/ApplicationDbContext.cs");
 
-		expect(dbContext).toContain("DbSet<BookNodeModel> BookNodes");
-		expect(dbContext).toContain("new { n.ParentId, n.Order }).IsUnique()");
+		expect(dbContext).toContain("DbSet<SeriesModel> Series");
+		expect(dbContext).toContain("DbSet<VolumeModel> Volumes");
+		expect(dbContext).toContain("DbSet<ChapterModel> Chapters");
+		expect(dbContext).toContain("DbSet<SegmentModel> Segments");
+		expect(dbContext).toContain("new { s.DbPath, s.Order }).IsUnique()");
+		expect(dbContext).toContain("HasDiscriminator<string>(\"SegmentType\")");
+		expect(dbContext).toContain("HasColumnType(\"ltree\")");
 	});
 
-	test("BookTreeService owns hierarchy invariants and legacy service facades delegate to it", async () => {
+	test("BookTreeService owns tree operations and service facades delegate to it", async () => {
 		const treeService = await read("src/Grimoire.Application/Service/Implementation/BookTreeService.cs");
 		const seriesService = await read("src/Grimoire.Application/Service/Implementation/SeriesService.cs");
 		const volumeService = await read("src/Grimoire.Application/Service/Implementation/VolumeService.cs");
 		const chapterService = await read("src/Grimoire.Application/Service/Implementation/ChapterService.cs");
 
-		expect(treeService).toContain("ValidateParent");
-		expect(treeService).toContain("Series nodes must be root-level nodes");
-		expect(treeService).toContain("Volume ? BookNodeType.Series : BookNodeType.Volume");
-		expect(treeService).toContain("FindChildByOrder(newParentId, newOrder");
+		expect(treeService).toContain("GetTree");
+		expect(treeService).toContain("CreateSeries");
+		expect(treeService).toContain("CreateVolume");
+		expect(treeService).toContain("MoveNode");
 		expect(treeService).toContain("DeleteSubtree");
+		expect(treeService).toContain("ExecuteInTransaction");
 		expect(seriesService).toContain("seriesNodeService.CreateSeries");
-		expect(seriesService).toContain("volumeNodeService.FindVolumes");
+		expect(seriesService).toContain("seriesNodeService.GetOrCreateSeries");
 		expect(volumeService).toContain("volumeNodeService.CreateVolume");
 		expect(volumeService).toContain("chapterNodeService.FindChapters");
-		expect(chapterService).toContain("bookTreeService.CreateNode");
 		expect(chapterService).toContain("bookTreeService.MoveNode");
+		expect(chapterService).toContain("bookTreeService.DeleteSubtree");
 	});
 
 	test("export and freshness use the tree source of truth", async () => {
@@ -53,7 +65,7 @@ describe("unified book tree whitebox", () => {
 
 		expect(context).toContain("BookTreeDto Tree");
 		expect(resolver).toContain("bookTreeService.FindVolumes");
-		expect(freshness.toLowerCase()).toContain("context.booknodes");
-		expect(freshness.toLowerCase()).not.toContain("join v in context.volumes on c.volumeid equals v.id");
+		expect(freshness.toLowerCase()).toContain("context.segments");
+		expect(freshness.toLowerCase()).not.toContain("context.booknodes");
 	});
 });

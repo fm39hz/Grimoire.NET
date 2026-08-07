@@ -40,8 +40,7 @@ describe("chapter & ingestion whitebox", () => {
 		expect(service).toContain("unitOfWork.CommitTransactionAsync");
 		expect(service).toContain("unitOfWork.RollbackTransactionAsync");
 
-		expect(service).toContain("bookTreeService.CreateNode");
-		expect(service).toContain("bookTreeService.UpdateNode");
+		expect(service).toContain("bookTreeService.MoveNode");
 		expect(service).toContain("bookTreeService.DeleteSubtree");
 	});
 

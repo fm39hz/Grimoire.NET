@@ -227,7 +227,8 @@ public sealed class ChapterService(
 			existingChapters.TryGetValue((volId, dto.Order), out var existing);
 
 			var context = new IngestionContext(volId, dto) {
-				ExistingChapter = existing
+				ExistingChapter = existing,
+				IsBulkImport = true
 			};
 
 			await ingestionCoordinator.ExecuteAsync(context, cancellationToken);

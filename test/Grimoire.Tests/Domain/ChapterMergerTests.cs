@@ -25,14 +25,17 @@ public sealed class ChapterMergerTests {
 			[(sourceChapter, [srcSegment])]
 		);
 
-		var updatedSegment = Assert.Single(result.UpdatedSegments);
-		Assert.Same(srcSegment, updatedSegment);
-		Assert.Equal(2, updatedSegment.Order);
-		Assert.StartsWith(baseChapter.Path + ".", updatedSegment.Path);
+		// Both the base segment and the merged source segment are returned so the caller can
+		// rewrite the full base chapter content (MergeAsync deletes by base path before saving).
+		Assert.Equal(2, result.UpdatedSegments.Count);
+		Assert.Same(baseSegment, result.UpdatedSegments[0]);
+		Assert.Same(srcSegment, result.UpdatedSegments[1]);
+		Assert.Equal(2, srcSegment.Order);
+		Assert.StartsWith(baseChapter.Path + ".", srcSegment.Path);
 
-		// Base segment remains unchanged
+		// Base segment keeps its canonical placement at the front
 		Assert.Equal(1, baseSegment.Order);
-		Assert.Equal($"{baseChapter.Path}.ns1", baseSegment.Path);
+		Assert.Equal($"{baseChapter.Path}.n{baseSegment.Id:N}", baseSegment.Path);
 	}
 
 	[Fact]

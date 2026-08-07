@@ -17,6 +17,9 @@ public static class ValidationExtension {
 
 		services.AddValidatorsFromAssemblyContaining<CreateSeriesRequestDtoValidator>();
 
+		services.Configure<MvcOptions>(static options =>
+			options.ModelMetadataDetailsProviders.Add(new LTreeValidationMetadataProvider()));
+
 		services.Configure<ApiBehaviorOptions>(static options => options.InvalidModelStateResponseFactory = static context => {
 			var errors = context.ModelState
 				.Where(static e => e.Value?.Errors.Count > 0)
