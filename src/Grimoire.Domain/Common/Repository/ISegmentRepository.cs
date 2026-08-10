@@ -12,4 +12,5 @@ public interface ISegmentRepository : IRepository<SegmentModel> {
 	public Task DeleteByChapterPath(BookPath chapterPath, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsBySeriesPath(BookPath seriesPath, CancellationToken cancellationToken = default);
 	public Task<IEnumerable<ImageSegmentModel>> FindImageSegmentsByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default);
+	public Task<IEnumerable<SegmentModel>> FindByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default);
 }

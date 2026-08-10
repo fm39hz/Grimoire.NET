@@ -6,5 +6,8 @@ public sealed record PublishJobStatusDto(
 	string? DownloadUrl = null,
 	string? Error = null,
 	int? Progress = null,
-	string? Stage = null
+	string? Stage = null,
+	string? FileName = null,
+	string? ContentType = null,
+	IReadOnlyList<PublishArtifactDto>? Artifacts = null
 );

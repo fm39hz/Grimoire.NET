@@ -17,11 +17,6 @@ public sealed class BuildContextStep(
 		var series = await seriesRepository.FindOne(context.SeriesId, cancellationToken) ??
 			throw new EntityNotFoundException($"Series with id {context.SeriesId} not found");
 
-		var request = new BinderyRequestDto {
-			Format = context.Format,
-			Structure = context.Structure
-		};
-
-		context.ExportContext = await orchestrator.BuildContextAsync(series, request, cancellationToken);
+		context.ExportContext = await orchestrator.BuildContextAsync(series, context.Request, cancellationToken);
 	}
 }

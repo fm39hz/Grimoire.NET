@@ -12,7 +12,7 @@ public sealed partial class DeduplicationStep(
 	public int Order => 10;
 
 	public async Task ExecuteAsync(ExportPipelineContext context, CancellationToken cancellationToken) {
-		var formatDir = context.Request.Format.ToString().ToLowerInvariant();
+		var formatDir = ExportRequestIdentity.Create(context.Request);
 		var prevRecord = await exportRecords.GetBySeriesAndFormatAsync(context.SeriesId, formatDir, cancellationToken);
 
 		if (prevRecord is not null) {

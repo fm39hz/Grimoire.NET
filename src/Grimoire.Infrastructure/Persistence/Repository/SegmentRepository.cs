@@ -51,4 +51,14 @@ public sealed class SegmentRepository(ApplicationDbContext context)
 			.Where(s => paths.Any(p => s.DbPath.IsDescendantOf(p)))
 			.ToListAsync(cancellationToken);
 	}
+
+	public async Task<IEnumerable<SegmentModel>> FindByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default) {
+		var paths = chapterPaths.Select(static path => (LTree)path.Value).ToList();
+		if (paths.Count == 0) return [];
+		return await Entities.AsNoTracking()
+			.Where(segment => paths.Any(path => segment.DbPath.IsDescendantOf(path)))
+			.OrderBy(static segment => segment.DbPath)
+			.ThenBy(static segment => segment.Order)
+			.ToListAsync(cancellationToken);
+	}
 }

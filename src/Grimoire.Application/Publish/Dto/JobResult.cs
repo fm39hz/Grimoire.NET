@@ -7,12 +7,14 @@ public sealed record JobResult {
 	public string? DownloadUrl { get; init; }
 	public string? FileName { get; init; }
 	public string? ContentType { get; init; }
+	public IReadOnlyList<PublishArtifactDto>? Artifacts { get; init; }
 
-	public static JobResult Ok(string downloadUrl, string fileName, string contentType) => new() {
+	public static JobResult Ok(string downloadUrl, string fileName, string contentType, IReadOnlyList<PublishArtifactDto>? artifacts = null) => new() {
 		Success = true,
 		DownloadUrl = downloadUrl,
 		FileName = fileName,
-		ContentType = contentType
+		ContentType = contentType,
+		Artifacts = artifacts
 	};
 
 	public static JobResult Fail(string error) => new() {
@@ -20,3 +22,11 @@ public sealed record JobResult {
 		ErrorMessage = error
 	};
 }
+
+public sealed record PublishArtifactDto(
+	string Name,
+	string FileName,
+	string ContentType,
+	IReadOnlyList<string> VolumeIds,
+	long Size,
+	string Sha256);

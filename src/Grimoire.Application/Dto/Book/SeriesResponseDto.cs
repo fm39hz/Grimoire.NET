@@ -8,6 +8,7 @@ public class SeriesResponseDto : ITimestampedDto {
 	public string Title { get; init; } = string.Empty;
 	public SeriesMetadataDto Metadata { get; init; } = new();
 	public string Id { get; init; } = string.Empty;
+	public long Revision { get; init; }
 
 	[JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
 	public DateTime? CreatedAt { get; set; }

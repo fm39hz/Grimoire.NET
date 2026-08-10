@@ -2,6 +2,7 @@ namespace Grimoire.Job;
 
 using EntityFramework.Exceptions.PostgreSQL;
 using Grimoire.Application;
+using Grimoire.Application.Ingestion.Configuration;
 using Grimoire.Infrastructure;
 using Grimoire.Infrastructure.Persistence.Database;
 using Grimoire.Job.Jobs;
@@ -15,6 +16,7 @@ public static class DependencyInjection {
 		this IServiceCollection services, IConfiguration configuration) {
 		// Register Application + Infrastructure services
 		services.AddApplication();
+		services.Configure<IngestionCoreOptions>(configuration.GetSection(IngestionCoreOptions.SectionName));
 		services.AddInfrastructure(configuration);
 
 		// EF Core DbContext (required by repositories registered in AddInfrastructure)

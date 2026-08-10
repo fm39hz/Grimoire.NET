@@ -14,6 +14,8 @@ using JetBrains.Annotations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Persistence.Repository;
+using Research;
+using Application.Ingestion.Research;
 
 public static class DependencyInjection {
 	[UsedImplicitly]
@@ -34,6 +36,14 @@ public static class DependencyInjection {
 		services.AddScoped<ISourceMaterialRepository, SourceMaterialRepository>();
 		services.AddScoped<ISeriesExportRecordRepository, SeriesExportRecordRepository>();
 		services.AddScoped<IIngestionAuditRepository, IngestionAuditRepository>();
+		services.AddScoped<IImportSourceRepository, ImportSourceRepository>();
+		services.AddScoped<IImportBindingRepository, ImportBindingRepository>();
+		services.AddScoped<IImportRunRepository, ImportRunRepository>();
+		services.AddScoped<ISeriesResearchProfileRepository, SeriesResearchProfileRepository>();
+		services.AddSingleton<ResearchHttpClient>();
+		services.AddScoped<IResearchProvider, LocalSeriesResearchProvider>();
+		services.AddScoped<IResearchProvider, OpenLibraryResearchProvider>();
+		services.AddScoped<IResearchProvider, GoogleBooksResearchProvider>();
 
 		// Register storage configuration
 		var storageSection = configuration.GetSection(StorageConfiguration.SECTION_NAME);

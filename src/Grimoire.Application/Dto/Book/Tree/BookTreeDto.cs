@@ -15,5 +15,6 @@ public sealed record BookTreeNodeDto {
 	public required string Title { get; init; }
 	public double? Order { get; init; }
 	public string? ParentId { get; init; }
+	public string? ContentHash { get; init; }
 	public List<BookTreeNodeDto> Children { get; init; } = [];
 }

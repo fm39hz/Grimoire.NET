@@ -6,6 +6,10 @@ using Application.Dto.Book.Restructure;
 using Application.Dto.Book.Tree;
 using Application.Export;
 using Application.Mapper;
+using Application.Ingestion.Legacy;
+using Application.Ingestion.Execution;
+using Application.Ingestion.Configuration;
+using Microsoft.Extensions.Options;
 using Application.Service.Contract;
 using Application.Service.Strategy;
 using Constant;
@@ -23,6 +27,10 @@ public sealed class SeriesController(
 	IBookTreeService bookTreeService,
 	IBookRestructureService restructureService,
 	IBookMapper mapper,
+	ILegacySourcePackageAdapter legacyAdapter,
+	ILegacyShadowAnalyzer shadowAnalyzer,
+	IImportExecutionService importExecutionService,
+	IOptions<IngestionCoreOptions> ingestionOptions,
 	ISectionRendererFactory rendererFactory) : ControllerBase {
 	[HttpGet("{id}")]
 	[ProducesResponseType(typeof(SeriesResponseDto), 200)]
@@ -96,7 +104,19 @@ public sealed class SeriesController(
 	[ProducesResponseType(404)]
 	public async Task<IResult> SyncTree(string id, [FromBody] SyncSeriesRequestDto dto, CancellationToken cancellationToken) {
 		var guid = PrefixedId.ToGuid(id, EntityPrefix.Series);
+		var package = legacyAdapter.FromSeriesSync(guid, dto);
+		var shadowRunId = await shadowAnalyzer.Analyze(package, cancellationToken);
+		if (ingestionOptions.Value.Enabled && ingestionOptions.Value.LegacyAdaptersEnabled) {
+			var analyzed = await HttpContext.RequestServices
+				.GetRequiredService<Application.Ingestion.Analysis.IImportAnalysisService>()
+				.Analyze(package, cancellationToken);
+			var committed = await importExecutionService.Commit(Guid.Parse(analyzed.Id[4..]), safeOnly: true, cancellationToken);
+			return committed.Status == nameof(Domain.Entity.Ingestion.ImportRunStatus.Committed)
+				? Results.Ok(committed)
+				: Results.Conflict(committed);
+		}
 		await syncService.SyncSeriesTree(guid, dto, cancellationToken);
+		await shadowAnalyzer.RecordOutcome(shadowRunId, new { SeriesId = guid, VolumesReceived = dto.Volumes.Count }, cancellationToken);
 		return Results.Ok();
 	}
 

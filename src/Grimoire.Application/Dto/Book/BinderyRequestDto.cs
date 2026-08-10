@@ -18,9 +18,14 @@ public record BinderyRequestDto {
 	/// </summary>
 	public List<string>? TargetVolumeIds { get; init; }
 
+	/// <summary>Named volume groups used when Mode is "CustomGroups".</summary>
+	public List<ExportGroupDto>? Groups { get; init; }
+
 	/// <summary>
 	///     Document structure configuration - defines the layout of the export.
 	///     If null, resolves to the standard default (IntroPage -> Description -> Toc -> Content).
 	/// </summary>
 	public ExportStructureDto? Structure { get; init; }
 }
+
+public sealed record ExportGroupDto(string Name, List<string> TargetVolumeIds);

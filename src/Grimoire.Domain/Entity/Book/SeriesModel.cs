@@ -8,6 +8,24 @@ using Microsoft.EntityFrameworkCore;
 ///     Represents a book series (e.g., a manga series)
 /// </summary>
 public class SeriesModel : BaseModel {
+	/// <summary>
+	///     Monotonically increasing version of the complete editorial tree.
+	///     Reconciliation plans capture this value and must not be committed when it changed.
+	/// </summary>
+	public long Revision { get; private set; }
+
+	/// <summary>
+	///     Advances the tree version after verifying the caller planned against the current tree.
+	/// </summary>
+	public void AdvanceRevision(long expectedRevision) {
+		if (Revision != expectedRevision) {
+			throw new InvalidOperationException(
+				$"Series revision is {Revision}, but the operation expected {expectedRevision}.");
+		}
+
+		Revision = checked(Revision + 1);
+		MarkAsUpdated();
+	}
 
 	/// <summary>
 	///     Title of the series

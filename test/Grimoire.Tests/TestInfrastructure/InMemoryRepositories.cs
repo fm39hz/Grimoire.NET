@@ -87,6 +87,12 @@ public sealed class InMemorySegmentRepository : InMemoryRepository<SegmentModel>
 			[.. Items.OfType<ImageSegmentModel>().Where(s => paths.Any(p => s.Path.IsDescendantOf(p)))]
 		);
 	}
+
+	public Task<IEnumerable<SegmentModel>> FindByChapterPaths(IEnumerable<BookPath> chapterPaths, CancellationToken cancellationToken = default) {
+		var paths = chapterPaths.ToList();
+		return Task.FromResult<IEnumerable<SegmentModel>>(
+			[.. Items.Where(segment => paths.Any(path => segment.Path.IsDescendantOf(path))).OrderBy(segment => segment.Order)]);
+	}
 }
 
 public sealed class InMemorySeriesRepository(

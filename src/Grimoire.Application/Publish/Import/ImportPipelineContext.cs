@@ -29,6 +29,7 @@ public sealed class ImportPipelineContext(
 	public List<ResolvedVolume> ResolvedVolumes { get; set; } = [];
 	public int ChaptersCreated { get; set; }
 	public int ChaptersUpdated { get; set; }
+	public Guid? ShadowImportRunId { get; set; }
 
 	// Output
 	public JobResult? Result { get; set; }

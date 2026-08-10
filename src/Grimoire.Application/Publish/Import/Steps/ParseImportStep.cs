@@ -20,13 +20,14 @@ public sealed class ParseImportStep : IImportPipelineStep {
 		NormalizedImport normalized,
 		List<ImportVolumeDto>? overrideVols) {
 		if (overrideVols?.Count > 0) {
-			return [.. overrideVols.Select(v => new NormalizedVolume {
+			return [.. overrideVols.Select((v, index) => {
+				var sourceVolume = normalized.Volumes.FirstOrDefault(source => source.Order == v.Order)
+					?? normalized.Volumes.ElementAtOrDefault(index);
+				return new NormalizedVolume {
 				Order = v.Order,
-				Title = v.Title ?? normalized.Title,
+				Title = v.Title ?? sourceVolume?.Title ?? normalized.Title,
 				Chapters = v.Chapters?.Select(c => {
-					var match = normalized.Volumes
-						.SelectMany(x => x.Chapters)
-						.FirstOrDefault(x => x.Order == c.Order);
+					var match = sourceVolume?.Chapters.FirstOrDefault(chapter => chapter.Order == c.Order);
 					return new NormalizedChapter {
 						Order = c.Order,
 						Title = c.Title ?? match?.Title ?? $"Chapter {c.Order}",
@@ -35,6 +36,7 @@ public sealed class ParseImportStep : IImportPipelineStep {
 						RawHtml = match?.RawHtml
 					};
 				}).ToList() ?? []
+				};
 			})];
 		}
 

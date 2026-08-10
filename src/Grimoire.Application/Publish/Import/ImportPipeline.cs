@@ -7,14 +7,17 @@ using System.Threading;
 using System.Threading.Tasks;
 using Grimoire.Domain.Common.Repository;
 using Microsoft.Extensions.Logging;
+using Service.Contract;
 
 public sealed partial class ImportPipeline(
 	IEnumerable<IImportPipelineStep> steps,
 	IUnitOfWork unitOfWork,
-	ILogger<ImportPipeline> logger) : IImportPipeline {
+	ILogger<ImportPipeline> logger,
+	ISeriesRevisionService revisionService) : IImportPipeline {
 	private readonly List<IImportPipelineStep> _steps = [.. steps.OrderBy(static s => s.Order)];
 
 	public async Task ExecuteAsync(ImportPipelineContext context, CancellationToken cancellationToken) {
+		using var revisionBatch = revisionService.Suppress();
 		await unitOfWork.BeginTransactionAsync(cancellationToken);
 		try {
 			foreach (var step in _steps) {

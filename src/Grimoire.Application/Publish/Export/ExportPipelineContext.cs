@@ -15,6 +15,7 @@ public sealed class ExportPipelineContext(Guid seriesId, BinderyRequestDto reque
 	public ExportResult? ExportResult { get; set; }
 	public Guid? AssetId { get; set; }
 	public JobResult? Result { get; set; }
+	public IReadOnlyList<PublishArtifactDto>? Artifacts { get; set; }
 
 	// Progress
 	public Action<int>? OnProgress { get; set; }

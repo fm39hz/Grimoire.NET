@@ -25,7 +25,7 @@ public partial class LocalStorageRepository(
 		CancellationToken cancellationToken = default) {
 		var hash = await ComputeHashAsync(content, cancellationToken);
 
-		var existing = await assetRepository.GetByFileHashAsync(hash, cancellationToken);
+		var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
 		if (existing is not null) {
 			return existing;
 		}
@@ -33,7 +33,7 @@ public partial class LocalStorageRepository(
 		var extension = Path.GetExtension(originalFileName).ToLowerInvariant();
 		var assetPath = prefix is not null
 			? Path.Combine(prefix, $"{hash}{extension}")
-			: Path.Combine("assets", $"{hash}{extension}");
+			: Path.Combine("series", seriesId.ToString("N"), "assets", $"{hash}{extension}");
 
 		var filePath = Path.Combine(StoragePath, assetPath);
 		Directory.CreateDirectory(Path.GetDirectoryName(filePath)!);

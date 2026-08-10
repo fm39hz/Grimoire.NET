@@ -5,6 +5,7 @@ using Configuration;
 using Domain.Entity.Book;
 using Domain.Entity.Book.Metadata;
 using Domain.Entity.Book.Segment;
+using Domain.Entity.Ingestion;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,6 +19,10 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 	[UsedImplicitly] public DbSet<AssetModel> Assets { get; set; } = null!;
 	[UsedImplicitly] public DbSet<SeriesExportRecord> SeriesExportRecords { get; set; } = null!;
 	[UsedImplicitly] public DbSet<IngestionAuditRecord> IngestionAuditRecords { get; set; } = null!;
+	[UsedImplicitly] public DbSet<ImportSourceModel> ImportSources { get; set; } = null!;
+	[UsedImplicitly] public DbSet<ImportBindingModel> ImportBindings { get; set; } = null!;
+	[UsedImplicitly] public DbSet<ImportRunModel> ImportRuns { get; set; } = null!;
+	[UsedImplicitly] public DbSet<SeriesResearchProfileModel> SeriesResearchProfiles { get; set; } = null!;
 
 	protected override void OnModelCreating(ModelBuilder modelBuilder) {
 		base.OnModelCreating(modelBuilder);
@@ -30,6 +35,9 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 
 		modelBuilder.Entity<SeriesModel>(static entity => {
 			entity.Property(static s => s.Id).ValueGeneratedOnAdd();
+			entity.Property(static s => s.Revision)
+				.IsConcurrencyToken()
+				.HasDefaultValue(0L);
 
 			entity.Property(static s => s.Title)
 				.HasMaxLength(500)
@@ -219,6 +227,46 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 			entity.Property(static e => e.SourceType).HasMaxLength(50).IsRequired();
 			entity.Property(static e => e.Status).HasMaxLength(50).IsRequired();
 			entity.HasIndex(static e => e.SeriesId);
+		});
+
+		modelBuilder.Entity<ImportSourceModel>(static entity => {
+			entity.Property(static source => source.ProducerId).HasMaxLength(200).IsRequired();
+			entity.Property(static source => source.ExternalKey).HasMaxLength(1000).IsRequired();
+			entity.Property(static source => source.Provider).HasMaxLength(200).IsRequired();
+			entity.Property(static source => source.Uri).HasMaxLength(2000);
+			entity.Property(static source => source.LastPackageHash).HasMaxLength(64);
+			entity.Property(static source => source.MetadataJson).HasColumnType("jsonb");
+			entity.HasIndex(static source => new { source.ProducerId, source.ExternalKey }).IsUnique();
+			entity.HasIndex(static source => source.TargetSeriesId);
+		});
+
+		modelBuilder.Entity<ImportBindingModel>(static entity => {
+			entity.Property(static binding => binding.ExternalNodeKey).HasMaxLength(1000).IsRequired();
+			entity.Property(static binding => binding.Role).HasMaxLength(50).IsRequired();
+			entity.Property(static binding => binding.LastImportedHash).HasMaxLength(64);
+			entity.Property(static binding => binding.BaseSnapshotKey).HasMaxLength(1000);
+			entity.HasIndex(static binding => new { binding.ImportSourceId, binding.ExternalNodeKey }).IsUnique();
+			entity.HasIndex(static binding => binding.TargetNodeId);
+		});
+
+		modelBuilder.Entity<ImportRunModel>(static entity => {
+			entity.Property(static run => run.ProducerId).HasMaxLength(200).IsRequired();
+			entity.Property(static run => run.IdempotencyKey).HasMaxLength(500).IsRequired();
+			entity.Property(static run => run.PackageHash).HasMaxLength(64).IsRequired();
+			entity.Property(static run => run.PackageJson).HasColumnType("jsonb");
+			entity.Property(static run => run.AnalysisJson).HasColumnType("jsonb");
+			entity.Property(static run => run.PlanJson).HasColumnType("jsonb");
+			entity.Property(static run => run.DecisionsJson).HasColumnType("jsonb");
+			entity.Property(static run => run.LegacyOutcomeJson).HasColumnType("jsonb");
+			entity.HasIndex(static run => new { run.ProducerId, run.IdempotencyKey }).IsUnique();
+			entity.HasIndex(static run => run.TargetSeriesId);
+			entity.HasIndex(static run => run.ImportSourceId);
+			entity.HasIndex(static run => run.Status);
+		});
+
+		modelBuilder.Entity<SeriesResearchProfileModel>(static entity => {
+			entity.Property(static profile => profile.ProfileJson).HasColumnType("jsonb");
+			entity.HasIndex(static profile => profile.SeriesId).IsUnique();
 		});
 	}
 }

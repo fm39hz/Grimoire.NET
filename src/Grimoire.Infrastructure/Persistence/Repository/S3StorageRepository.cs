@@ -45,12 +45,12 @@ public sealed partial class S3StorageRepository(
 
 		var hash = await ComputeHashAsync(content, cancellationToken);
 
-		var existing = await assetRepository.GetByFileHashAsync(hash, cancellationToken);
+		var existing = await assetRepository.GetBySeriesAndFileHashAsync(seriesId, hash, cancellationToken);
 		if (existing is not null) {
 			return existing;
 		}
 
-		var objectKey = BuildKey(originalFileName, hash, prefix);
+		var objectKey = BuildKey(originalFileName, hash, prefix ?? $"series/{seriesId:N}/assets");
 
 		LogUploadingToS3(logger, _config.BucketName, objectKey);
 		content.Seek(0, SeekOrigin.Begin);

@@ -86,15 +86,16 @@ public sealed class PublishService(
 			.FirstOrDefault() ?? "Unknown";
 
 		if (state == "Succeeded") {
+			JobResult? completedResult = null;
 			var succeeded = jobDetails.History.FirstOrDefault(h => h.StateName == "Succeeded");
 			if (succeeded?.Data is not null && succeeded.Data.TryGetValue("Result", out var resultValue) && !string.IsNullOrEmpty(resultValue)) {
 				try {
-					var result = SerializationHelper.Deserialize<JobResult>(resultValue);
-					if (result is { Success: false }) {
+					completedResult = SerializationHelper.Deserialize<JobResult>(resultValue);
+					if (completedResult is { Success: false }) {
 						return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
 							jobId,
 							"Failed",
-							Error: result.ErrorMessage ?? "Job execution failed"));
+							Error: completedResult.ErrorMessage ?? "Job execution failed"));
 					}
 				}
 				catch {
@@ -105,7 +106,10 @@ public sealed class PublishService(
 			return Task.FromResult<PublishJobStatusDto?>(new PublishJobStatusDto(
 				jobId,
 				"Completed",
-				DownloadUrl: $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}/download"));
+				DownloadUrl: $"/api/{RouteConstant.VERSION}/publish/jobs/{jobId}/download",
+				FileName: completedResult?.FileName,
+				ContentType: completedResult?.ContentType,
+				Artifacts: completedResult?.Artifacts));
 		}
 
 		if (state == "Failed") {

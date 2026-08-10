@@ -63,6 +63,8 @@ public sealed class SeriesSyncService(
 			}
 
 			await assetOwnershipService.ReconcileSeriesAsync(seriesId, cancellationToken);
+			series.AdvanceRevision(series.Revision);
+			await seriesRepository.Update(series, cancellationToken);
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
 		}
 		catch {

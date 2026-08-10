@@ -19,7 +19,7 @@ public sealed class DatabaseRecordStep(
 
 		await unitOfWork.BeginTransactionAsync(cancellationToken);
 		try {
-			var formatDir = context.Request.Format.ToString().ToLowerInvariant();
+		var formatDir = ExportRequestIdentity.Create(context.Request);
 			var prevRecord = await exportRecords.GetBySeriesAndFormatAsync(context.SeriesId, formatDir, cancellationToken);
 
 			if (prevRecord is not null) {
@@ -46,6 +46,7 @@ public sealed class DatabaseRecordStep(
 		context.Result = JobResult.Ok(
 			context.AssetId.Value.ToString(),
 			context.ExportResult.FileName,
-			context.ExportResult.ContentType);
+			context.ExportResult.ContentType,
+			context.Artifacts);
 	}
 }

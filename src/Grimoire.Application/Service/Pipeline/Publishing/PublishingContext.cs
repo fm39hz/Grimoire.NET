@@ -8,10 +8,11 @@ using Grimoire.Application.Service.Strategy;
 /// <summary>
 ///     Context representing the state of a publishing pipeline run
 /// </summary>
-public sealed class PublishingContext(Guid seriesId, ExportStructureDto structure, ExportFormat format) {
+public sealed class PublishingContext(Guid seriesId, BinderyRequestDto request) {
 	public Guid SeriesId { get; } = seriesId;
-	public ExportStructureDto Structure { get; } = structure;
-	public ExportFormat Format { get; } = format;
+	public BinderyRequestDto Request { get; } = request;
+	public ExportStructureDto Structure { get; } = request.Structure ?? ExportStructureDefaults.Standard();
+	public ExportFormat Format { get; } = request.Format;
 
 	// Context populated during the pipeline execution
 	public BookExportContext ExportContext { get; set; } = null!;

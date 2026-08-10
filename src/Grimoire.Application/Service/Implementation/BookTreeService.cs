@@ -16,13 +16,16 @@ using Dto.Common;
 using Grimoire.Domain.Common.ValueObject;
 using Mapper;
 using Microsoft.EntityFrameworkCore;
+using Ingestion.Reconciliation;
 
 public sealed class BookTreeService(
 	ISeriesRepository seriesRepository,
 	IVolumeRepository volumeRepository,
 	IChapterRepository chapterRepository,
 	IUnitOfWork unitOfWork,
-	IBookMapper mapper) : CrudServiceBase<VolumeModel>, IBookTreeService {
+	IBookMapper mapper,
+	ISegmentRepository? segmentRepository = null,
+	ISeriesRevisionService? revisionService = null) : CrudServiceBase<VolumeModel>, IBookTreeService {
 
 	private const string DefaultShelfId = "bookshelf:default";
 	private const string DefaultShelfTitle = "Book Shelf";
@@ -60,6 +63,14 @@ public sealed class BookTreeService(
 		var volumeIds = volumes.Select(v => v.Id).ToList();
 
 		var chapters = (await chapterRepository.FindByVolumeIds(volumeIds, cancellationToken)).ToList();
+		var contentHashes = new Dictionary<Guid, string>();
+		if (includeContent && segmentRepository is not null) {
+			var segments = (await segmentRepository.FindByChapterPaths(chapters.Select(static chapter => chapter.Path), cancellationToken)).ToList();
+			foreach (var chapter in chapters) {
+				contentHashes[chapter.Id] = BookContentFingerprint.Compute(
+					segments.Where(segment => segment.Path.IsDescendantOf(chapter.Path)));
+			}
+		}
 
 		var root = new BookTreeNodeDto {
 			Id = DefaultShelfId,
@@ -83,6 +94,7 @@ public sealed class BookTreeService(
 							Type = BookTreeNodeType.Chapter,
 							Title = c.Title,
 							Order = c.Order,
+							ContentHash = contentHashes.GetValueOrDefault(c.Id),
 							ParentId = PrefixedId.ToString(EntityPrefix.Volume, v.Id),
 							Children = []
 						})]
@@ -120,7 +132,9 @@ public sealed class BookTreeService(
 
 		mapper.UpdateSeries(dto, series);
 
-		return await ExecuteInTransaction(async () => await seriesRepository.Update(series, cancellationToken), cancellationToken);
+		var result = await ExecuteInTransaction(async () => await seriesRepository.Update(series, cancellationToken), cancellationToken);
+		if (revisionService is not null) await revisionService.AdvanceAsync(seriesId, cancellationToken);
+		return result;
 	}
 
 	public async Task<VolumeModel> CreateVolume(CreateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
@@ -128,11 +142,13 @@ public sealed class BookTreeService(
 		var series = await seriesRepository.FindOne(seriesId, cancellationToken) ??
 			throw new EntityNotFoundException($"Series with id {dto.SeriesId} not found");
 
-		return await ExecuteInTransaction(async () => {
+		var result = await ExecuteInTransaction(async () => {
 			var volume = mapper.CreateVolume(dto);
 			volume.Path = $"{series.Path}.n{volume.Id:N}";
 			return await volumeRepository.Create(volume, cancellationToken);
 		}, cancellationToken);
+		if (revisionService is not null) await revisionService.AdvanceAsync(seriesId, cancellationToken);
+		return result;
 	}
 
 	public async Task<VolumeModel> UpdateVolume(Guid volumeId, UpdateVolumeRequestDto dto, CancellationToken cancellationToken = default) {
@@ -150,6 +166,9 @@ public sealed class BookTreeService(
 			if (refreshed is not null) {
 				result = refreshed;
 			}
+		}
+		else if (revisionService is not null) {
+			await revisionService.AdvanceAsync(volume.Path.GetSeriesId(), cancellationToken);
 		}
 
 		return result;
@@ -186,7 +205,12 @@ public sealed class BookTreeService(
 			var oldPath = volume.Path;
 			BookPath newPath = $"{series.Path.Value}.n{volume.Id:N}";
 
+			var oldSeriesId = volume.Path.GetSeriesId();
 			await ExecuteInTransaction(async () => await volumeRepository.MoveVolumeAsync(volume.Id, oldPath, newPath, newOrder, cancellationToken), cancellationToken);
+			if (revisionService is not null) {
+				await revisionService.AdvanceAsync(oldSeriesId, cancellationToken);
+				if (oldSeriesId != newParentId.Value) await revisionService.AdvanceAsync(newParentId.Value, cancellationToken);
+			}
 			return;
 		}
 
@@ -202,7 +226,13 @@ public sealed class BookTreeService(
 			var oldPath = chapter.Path;
 			BookPath newPath = $"{parentVolume.Path.Value}.n{chapter.Id:N}";
 
+			var oldSeriesId = chapter.Path.GetSeriesId();
+			var newSeriesId = parentVolume.Path.GetSeriesId();
 			await ExecuteInTransaction(async () => await chapterRepository.MoveChapterAsync(chapter.Id, oldPath, newPath, newOrder, cancellationToken), cancellationToken);
+			if (revisionService is not null) {
+				await revisionService.AdvanceAsync(oldSeriesId, cancellationToken);
+				if (oldSeriesId != newSeriesId) await revisionService.AdvanceAsync(newSeriesId, cancellationToken);
+			}
 			return;
 		}
 
@@ -218,13 +248,17 @@ public sealed class BookTreeService(
 
 		var volume = await volumeRepository.FindOne(nodeId, cancellationToken);
 		if (volume is not null) {
+			var seriesId = volume.Path.GetSeriesId();
 			await ExecuteInTransaction(async () => await volumeRepository.DeleteSubtreeAsync(volume.Id, volume.Path, cancellationToken), cancellationToken);
+			if (revisionService is not null) await revisionService.AdvanceAsync(seriesId, cancellationToken);
 			return 1;
 		}
 
 		var chapter = await chapterRepository.FindOne(nodeId, cancellationToken);
 		if (chapter is not null) {
+			var seriesId = chapter.Path.GetSeriesId();
 			await ExecuteInTransaction(async () => await chapterRepository.DeleteSubtreeAsync(chapter.Id, chapter.Path, cancellationToken), cancellationToken);
+			if (revisionService is not null) await revisionService.AdvanceAsync(seriesId, cancellationToken);
 			return 1;
 		}
 
@@ -254,11 +288,13 @@ public sealed class BookTreeService(
 			targets.Add(vol);
 		}
 
+		var nextOrder = (await chapterRepository.FindByVolumeId(baseVolumeId, cancellationToken))
+			.Select(static chapter => chapter.Order).DefaultIfEmpty(0).Max() + 1;
 		foreach (var vol in targets) {
 			var chapters = await chapterRepository.FindByVolumeId(vol.Id, cancellationToken);
-			foreach (var chapter in chapters) {
+			foreach (var chapter in chapters.OrderBy(static chapter => chapter.Order)) {
 				// Order appended after base's chapters — fractional offset keeps uniqueness.
-				await MoveNode(chapter.Id, baseVolumeId, chapter.Order, cancellationToken);
+				await MoveNode(chapter.Id, baseVolumeId, nextOrder++, cancellationToken);
 			}
 			await DeleteSubtree(vol.Id, cancellationToken);
 		}

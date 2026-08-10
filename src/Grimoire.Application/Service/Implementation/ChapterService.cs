@@ -26,7 +26,8 @@ public sealed class ChapterService(
 	IBookMapper mapper,
 	IIngestionStrategyFactory strategyFactory,
 	IUnitOfWork unitOfWork,
-	IngestionCoordinator ingestionCoordinator) : CrudServiceBase<ChapterModel>, IChapterService {
+	IngestionCoordinator ingestionCoordinator,
+	ISeriesRevisionService? revisionService = null) : CrudServiceBase<ChapterModel>, IChapterService {
 
 	public async Task<ChapterModel?> FindOne(Guid id, CancellationToken cancellationToken = default) =>
 		await chapterRepository.FindOne(id, cancellationToken);
@@ -53,6 +54,7 @@ public sealed class ChapterService(
 
 			var (chapter, _) = await UpsertAsync(volumeId, dto, cancellationToken);
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
+			if (revisionService is not null) await revisionService.AdvanceAsync(chapter.Path.GetSeriesId(), cancellationToken);
 			return chapter;
 		}
 		catch {
@@ -97,6 +99,7 @@ public sealed class ChapterService(
 		}
 
 		var updated = await chapterRepository.Update(chapter, cancellationToken);
+		if (revisionService is not null) await revisionService.AdvanceAsync(updated.Path.GetSeriesId(), cancellationToken);
 		return updated;
 	}
 
@@ -160,6 +163,7 @@ public sealed class ChapterService(
 			}
 
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
+			if (revisionService is not null) await revisionService.AdvanceAsync(baseChapter.Path.GetSeriesId(), cancellationToken);
 
 			return baseChapter;
 		}
@@ -201,6 +205,7 @@ public sealed class ChapterService(
 			await chapterRepository.Update(splitResult.UpdatedOriginal, cancellationToken);
 
 			await unitOfWork.CommitTransactionAsync(cancellationToken);
+			if (revisionService is not null) await revisionService.AdvanceAsync(originalChapter.Path.GetSeriesId(), cancellationToken);
 
 			return splitResult.NewChapters;
 		}

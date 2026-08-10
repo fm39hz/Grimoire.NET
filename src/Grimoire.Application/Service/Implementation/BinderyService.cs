@@ -10,8 +10,7 @@ using Strategy;
 
 public sealed class BinderyService(PublishingCoordinator publishingCoordinator) : IBinderyService {
 	public async Task<ExportResult> ExportSeriesAsync(Guid seriesId, BinderyRequestDto request, CancellationToken cancellationToken = default) {
-		var structure = request.Structure ?? ExportStructureDefaults.Standard();
-		var context = new PublishingContext(seriesId, structure, request.Format);
+		var context = new PublishingContext(seriesId, request);
 
 		return await publishingCoordinator.ExecuteAsync(context, cancellationToken);
 	}

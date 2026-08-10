@@ -57,6 +57,9 @@ public sealed partial class ImportJob(IServiceScopeFactory scopeFactory, IJobPro
 		pipelineContext.OnProgress = progress => ctx.Progress.Report(progress, pipelineContext.CurrentStage);
 
 		await pipeline.ExecuteAsync(pipelineContext, cancellationToken);
+		if (pipelineContext.Result is { Success: true }) {
+			await storage.DeleteFileByPathAsync(_fileKey, cancellationToken);
+		}
 
 		if (pipelineContext.Result is not null) {
 			LogImportJobCompleted(ctx.Logger, jobId, pipelineContext.Series?.Id,
