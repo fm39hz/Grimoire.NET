@@ -12,8 +12,9 @@
 
 	<ItemGroup>
 		<PackageReference Include="FluentValidation"/>
-		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
+		<PackageReference Include="Markdig"/>
 		<PackageReference Include="Microsoft.Extensions.Logging.Abstractions"/>
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions"/>
 		<PackageReference Include="Riok.Mapperly"/>
 		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
 	</ItemGroup>

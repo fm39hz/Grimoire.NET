@@ -3,6 +3,7 @@ namespace Grimoire.Infrastructure.Export.Epub;
 using System.IO.Compression;
 using System.Text;
 using System.Threading;
+using System.Web;
 using Common;
 using Domain.Entity.Book;
 using Grimoire.Application.Dto.Book;
@@ -34,8 +35,10 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 	private string _language = EpubConstants.Defaults.LANGUAGE;
 	private List<string>? _tags;
 	private string? _coverImagePath;
-	private Guid? _sharedIdentifier;
+	private string? _sharedIdentifier;
 	private ExportLocalizationDto _localization = new();
+	private string? _isbn;
+	private Guid? _seriesId;
 
 	// ── IPackageBuilder ────────────────────────────────────────────────────
 
@@ -46,6 +49,8 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		_description = metadata.PlainTextDescription;
 		_tags = metadata.Tags?.ToList();
 		_localization = metadata.Localization ?? new ExportLocalizationDto();
+		_isbn = string.IsNullOrWhiteSpace(metadata.Isbn) ? null : metadata.Isbn.Trim();
+		_seriesId = metadata.SeriesId;
 	}
 
 	public void AddAsset(string resolvedFileName, Func<Task<Stream?>> streamProvider, AssetRefType refType) {
@@ -222,10 +227,10 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 			spineItems.Add(new { IdRef = nlId, Linear = (string?)"no" });
 		}
 
-		_sharedIdentifier = Guid.NewGuid();
+		_sharedIdentifier = ResolveStableIdentifier();
 
 		var xml = templateEngine.Render("epub_content_opf", new {
-			Uid = _sharedIdentifier.Value,
+			Uid = _sharedIdentifier,
 			Title = _title ?? EpubConstants.Defaults.UNTITLED_BOOK,
 			Author = _author,
 			Description = _description,
@@ -233,6 +238,7 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 			Language = _language,
 			ModifiedDate = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
 			CoverImagePath = _coverImagePath,
+			Isbn = HttpUtility.HtmlEncode(_isbn),
 			ManifestItems = manifestItems,
 			SpineItems = spineItems
 		});
@@ -249,12 +255,27 @@ public class EpubPackageBuilder(ITemplateEngine templateEngine) : IPackageBuilde
 		}
 
 		var xml = templateEngine.Render("epub_toc_ncx", new {
-			Uid = _sharedIdentifier ?? Guid.NewGuid(),
+			Uid = _sharedIdentifier ?? Guid.NewGuid().ToString("N"),
 			Title = _title ?? EpubConstants.Defaults.UNTITLED_BOOK,
 			NavPoints = flatNavPoints
 		});
 
 		AddResource(EpubResource.FromText(EpubConstants.Paths.TOC_NCX_FILE, xml));
+	}
+
+	/// <summary>
+	///     Derives a stable package <c>uid</c> so re-exporting the same series
+	///     produces the same <c>dc:identifier</c> instead of a fresh random GUID
+	///     each time (which makes library software treat re-exports as new books).
+	///     Priority: ISBN (when the package represents a single volume), else the
+	///     series id rendered as a lowercase hex GUID string.
+	/// </summary>
+	private string ResolveStableIdentifier() {
+		if (!string.IsNullOrWhiteSpace(_isbn)) {
+			return $"urn:isbn:{_isbn}";
+		}
+
+		return _seriesId is { } id ? id.ToString("N") : Guid.NewGuid().ToString("N");
 	}
 
 	private static void ProcessNavPoint(NavPoint nav, List<object> target, ref int order) {

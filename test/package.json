@@ -7,8 +7,9 @@
 		"test": "bun test"
 	},
 	"devDependencies": {
+		"@types/bun": "latest",
 		"@types/jest": "^30.0.0",
-		"@types/bun": "latest"
+		"fflate": "^0.8.3"
 	},
 	"peerDependencies": {
 		"typescript": "^5"

@@ -13,5 +13,11 @@ public sealed record TextRunDto(
 	[property : JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
 	bool IsItalic = false,
 	[property : JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-	string? FootnoteId = null
+	string? FootnoteId = null,
+	[property : JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	bool IsStrikethrough = false,
+	[property : JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	bool IsHighlight = false,
+	[property : JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+	bool IsCode = false
 	);

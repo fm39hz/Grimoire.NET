@@ -50,6 +50,13 @@ public class BookExportContext {
 	/// </summary>
 	public string? PlainTextDescription { get; init; }
 
+	/// <summary>
+	///     ISBN of the volume the package represents, or null when the package
+	///     has no single-volume identity (Anthology, or Single volume lacking a
+	///     configured ISBN). Trimmed; whitespace-only values become null.
+	/// </summary>
+	public string? Isbn { get; init; }
+
 	/// <summary>Export structure (sections, global CSS) from the original request.</summary>
 	public required ExportStructureDto Structure { get; init; }
 }

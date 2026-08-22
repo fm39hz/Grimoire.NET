@@ -64,6 +64,24 @@ public static class JsonConfiguration {
 			JsonOptions)!
 		);
 
+	public static readonly ValueComparer<List<TableCell>> TableCellListComparer = new(
+		static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+					JsonSerializer.Serialize(c2, JsonOptions),
+		static c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		static c => JsonSerializer.Deserialize<List<TableCell>>(
+			JsonSerializer.Serialize(c, JsonOptions),
+			JsonOptions)!
+		);
+
+	public static readonly ValueComparer<List<List<TableCell>>> TableRowListComparer = new(
+		static (c1, c2) => JsonSerializer.Serialize(c1, JsonOptions) ==
+					JsonSerializer.Serialize(c2, JsonOptions),
+		static c => JsonSerializer.Serialize(c, JsonOptions).GetHashCode(),
+		static c => JsonSerializer.Deserialize<List<List<TableCell>>>(
+			JsonSerializer.Serialize(c, JsonOptions),
+			JsonOptions)!
+		);
+
 	public static void ApplyTo(JsonSerializerOptions target) {
 		target.PropertyNamingPolicy = JsonOptions.PropertyNamingPolicy;
 		target.PropertyNameCaseInsensitive = JsonOptions.PropertyNameCaseInsensitive;

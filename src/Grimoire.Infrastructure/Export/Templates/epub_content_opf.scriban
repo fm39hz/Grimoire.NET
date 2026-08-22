@@ -2,6 +2,7 @@
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:identifier id="uid">{{ uid }}</dc:identifier>
+    {{ if isbn }}<dc:identifier id="isbn-id">urn:isbn:{{ isbn }}</dc:identifier>{{ end }}
     <dc:title>{{ title }}</dc:title>
     {{ if author }}<dc:creator>{{ author }}</dc:creator>{{ end }}
     {{ if description }}<dc:description>{{ description }}</dc:description>{{ end }}

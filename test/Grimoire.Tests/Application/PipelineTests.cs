@@ -42,7 +42,7 @@ public sealed class PipelineTests {
 		});
 
 		var strategyFactory = new IngestionStrategyFactory([
-			new RawMarkdownIngestionStrategy(volumes)
+			new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), volumes)
 		]);
 
 		var steps = new List<IIngestionPipelineStep> {

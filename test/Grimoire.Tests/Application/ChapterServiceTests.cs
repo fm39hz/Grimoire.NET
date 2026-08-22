@@ -38,7 +38,7 @@ public class ChapterServiceTests {
 			BookTree = new BookTreeService(Series, Volumes, Chapters, new NoOpUnitOfWork(), mapper);
 			var strategyFactory = new IngestionStrategyFactory([
 				new PreProcessedIngestionStrategy(new BookMapper()),
-				new RawMarkdownIngestionStrategy(Volumes)
+				new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), Volumes)
 			]);
 			var unitOfWork = new NoOpUnitOfWork();
 			var ingestionCoordinator = new IngestionCoordinator(

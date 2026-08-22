@@ -17,8 +17,8 @@ public sealed class SegmentDtoValidator : AbstractValidator<SegmentDto> {
 		RuleFor(static s => s).SetInheritanceValidator(v => {
 			v.Add(new TextSegmentDtoValidator());
 			v.Add(new ImageSegmentDtoValidator());
-			v.Add(new DividerSegmentDtoValidator());
 			v.Add(new FootnoteSegmentDtoValidator());
+			v.Add(new TableSegmentDtoValidator());
 		});
 	}
 
@@ -58,6 +58,17 @@ public sealed class SegmentDtoValidator : AbstractValidator<SegmentDto> {
 		public FootnoteSegmentDtoValidator() {
 			RuleForEach(static f => f.Segments)
 				.SetValidator(new TextSegmentDtoValidator());
+		}
+	}
+
+	public sealed class TableSegmentDtoValidator : AbstractValidator<TableSegmentDto> {
+		public TableSegmentDtoValidator() {
+			RuleFor(static t => t.Header)
+				.NotEmpty()
+				.WithMessage("A table segment must have at least one header cell.");
+			RuleForEach(static t => t.Rows)
+				.Must(static row => row is not null)
+				.WithMessage("A table row must not be null.");
 		}
 	}
 }

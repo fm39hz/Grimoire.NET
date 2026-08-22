@@ -15,6 +15,7 @@ public partial class BookMapper {
 		ImageSegmentDto i => MapToImageSegment(i),
 		DividerSegmentDto d => MapToDividerSegment(d),
 		FootnoteSegmentDto f => MapToFootnoteSegment(f),
+		TableSegmentDto tb => MapToTableSegment(tb),
 		_ => throw new NotSupportedException($"Segment type '{dto.GetType().Name}' mapping is not supported.")
 	};
 
@@ -24,7 +25,10 @@ public partial class BookMapper {
 			r.Text,
 			r.IsBold,
 			r.IsItalic,
-			r.FootnoteId))]
+			r.FootnoteId,
+			r.IsStrikethrough,
+			r.IsHighlight,
+			r.IsCode))]
 	};
 
 	public ImageSegmentModel MapToImageSegment(ImageSegmentDto dto) => new() {
@@ -43,11 +47,30 @@ public partial class BookMapper {
 		Segments = [.. dto.Segments.Select(MapToTextSegment)]
 	};
 
+	public TableSegmentModel MapToTableSegment(TableSegmentDto dto) => new() {
+		Id = ParseId(dto.Id),
+		Header = [.. dto.Header.Select(MapToTableCell)],
+		Rows = [.. dto.Rows.Select(static row => row.Select(MapToTableCell).ToList())]
+	};
+
+	private static TableCell MapToTableCell(TableCellDto cell) =>
+		new([.. (cell.Runs ?? []).Select(static r => new TextRun(
+			r.Text,
+			r.IsBold,
+			r.IsItalic,
+			r.FootnoteId,
+			r.IsStrikethrough,
+			r.IsHighlight,
+			r.IsCode))]);
+
 	public TextRunDto MapToTextRunDto(TextRun run) => new(
 		run.Text,
 		run.IsBold,
 		run.IsItalic,
-		run.FootnoteId);
+		run.FootnoteId,
+		run.IsStrikethrough,
+		run.IsHighlight,
+		run.IsCode);
 
 	/// <summary>
 	///     Converts a domain <see cref="SegmentModel"/> back to its wire <see cref="SegmentDto"/>.
@@ -71,8 +94,16 @@ public partial class BookMapper {
 			Id = f.Id.ToString(),
 			Segments = [.. f.Segments.Select(ToTextSegmentDto)]
 		},
+		TableSegmentModel tb => new TableSegmentDto {
+			Id = tb.Id.ToString(),
+			Header = [.. tb.Header.Select(ToTableCellDto)],
+			Rows = [.. tb.Rows.Select(row => row.Select(cell => ToTableCellDto(cell)).ToList())]
+		},
 		_ => throw new NotSupportedException($"Segment type '{model.GetType().Name}' mapping is not supported.")
 	};
+
+	private TableCellDto ToTableCellDto(TableCell cell) =>
+		new([.. cell.Runs.Select(r => MapToTextRunDto(r))]);
 
 	private static Guid ParseId(string? id) =>
 		Guid.TryParse(id, out var guid) ? guid : Guid.CreateVersion7();

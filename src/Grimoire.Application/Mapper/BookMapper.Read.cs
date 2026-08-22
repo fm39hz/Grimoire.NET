@@ -58,6 +58,7 @@ public partial class BookMapper {
 		ImageSegmentModel i => ToImageDto(i),
 		DividerSegmentModel d => ToDividerDto(d),
 		FootnoteSegmentModel f => ToFootnoteDto(f),
+		TableSegmentModel tb => (TableSegmentDto)ToSegmentDto(tb),
 		_ => throw new NotSupportedException($"Segment type '{model.GetType().Name}' mapping is not supported.")
 	};
 

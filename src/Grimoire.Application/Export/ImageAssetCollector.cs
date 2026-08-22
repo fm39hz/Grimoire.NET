@@ -10,12 +10,14 @@ using Domain.Common;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Service.Contract;
 
-public class ImageAssetCollector(
+public partial class ImageAssetCollector(
 	IAssetRepository assetRepository,
 	ISegmentRepository segmentRepository,
-	IStorageService storageService) {
+	IStorageService storageService,
+	ILogger<ImageAssetCollector> logger) {
 
 	public async Task<IReadOnlyDictionary<string, ResolvedAsset>> CollectAsync(
 		List<VolumeModel> volumes,
@@ -32,11 +34,13 @@ public class ImageAssetCollector(
 		var result = new Dictionary<string, ResolvedAsset>();
 		foreach (var entry in assetKeyToIdMap) {
 			if (!assets.TryGetValue(entry.Value, out var asset)) {
+				LogAssetMissing(entry.Key, entry.Value);
 				continue;
 			}
 
 			var capturedId = entry.Value;
-			if (!await StreamExistsAsync(capturedId, cancellationToken)) {
+			if (!await AssetStreamProbe.IsReadableAsync(storageService, capturedId, cancellationToken)) {
+				LogStreamUnreadable(entry.Key, capturedId);
 				continue;
 			}
 
@@ -95,6 +99,7 @@ public class ImageAssetCollector(
 			}
 
 			if (!PrefixedId.TryToGuid(coverKey, EntityPrefix.Asset, out var id)) {
+				LogInvalidCoverKey(volume.Id, coverKey);
 				continue;
 			}
 
@@ -108,18 +113,12 @@ public class ImageAssetCollector(
 		return result;
 	}
 
-	private async Task<bool> StreamExistsAsync(Guid assetId, CancellationToken cancellationToken) {
-		try {
-			var result = await storageService.GetFileStreamAsync(assetId, cancellationToken);
-			if (result == null) {
-				return false;
-			}
+	[LoggerMessage(LogLevel.Warning, "Export asset {AssetKey} (id {AssetId}) was not found in the repository and will be omitted from the package.")]
+	partial void LogAssetMissing(string assetKey, Guid assetId);
 
-			await result.Stream.DisposeAsync();
-			return true;
-		}
-		catch {
-			return false;
-		}
-	}
+	[LoggerMessage(LogLevel.Warning, "Export asset {AssetKey} (id {AssetId}) has an empty or unreadable backing stream and will be omitted from the package.")]
+	partial void LogStreamUnreadable(string assetKey, Guid assetId);
+
+	[LoggerMessage(LogLevel.Warning, "Volume {VolumeId} references a cover image with an invalid asset key '{CoverKey}'; cover will be omitted for this volume.")]
+	partial void LogInvalidCoverKey(Guid volumeId, string coverKey);
 }

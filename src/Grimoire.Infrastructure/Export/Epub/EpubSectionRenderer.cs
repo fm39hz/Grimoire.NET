@@ -104,12 +104,40 @@ public partial class EpubSectionRenderer(
 					sb.Append($"<aside class=\"footnote-inline\">{RenderFootnoteContent(fs, style)}</aside>");
 				}
 				break;
+			case TableSegmentModel table:
+				sb.Append(RenderTableXhtml(table, footnoteMap, endnotesFile, style));
+				break;
 			default:
 				break;
 		}
 	}
 
+	private static string RenderTableXhtml(TableSegmentModel table, Dictionary<string, int> footnoteMap,
+		string? endnotesFile, FootnoteStyle style) {
+		if (table.Header.Count == 0) {
+			return string.Empty;
+		}
+
+		var sb = new StringBuilder("<table>");
+		sb.Append("<thead><tr>");
+		foreach (var headerCell in table.Header) {
+			sb.Append($"<th>{RenderTextRuns(headerCell.Runs, footnoteMap, endnotesFile, style)}</th>");
+		}
+		sb.Append("</tr></thead><tbody>");
+		foreach (var row in table.Rows) {
+			sb.Append("<tr>");
+			for (var i = 0; i < table.Header.Count; i++) {
+				var runs = i < row.Count ? row[i].Runs : [];
+				sb.Append($"<td>{RenderTextRuns(runs, footnoteMap, endnotesFile, style)}</td>");
+			}
+			sb.Append("</tr>");
+		}
+		sb.Append("</tbody></table>");
+		return sb.ToString();
+	}
+
 	// ── Footnote map & text run rendering ─────────────────────────────────
+
 
 	private static Dictionary<string, int> BuildFootnoteMap(List<SegmentModel> segments) {
 		var counter = 1;
@@ -142,7 +170,7 @@ public partial class EpubSectionRenderer(
 		var sb = new StringBuilder();
 		foreach (var run in runs) {
 			var text = HttpUtility.HtmlEncode(run.Text);
-			text = FormatText(text, run.IsBold, run.IsItalic);
+			text = FormatText(text, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode);
 
 			if (!string.IsNullOrEmpty(run.FootnoteId) && footnoteMap != null &&
 				footnoteMap.TryGetValue(run.FootnoteId, out var footnoteNumber)) {
@@ -179,7 +207,7 @@ public partial class EpubSectionRenderer(
 			if (i == firstTextRunIndex) {
 				var text = HttpUtility.HtmlEncode(run.Text);
 				if (ExportUtilities.TryExtractDropcapParts(text, out var prefix, out var dropcapChar, out var suffix)) {
-					var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic);
+					var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode);
 					var dropcapSpan = $"<span class=\"dropcap\">{dropcapChar}</span>";
 					var fullText = prefix + dropcapSpan + formattedSuffix;
 
@@ -204,13 +232,24 @@ public partial class EpubSectionRenderer(
 		return sb.ToString();
 	}
 
-	private static string FormatText(string text, bool isBold, bool isItalic) =>
-		(isBold, isItalic) switch {
+	private static string FormatText(string text, bool isBold, bool isItalic, bool isStrikethrough = false, bool isHighlight = false, bool isCode = false) {
+		var result = (isBold, isItalic) switch {
 			(true, true) => $"<strong><em>{text}</em></strong>",
 			(true, false) => $"<strong>{text}</strong>",
 			(false, true) => $"<em>{text}</em>",
 			_ => text
 		};
+		if (isCode) {
+			result = $"<code>{result}</code>";
+		}
+		if (isStrikethrough) {
+			result = $"<del>{result}</del>";
+		}
+		if (isHighlight) {
+			result = $"<mark>{result}</mark>";
+		}
+		return result;
+	}
 
 	// ── Inline footnotes (current behavior) ───────────────────────────────
 
@@ -353,7 +392,7 @@ public partial class EpubSectionRenderer(
 							? path
 							: null,
 					volume.Metadata?.PublicationDate,
-					volume.Metadata?.Isbn,
+					Isbn = HttpUtility.HtmlEncode(volume.Metadata?.Isbn),
 					context.Structure.Localization
 				});
 			var volFileName = builder.AddPage(volId, volHtml, PageRole.VolumeTitle);

@@ -61,6 +61,7 @@ public static class DependencyInjection {
 		services.AddScoped<BookExportOrchestrator>();
 
 		// Register ingestion strategies in priority order
+		services.AddSingleton<MarkdownSegmentParser>();
 		services.AddScoped<IIngestionStrategy, PreProcessedIngestionStrategy>();
 		services.AddScoped<IIngestionStrategy, RawMarkdownIngestionStrategy>();
 		services.AddScoped<IIngestionStrategyFactory, IngestionStrategyFactory>();

@@ -146,6 +146,7 @@ public static class SegmentMarkdownConverter {
 			TextSegmentDto textSegment => ConvertTextSegmentDtoToMarkdown(textSegment, footnoteMap),
 			ImageSegmentDto imageSegment => ConvertImageSegmentDtoToMarkdown(imageSegment),
 			DividerSegmentDto dividerSegment => ConvertDividerSegmentDtoToMarkdown(dividerSegment),
+			TableSegmentDto tableSegment => ConvertTableSegmentDtoToMarkdown(tableSegment),
 			_ => string.Empty
 		};
 
@@ -177,15 +178,7 @@ public static class SegmentMarkdownConverter {
 			}
 
 			// Apply formatting around text (including footnote reference)
-			if (run.IsBold && run.IsItalic) {
-				text = $"***{text}***";
-			}
-			else if (run.IsBold) {
-				text = $"**{text}**";
-			}
-			else if (run.IsItalic) {
-				text = $"*{text}*";
-			}
+			text = WrapRunFormatting(text, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode);
 
 			sb.Append(text);
 		}
@@ -199,6 +192,23 @@ public static class SegmentMarkdownConverter {
 	}
 
 	private static string ConvertDividerSegmentDtoToMarkdown(DividerSegmentDto segment) => segment.Style;
+	private static string ConvertTableSegmentDtoToMarkdown(TableSegmentDto segment) {
+		if (segment.Header.Count == 0) {
+			return string.Empty;
+		}
+
+		return RenderPipeTable(
+			segment.Header.Select(static h => ConvertCellDtoToMarkdown(h)),
+			segment.Rows.Select(static row => row.Select(ConvertCellDtoToMarkdown)));
+	}
+
+	private static string ConvertCellDtoToMarkdown(TableCellDto cell) {
+		var sb = new StringBuilder();
+		foreach (var run in cell.Runs ?? []) {
+			sb.Append(WrapRunFormatting(run.Text, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode));
+		}
+		return sb.ToString();
+	}
 
 	private static void AppendFootnoteDefinitionsFromDto(StringBuilder sb, List<FootnoteSegmentDto> footnotes,
 		Dictionary<string, int> footnoteMap) {
@@ -254,6 +264,7 @@ public static class SegmentMarkdownConverter {
 			TextSegmentModel textSegment => ConvertTextSegmentModelToMarkdown(textSegment, footnoteMap),
 			ImageSegmentModel imageSegment => ConvertImageSegmentModelToMarkdown(imageSegment),
 			DividerSegmentModel dividerSegment => ConvertDividerSegmentModelToMarkdown(dividerSegment),
+			TableSegmentModel tableSegment => ConvertTableSegmentModelToMarkdown(tableSegment),
 			_ => string.Empty
 		};
 
@@ -285,15 +296,7 @@ public static class SegmentMarkdownConverter {
 			}
 
 			// Apply formatting around text (including footnote reference)
-			if (run.IsBold && run.IsItalic) {
-				text = $"***{text}***";
-			}
-			else if (run.IsBold) {
-				text = $"**{text}**";
-			}
-			else if (run.IsItalic) {
-				text = $"*{text}*";
-			}
+			text = WrapRunFormatting(text, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode);
 
 			sb.Append(text);
 		}
@@ -307,6 +310,59 @@ public static class SegmentMarkdownConverter {
 	}
 
 	private static string ConvertDividerSegmentModelToMarkdown(DividerSegmentModel segment) => segment.Style;
+
+
+	private static string ConvertTableSegmentModelToMarkdown(TableSegmentModel segment) {
+		if (segment.Header.Count == 0) {
+			return string.Empty;
+		}
+
+		return RenderPipeTable(
+			segment.Header.Select(static h => ConvertCellModelToMarkdown(h)),
+			segment.Rows.Select(static row => row.Select(ConvertCellModelToMarkdown)));
+	}
+
+	private static string ConvertCellModelToMarkdown(TableCell cell) {
+		var sb = new StringBuilder();
+		foreach (var run in cell.Runs) {
+			sb.Append(WrapRunFormatting(run.Text, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode));
+		}
+		return sb.ToString();
+	}
+
+	private static string WrapRunFormatting(string text, bool isBold, bool isItalic, bool isStrikethrough = false, bool isHighlight = false, bool isCode = false) {
+		text = (isBold, isItalic) switch {
+			(true, true) => $"***{text}***",
+			(true, false) => $"**{text}**",
+			(false, true) => $"*{text}*",
+			_ => text
+		};
+		if (isStrikethrough) {
+			text = $"~~{text}~~";
+		}
+		if (isCode) {
+			text = $"`{text}`";
+		}
+		if (isHighlight) {
+			text = $"=={text}==";
+		}
+		return text;
+	}
+
+	private static string RenderPipeTable(IEnumerable<string> headerCells, IEnumerable<IEnumerable<string>> rows) {
+		var header = headerCells.ToList();
+		var sb = new StringBuilder();
+		sb.AppendLine($"| {string.Join(" | ", header)} |");
+		sb.AppendLine($"| {string.Join(" | ", header.Select(_ => "---"))} |");
+		foreach (var row in rows) {
+			var cells = row.ToList();
+			while (cells.Count < header.Count) {
+				cells.Add(" ");
+			}
+			sb.AppendLine($"| {string.Join(" | ", cells.Take(header.Count))} |");
+		}
+		return sb.ToString().TrimEnd();
+	}
 
 	private static void AppendFootnoteDefinitionsFromModel(StringBuilder sb, List<FootnoteSegmentModel> footnotes,
 		Dictionary<string, int> footnoteMap) {

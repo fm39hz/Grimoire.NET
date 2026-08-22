@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(ImageSegmentDto), "Image")]
 [JsonDerivedType(typeof(DividerSegmentDto), "Divider")]
 [JsonDerivedType(typeof(FootnoteSegmentDto), "Footnote")]
+[JsonDerivedType(typeof(TableSegmentDto), "Table")]
 public abstract record SegmentDto {
 	public string Id { get; init; } = string.Empty;
 }

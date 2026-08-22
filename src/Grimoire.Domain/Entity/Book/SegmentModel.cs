@@ -14,6 +14,7 @@ using Segment;
 [JsonDerivedType(typeof(ImageSegmentModel), "Image")]
 [JsonDerivedType(typeof(DividerSegmentModel), "Divider")]
 [JsonDerivedType(typeof(FootnoteSegmentModel), "Footnote")]
+[JsonDerivedType(typeof(TableSegmentModel), "Table")]
 public abstract class SegmentModel : BaseModel {
 
 	/// <summary>

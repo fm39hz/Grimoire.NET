@@ -1,26 +1,19 @@
 namespace Grimoire.Application.Service.Strategy;
 
-using System.Text.RegularExpressions;
 using System.Threading;
 using Domain.Common.Repository;
 using Domain.Entity.Book;
-using Domain.Entity.Book.Segment;
 using Dto.Book;
 
 /// <summary>
-///     Strategy for ingesting raw Markdown content
+///     Strategy for ingesting raw Markdown content.
+///     Parsing is delegated to <see cref="MarkdownSegmentParser"/>, which maps paragraphs,
+///     inline formatting, images, dividers, footnotes and tables onto typed segments and
+///     preserves every other construct verbatim inside text segments.
 /// </summary>
-public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeRepository) : IIngestionStrategy {
-	[GeneratedRegex("<[^>]+>")] private static partial Regex HtmlTagRegex { get; }
+public class RawMarkdownIngestionStrategy(MarkdownSegmentParser parser, IVolumeRepository volumeRepository) : IIngestionStrategy {
 
-	public bool CanHandle(CreateChapterRequestDto dto) {
-		if (string.IsNullOrWhiteSpace(dto.RawContent)) {
-			return false;
-		}
-
-		// Check if content contains HTML tags (simple validation)
-		return !HtmlTagRegex.IsMatch(dto.RawContent);
-	}
+	public bool CanHandle(CreateChapterRequestDto dto) => !string.IsNullOrWhiteSpace(dto.RawContent);
 
 	public async Task<IngestionResult> ExecuteAsync(CreateChapterRequestDto dto, Guid volumeId, CancellationToken cancellationToken = default) {
 		if (!CanHandle(dto)) {
@@ -36,23 +29,7 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 
 		var seriesId = volume.Path.GetSeriesId();
 
-		// Parse RawContent into segments (simple split by newline)
-		var lines = dto.RawContent!.Split('\n', StringSplitOptions.RemoveEmptyEntries);
-		var segments = new List<SegmentModel>();
-		var order = 1.0;
-
-		foreach (var line in lines) {
-			var trimmedLine = line.Trim();
-			if (!string.IsNullOrWhiteSpace(trimmedLine)) {
-				segments.Add(new TextSegmentModel {
-					Id = Guid.CreateVersion7(),
-					Runs = [
-						new TextRun(trimmedLine)
-					],
-					Order = order++
-				});
-			}
-		}
+		var parsed = parser.Parse(dto.RawContent!);
 
 		// Create SourceMaterial for backup with the correct SeriesId
 		var source = new SourceMaterial {
@@ -69,6 +46,6 @@ public partial class RawMarkdownIngestionStrategy(IVolumeRepository volumeReposi
 			Status = ChapterStatus.Draft
 		};
 
-		return new IngestionResult(chapter, segments, source);
+		return new IngestionResult(chapter, parsed.Segments, source);
 	}
 }

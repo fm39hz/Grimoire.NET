@@ -166,11 +166,11 @@ public sealed class BookRestructureTests {
 				segments,
 				bookTree,
 				mapper,
-				new IngestionStrategyFactory([new PreProcessedIngestionStrategy(mapper), new RawMarkdownIngestionStrategy(volumes)]),
+				new IngestionStrategyFactory([new PreProcessedIngestionStrategy(mapper), new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), volumes)]),
 				new NoOpUnitOfWork(),
 				new IngestionCoordinator(
 					[
-						new ParseContentStep(new IngestionStrategyFactory([new PreProcessedIngestionStrategy(mapper), new RawMarkdownIngestionStrategy(volumes)])),
+						new ParseContentStep(new IngestionStrategyFactory([new PreProcessedIngestionStrategy(mapper), new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), volumes)])),
 						new PersistenceStep(chapters, volumes, segments, new InMemorySourceMaterialRepository()),
 						new LcaOwnershipStep(new FakeAssetOwnershipService())
 					],

@@ -235,6 +235,7 @@ public partial class MarkdownSectionRenderer(
 			TextSegmentModel textSegment => ConvertTextSegmentToMarkdown(textSegment, footnoteMap, style, enableDropcap, ref isFirstText),
 			ImageSegmentModel imageSegment => ConvertImageSegmentToMarkdown(imageSegment),
 			DividerSegmentModel dividerSegment => ConvertDividerSegmentToMarkdown(dividerSegment),
+			TableSegmentModel tableSegment => ConvertTableSegmentToMarkdown(tableSegment),
 			_ => string.Empty
 		};
 
@@ -263,7 +264,7 @@ public partial class MarkdownSectionRenderer(
 				if (i == firstTextRunIndex) {
 					var text = run.Text;
 					if (ExportUtilities.TryExtractDropcapParts(text, out var prefix, out var dropcapChar, out var suffix)) {
-						var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic);
+						var formattedSuffix = FormatText(suffix, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode);
 						var dropcapSpan = $"<span class=\"dropcap\">{dropcapChar}</span>";
 						var fullText = prefix + dropcapSpan + formattedSuffix;
 
@@ -307,19 +308,51 @@ public partial class MarkdownSectionRenderer(
 				text += $"[^{footnoteIndex}]";
 			}
 
-			text = FormatText(text, run.IsBold, run.IsItalic);
+			text = FormatText(text, run.IsBold, run.IsItalic, run.IsStrikethrough, run.IsHighlight, run.IsCode);
 			sb.Append(text);
 		}
 		return sb.ToString();
 	}
 
-	private static string FormatText(string text, bool isBold, bool isItalic) =>
-		(isBold, isItalic) switch {
+	private static string FormatText(string text, bool isBold, bool isItalic, bool isStrikethrough = false, bool isHighlight = false, bool isCode = false) {
+		var result = (isBold, isItalic) switch {
 			(true, true) => $"***{text}***",
 			(true, false) => $"**{text}**",
 			(false, true) => $"*{text}*",
 			_ => text
 		};
+		if (isStrikethrough) {
+			result = $"~~{result}~~";
+		}
+		if (isCode) {
+			result = $"`{result}`";
+		}
+		if (isHighlight) {
+			result = $"=={result}==";
+		}
+		return result;
+	}
+
+	private static string ConvertTableSegmentToMarkdown(TableSegmentModel segment) {
+		if (segment.Header.Count == 0) {
+			return string.Empty;
+		}
+
+		var sb = new StringBuilder();
+		sb.AppendLine($"| {string.Join(" | ", segment.Header.Select(ConvertCellToMarkdown))} |");
+		sb.AppendLine($"| {string.Join(" | ", segment.Header.Select(_ => "---"))} |");
+		foreach (var row in segment.Rows) {
+			var cells = new List<string>();
+			for (var i = 0; i < segment.Header.Count; i++) {
+				cells.Add(i < row.Count ? ConvertCellToMarkdown(row[i]) : " ");
+			}
+			sb.AppendLine($"| {string.Join(" | ", cells)} |");
+		}
+		return sb.ToString().TrimEnd();
+	}
+
+	private static string ConvertCellToMarkdown(TableCell cell) =>
+		cell.Runs.Count == 0 ? " " : ConvertTextRunsToMarkdown(cell.Runs, null, FootnoteStyle.Parentheses);
 
 	private static string ConvertImageSegmentToMarkdown(ImageSegmentModel segment) {
 		var altText = segment.Caption ?? "Image";

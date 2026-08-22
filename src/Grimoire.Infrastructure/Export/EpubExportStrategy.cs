@@ -29,7 +29,9 @@ public partial class EpubExportStrategy(
 				context.Series.Metadata?.Authors?.FirstOrDefault(),
 				Language: context.Structure.Localization.Language,
 				PlainTextDescription: context.PlainTextDescription,
-				Localization: context.Structure.Localization
+				Localization: context.Structure.Localization,
+				Isbn: context.Isbn,
+				SeriesId: context.Series.Id
 			));
 
 			// 2. Global CSS

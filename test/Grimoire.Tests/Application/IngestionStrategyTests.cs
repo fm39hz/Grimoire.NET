@@ -106,7 +106,7 @@ public class IngestionStrategyTests {
 	[Fact]
 	public void RawMarkdownIngestionStrategy_CanHandle_ValidRawContent_ReturnsTrue() {
 		var repo = new InMemoryVolumeRepository();
-		var strategy = new RawMarkdownIngestionStrategy(repo);
+		var strategy = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
@@ -122,7 +122,7 @@ public class IngestionStrategyTests {
 	[Fact]
 	public void RawMarkdownIngestionStrategy_CanHandle_NullRawContent_ReturnsFalse() {
 		var repo = new InMemoryVolumeRepository();
-		var strategy = new RawMarkdownIngestionStrategy(repo);
+		var strategy = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
@@ -136,19 +136,33 @@ public class IngestionStrategyTests {
 	}
 
 	[Fact]
-	public void RawMarkdownIngestionStrategy_CanHandle_ContentContainsHtml_ReturnsFalse() {
+	public void RawMarkdownIngestionStrategy_CanHandle_ContentContainsHtml_ReturnsTrueAndPreservesVerbatim() {
+		var volumeId = Guid.NewGuid();
+		var seriesId = Guid.NewGuid();
 		var repo = new InMemoryVolumeRepository();
-		var strategy = new RawMarkdownIngestionStrategy(repo);
+		repo.Create(new VolumeModel {
+			Id = volumeId,
+			Path = $"n{seriesId:N}.n{volumeId:N}",
+			Order = 1,
+			Title = "Volume 1"
+		}).GetAwaiter().GetResult();
+
+		var strategy = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
+		const string raw = "This contains <div>HTML</div>";
 		var dto = new CreateChapterRequestDto(
-			VolumeId: Guid.NewGuid().ToString(),
+			VolumeId: volumeId.ToString(),
 			Order: 1,
 			Title: "Test",
 			Content: null,
 			Footnotes: [],
-			RawContent: "This contains <div>HTML</div>"
+			RawContent: raw
 		);
 
-		Assert.False(strategy.CanHandle(dto));
+		Assert.True(strategy.CanHandle(dto));
+
+		var result = strategy.ExecuteAsync(dto, volumeId).GetAwaiter().GetResult();
+		var text = Assert.Single(result.Segments.OfType<TextSegmentModel>());
+		Assert.Contains("<div>", string.Concat(text.Runs.Select(r => r.Text)));
 	}
 
 	[Fact]
@@ -163,7 +177,7 @@ public class IngestionStrategyTests {
 			Title = "Volume 1"
 		});
 
-		var strategy = new RawMarkdownIngestionStrategy(repo);
+		var strategy = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: volumeId.ToString(),
 			Order: 5,
@@ -195,7 +209,7 @@ public class IngestionStrategyTests {
 	[Fact]
 	public async Task RawMarkdownIngestionStrategy_ExecuteAsync_VolumeNotFound_ThrowsInvalidOperationException() {
 		var repo = new InMemoryVolumeRepository();
-		var strategy = new RawMarkdownIngestionStrategy(repo);
+		var strategy = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
 		var dto = new CreateChapterRequestDto(
 			VolumeId: Guid.NewGuid().ToString(),
 			Order: 1,
@@ -215,7 +229,7 @@ public class IngestionStrategyTests {
 	public void IngestionStrategyFactory_GetStrategy_ReturnsFirstMatchingStrategy() {
 		var strategy1 = new PreProcessedIngestionStrategy(Mapper);
 		var repo = new InMemoryVolumeRepository();
-		var strategy2 = new RawMarkdownIngestionStrategy(repo);
+		var strategy2 = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
 
 		var factory = new IngestionStrategyFactory([strategy1, strategy2]);
 
@@ -249,7 +263,7 @@ public class IngestionStrategyTests {
 	[Fact]
 	public void IngestionStrategyFactory_GetStrategy_NoMatchingStrategy_ThrowsInvalidOperationException() {
 		var repo = new InMemoryVolumeRepository();
-		var strategy = new RawMarkdownIngestionStrategy(repo);
+		var strategy = new RawMarkdownIngestionStrategy(new MarkdownSegmentParser(), repo);
 		var factory = new IngestionStrategyFactory([strategy]);
 
 		// Preprocessed DTO cannot be handled by Raw strategy

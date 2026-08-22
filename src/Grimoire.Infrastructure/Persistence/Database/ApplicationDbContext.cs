@@ -135,7 +135,8 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 				.HasValue<TextSegmentModel>("Text")
 				.HasValue<ImageSegmentModel>("Image")
 				.HasValue<DividerSegmentModel>("Divider")
-				.HasValue<FootnoteSegmentModel>("Footnote");
+				.HasValue<FootnoteSegmentModel>("Footnote")
+				.HasValue<TableSegmentModel>("Table");
 		});
 
 		modelBuilder.Entity<TextSegmentModel>(static entity => entity.Property(static t => t.Runs)
@@ -145,6 +146,24 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 					static v => JsonSerializer.Deserialize<List<TextRun>>(v, JsonConfiguration.JsonOptions) ??
 						new List<TextRun>()
 				).Metadata.SetValueComparer(JsonConfiguration.TextRunComparer));
+
+		modelBuilder.Entity<TableSegmentModel>(static entity => {
+			entity.Property(static t => t.Header)
+				.HasColumnType("jsonb")
+				.HasConversion(
+					static v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					static v => JsonSerializer.Deserialize<List<TableCell>>(v, JsonConfiguration.JsonOptions) ??
+						new List<TableCell>()
+				).Metadata.SetValueComparer(JsonConfiguration.TableCellListComparer);
+
+			entity.Property(static t => t.Rows)
+				.HasColumnType("jsonb")
+				.HasConversion(
+					static v => JsonSerializer.Serialize(v, JsonConfiguration.JsonOptions),
+					static v => JsonSerializer.Deserialize<List<List<TableCell>>>(v, JsonConfiguration.JsonOptions) ??
+						new List<List<TableCell>>()
+				).Metadata.SetValueComparer(JsonConfiguration.TableRowListComparer);
+		});
 
 		modelBuilder.Entity<ImageSegmentModel>(static entity => {
 			entity.Property(static i => i.AssetKey).HasMaxLength(500).IsRequired();
